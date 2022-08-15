@@ -112,6 +112,12 @@ class Verify(Cog):
         )
 
     async def verify_code(self, ctx: Context, code: str):
+        if ctx.channel.id != constants.VERIFY_CHANNEL:
+            await ctx.reply(
+                f"This command can only be used in <#{constants.VERIFY_CHANNEL}>"
+            )
+            return
+
         author_id = ctx.author.id
 
         logger.info(f"verifying code '{code}' for {author_id}")

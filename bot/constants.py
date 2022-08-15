@@ -7,3 +7,5 @@ with open("/run/secrets/gmail_app_password") as secret:
     GMAIL_APP_PASSWORD = secret.readline().rstrip("\n")
 
 VERIFIED_ROLE = "Verified"
+
+VERIFY_CHANNEL = "1008833438041780224"
