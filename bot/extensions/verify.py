@@ -6,6 +6,7 @@ import uuid
 
 from typing import Optional
 
+import discord
 from discord.ext.commands import Cog, Context, command
 
 from bot import constants
@@ -143,7 +144,12 @@ class Verify(Cog):
         cursor.execute(VERIFY_USER_QUERY.format(id=author_id))
         conn.commit()
 
+        user = ctx.author
+
         logger.info(f"{author_id} verified succesfully")
+        await user.add_roles(
+            discord.utils.get(user.guild.roles, name=constants.VERIFIED_ROLE)
+        )
         await ctx.reply(
             "You have verified succesfully! Welcome to the psychology server"
         )
