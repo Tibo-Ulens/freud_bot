@@ -1,4 +1,3 @@
-import logging
 import random
 
 from discord import Message
@@ -6,9 +5,6 @@ from discord.ext.commands import Cog, Context
 
 from bot import constants
 from bot.bot import Bot
-
-
-logger = logging.getLogger("bot")
 
 
 class Listeners(Cog):
@@ -23,7 +19,6 @@ class Listeners(Cog):
     @staticmethod
     async def send_random_quote(msg: Message):
         quote = random.choice(constants.FREUD_QUOTES)
-        logger.info(quote)
         await msg.reply(quote)
 
 
