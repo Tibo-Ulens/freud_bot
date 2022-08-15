@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+    freud_bot:
+        build:
+            context: .
+        container_name: freud_bot
+        logging:
+            options:
+                max-size: "4096m"
+        secrets:
+          - discord_token
+          - gmail_app_password
+        depends_on:
+          - freud_bot_db
+
+    freud_bot_db:
+        image: postgres:alpine
+        container_name: freud_bot_db
+        restart: unless-stopped
+        logging:
+            options:
+                max-size: "4096m"
+        environment:
+          - POSTGRES_PASSWORD=postgres_password
+          - POSTGRES_USER=postgres_user
+          - POSTGRES_DB=freud_bot
+        ports:
+          - "5432:5432"
+        volumes:
+          - freud_bot_data:/var/lib/postgresql/data
+        healthcheck:
+            test: pg_isready -d freud_bot -h freud_bot_db -U postgres_user
+            interval: 10m
+            timeout: 5s
+            retries: 2
+
+volumes:
+    freud_bot_data:
+        external: true
+
+secrets:
+    discord_token:
+        file: ./secrets/discord_token.txt
+    gmail_app_password:
+        file: ./secrets/gmail_app_password.txt
