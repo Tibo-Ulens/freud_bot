@@ -164,7 +164,7 @@ class Verify(Cog):
 
     @command(name="verify")
     async def verify(self, ctx: Context, subcommand: Optional[str], arg: Optional[str]):
-        if ctx.channel.id != constants.VERIFY_CHANNEL:
+        if str(ctx.channel.id) != constants.VERIFY_CHANNEL:
             await ctx.reply(
                 f"This command can only be used in <#{constants.VERIFY_CHANNEL}>"
             )
