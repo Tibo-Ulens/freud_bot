@@ -13,7 +13,7 @@ from bot import constants
 from bot.bot import Bot
 
 
-EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
+EMAIL_REGEX = re.compile(r"[^\s@]+@ugent\.be")
 
 EMAIL_USER = "psychology.ugent@gmail.com"
 EMAIL_MESSAGE = "From: psychology.ugent@gmail.com\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
@@ -61,6 +61,14 @@ class Verify(Cog):
 
     async def verify_email(self, ctx: Context, email: str):
         author_id = ctx.author.id
+
+        if not (EMAIL_REGEX.match(email)):
+            logger.info(f"{author_id} tried to request code with non-ugent email")
+            await ctx.reply(
+                "This does not look like a valid UGent email address\nIf you think this is a mistake please contact a server admin"
+            )
+
+            return
 
         logger.info(f"verifying email '{email}' for {author_id}")
 
