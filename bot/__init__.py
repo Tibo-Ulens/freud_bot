@@ -1,7 +1,5 @@
 import logging
 
-from logging import Logger
-
 root_logger = logging.getLogger()
 
 format_string = "%(asctime)s | %(name)s | %(levelname)s | %(message)s"
