@@ -112,12 +112,6 @@ class Verify(Cog):
         )
 
     async def verify_code(self, ctx: Context, code: str):
-        if ctx.channel.id != constants.VERIFY_CHANNEL:
-            await ctx.reply(
-                f"This command can only be used in <#{constants.VERIFY_CHANNEL}>"
-            )
-            return
-
         author_id = ctx.author.id
 
         logger.info(f"verifying code '{code}' for {author_id}")
@@ -170,6 +164,12 @@ class Verify(Cog):
 
     @command(name="verify")
     async def verify(self, ctx: Context, subcommand: Optional[str], arg: Optional[str]):
+        if ctx.channel.id != constants.VERIFY_CHANNEL:
+            await ctx.reply(
+                f"This command can only be used in <#{constants.VERIFY_CHANNEL}>"
+            )
+            return
+
         if subcommand not in ["email", "code"]:
             await ctx.reply(
                 "Please specify whether you are verifying your email or your confirmation code\neg. `$verify email freud@oedipus.com`\nor `$verify code 123456`"
