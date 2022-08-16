@@ -172,7 +172,7 @@ class Verify(Cog):
 
             return
 
-        msg = msg.strip()
+        msg = msg.strip().lower()
 
         if len(msg.split(" ")) != 1:
             await ctx.reply(
