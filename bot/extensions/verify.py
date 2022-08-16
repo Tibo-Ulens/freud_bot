@@ -14,6 +14,7 @@ from bot.bot import Bot
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
+CODE_REGEX = re.compile(r"^'?([a-z0-9]{32})'?$")
 
 EMAIL_USER = "psychology.ugent@gmail.com"
 EMAIL_MESSAGE = "From: psychology.ugent@gmail.com\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
@@ -62,17 +63,9 @@ class Verify(Cog):
     async def verify_email(self, ctx: Context, email: str):
         author_id = ctx.author.id
 
-        if not (EMAIL_REGEX.match(email)):
-            logger.info(f"{author_id} tried to request code with non-ugent email")
-            await ctx.reply(
-                "This does not look like a valid UGent email address\nIf you think this is a mistake please contact a server admin"
-            )
-
-            return
-
         logger.info(f"verifying email '{email}' for {author_id}")
 
-        verification_code = str(uuid.uuid4().int)
+        verification_code = str(uuid.uuid4().hex)
 
         conn = self.bot.pg_conn
         cursor = conn.cursor()
@@ -95,7 +88,7 @@ class Verify(Cog):
 
                 self.send_confirmation_email(email, verification_code)
                 await ctx.reply(
-                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `$verify code <code>` now to complete verification"
+                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `$verify <code>` now to complete verification"
                 )
 
                 return
@@ -108,7 +101,7 @@ class Verify(Cog):
 
         self.send_confirmation_email(email, verification_code)
         await ctx.reply(
-            f"A confirmation code has been sent to '{email}'\nPlease use `$verify code <code>` now to complete verification"
+            f"A confirmation code has been sent to '{email}'\nPlease use `$verify <code>` now to complete verification"
         )
 
     async def verify_code(self, ctx: Context, code: str):
@@ -124,7 +117,7 @@ class Verify(Cog):
         if user is None:
             logger.info(f"{author_id} attempted to verify without requesting a code")
             await ctx.reply(
-                "It seems you are trying to verify a code without having requested one first\nPlease use `$verify email <email>` to request a code"
+                "It seems you are trying to verify a code without having requested one first\nPlease use `$verify <email>` to request a code"
             )
 
             return
@@ -144,7 +137,7 @@ class Verify(Cog):
         if code != stored_code:
             logger.info(f"{author_id} attempted to verify with an invalid code")
             await ctx.reply(
-                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `$verify email <email>`"
+                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `$verify <email>`"
             )
 
             return
@@ -163,38 +156,43 @@ class Verify(Cog):
         )
 
     @command(name="verify")
-    async def verify(self, ctx: Context, subcommand: Optional[str], arg: Optional[str]):
+    async def verify(self, ctx: Context, msg: Optional[str]):
+        author_id = ctx.author.id
+
         if str(ctx.channel.id) != constants.VERIFY_CHANNEL:
             await ctx.reply(
                 f"This command can only be used in <#{constants.VERIFY_CHANNEL}>"
             )
             return
 
-        if subcommand not in ["email", "code"]:
+        if msg is None:
             await ctx.reply(
-                "Please specify whether you are verifying your email or your confirmation code\neg. `$verify email freud@oedipus.com`\nor `$verify code 123456`"
+                "Please give either your email or your verification code\neg. `$verify freud@oedipus.com\nor `$verify 123456`"
             )
 
             return
 
-        if arg is None:
-            if subcommand == "email":
-                await ctx.reply(
-                    "Please also specify your email\neg. `$verify email freud@oedipus.com`"
-                )
-            else:
-                await ctx.reply(
-                    "Please also specify your confirmation code\neg. `$verify code 123456`"
-                )
+        msg = msg.strip()
+
+        if len(msg.split(" ")) != 1:
+            await ctx.reply(
+                "This command only takes one argument\neg. `$verify freud@oedipus.com`\nor `$verify 123456`"
+            )
 
             return
 
         try:
-            if subcommand == "email":
-                await self.verify_email(ctx, arg)
+            if EMAIL_REGEX.match(msg):
+                await self.verify_email(ctx, msg)
+            elif match := CODE_REGEX.search(msg):
+                code = match.group(1)
+                await self.verify_code(ctx, code)
             else:
-                await self.verify_code(ctx, arg)
-        except Exception as err:
+                logger.info(f"{author_id} submitted invalid email or code: '{msg}'")
+                await ctx.reply(
+                    "This doesn't look like a valid UGent email or a valid verification code\nIf you think this is a mistake please contact a server admin"
+                )
+        except Exception:
             await ctx.reply("Something went wrong, please notify the server admins")
             logger.error(traceback.format_exc())
 
