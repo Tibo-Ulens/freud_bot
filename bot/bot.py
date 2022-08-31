@@ -5,6 +5,8 @@ from contextlib import suppress
 import discord
 from discord.ext import commands
 
+from bot.constants import GUILD_ID
+
 
 logger = logging.getLogger("bot")
 
@@ -58,31 +60,24 @@ class Bot(commands.Bot):
 
         return cls(conn, command_prefix="$", intents=intents)
 
-    def load_extensions(self) -> None:
+    async def setup_hook(self):
+        self.tree.copy_global_to(guild=GUILD_ID)
+        await self.tree.sync()
+
+    async def load_extensions(self) -> None:
         """Load all enabled extensions"""
 
         from bot.extensions import EXTENSIONS
 
         for ext in EXTENSIONS:
             logger.info(f"Loading extension {ext}")
-            self.load_extension(ext)
+            await self.load_extension(ext)
 
-    def add_cog(self, cog: commands.Cog) -> None:
+    async def add_cog(self, cog: commands.Cog) -> None:
         """Add a cog to the bot"""
 
         logger.info(f"Adding cog {cog.qualified_name}")
-        super().add_cog(cog)
-
-    def add_command(self, command: commands.Command) -> None:
-        """Add a command to the bot"""
-
-        logger.info(f"Adding command {command.qualified_name}")
-        super().add_command(command)
-
-    async def login(self, *args, **kwargs):
-        """Create a connector and setup sessions before logging in to Discord"""
-
-        await super().login(*args, **kwargs)
+        await super().add_cog(cog)
 
     async def close(self) -> None:
         """Close the Discord connection, aiohttp session, connector, and resolver"""
@@ -98,11 +93,14 @@ class Bot(commands.Bot):
                 logger.info(f"Removing cog {cog}")
                 self.remove_cog(cog)
 
+        logger.info("Closing Postgres connection")
+        self.pg_conn.close()
+
         logger.info("Closing bot client...")
 
         await super().close()
 
         await self.logout()
 
-    async def on_error(self, event: str, *args, **kwargs) -> None:
+    async def on_error(self, event: str) -> None:
         logger.exception(f"Unhandled exception in {event}")

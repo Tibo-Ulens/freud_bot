@@ -7,7 +7,8 @@ import uuid
 from typing import Optional
 
 import discord
-from discord.ext.commands import Cog, Context, command
+from discord import app_commands, Interaction
+from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
@@ -41,27 +42,21 @@ class Verify(Cog):
     def send_confirmation_email(to: str, code: str):
         message = EMAIL_MESSAGE.format(to=to, code=code)
 
-        email_logger.info(f"sending email to {to}")
+        email_logger.info(f"sending email to {to}...")
         server = smtplib.SMTP("smtp.gmail.com", 587)
 
-        email_logger.info("sending ehlo...")
         server.ehlo()
-
-        email_logger.info("switching to TLS...")
         server.starttls()
-
-        email_logger.info("logging in...")
         server.login(EMAIL_USER, constants.GMAIL_APP_PASSWORD)
 
-        email_logger.info("sending...")
         server.sendmail(EMAIL_USER, to, message)
 
         server.close()
 
         email_logger.info("done")
 
-    async def verify_email(self, ctx: Context, email: str):
-        author_id = ctx.author.id
+    async def verify_email(self, iactn: Interaction, email: str):
+        author_id = iactn.user.id
 
         logger.info(f"verifying email '{email}' for {author_id}")
 
@@ -75,8 +70,9 @@ class Verify(Cog):
                 logger.info(
                     f"{author_id} requested verification for already verified user"
                 )
-                await ctx.reply(
-                    "A verified user with this email address already exists"
+                await iactn.response.send_message(
+                    "A verified user with this email address already exists\nIf you think this is a mistake please contact a server admin",
+                    ephemeral=True,
                 )
                 return
             else:
@@ -87,8 +83,9 @@ class Verify(Cog):
                 conn.commit()
 
                 self.send_confirmation_email(email, verification_code)
-                await ctx.reply(
-                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `$verify <code>` now to complete verification"
+                await iactn.response.send_message(
+                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `$verify <code>` now to complete verification",
+                    ephemeral=True,
                 )
 
                 return
@@ -100,12 +97,12 @@ class Verify(Cog):
         conn.commit()
 
         self.send_confirmation_email(email, verification_code)
-        await ctx.reply(
-            f"A confirmation code has been sent to '{email}'\nPlease use `$verify <code>` now to complete verification"
+        await iactn.response.send_message(
+            f"A confirmation code has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification"
         )
 
-    async def verify_code(self, ctx: Context, code: str):
-        author_id = ctx.author.id
+    async def verify_code(self, iactn: Interaction, code: str):
+        author_id = iactn.user.id
 
         logger.info(f"verifying code '{code}' for {author_id}")
 
@@ -116,8 +113,9 @@ class Verify(Cog):
 
         if user is None:
             logger.info(f"{author_id} attempted to verify without requesting a code")
-            await ctx.reply(
-                "It seems you are trying to verify a code without having requested one first\nPlease use `$verify <email>` to request a code"
+            await iactn.response.send_message(
+                "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
+                ephemeral=True,
             )
 
             return
@@ -126,8 +124,9 @@ class Verify(Cog):
             logger.info(
                 f"{author_id} attempted to verify again after already having been verified"
             )
-            await ctx.reply(
-                "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin"
+            await iactn.response.send_message(
+                "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
+                ephemeral=True,
             )
 
             return
@@ -136,8 +135,9 @@ class Verify(Cog):
 
         if code != stored_code:
             logger.info(f"{author_id} attempted to verify with an invalid code")
-            await ctx.reply(
-                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `$verify <email>`"
+            await iactn.response.send_message(
+                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
+                ephemeral=True,
             )
 
             return
@@ -145,57 +145,56 @@ class Verify(Cog):
         cursor.execute(VERIFY_USER_QUERY.format(id=author_id))
         conn.commit()
 
-        user = ctx.author
+        user = iactn.user
 
         logger.info(f"{author_id} verified succesfully")
         await user.add_roles(
             discord.utils.get(user.guild.roles, name=constants.VERIFIED_ROLE)
         )
-        await ctx.reply(
+        await iactn.response.send_message(
             "You have verified succesfully! Welcome to the psychology server"
         )
 
-    @command(name="verify")
-    async def verify(self, ctx: Context, msg: Optional[str]):
-        author_id = ctx.author.id
+    @app_commands.command(name="verify")
+    @app_commands.describe(argument="Your UGent email or verification code")
+    async def verify(self, iactn: Interaction, argument: str):
+        author_id = iactn.user.id
 
-        if str(ctx.channel.id) != constants.VERIFY_CHANNEL:
-            await ctx.reply(
-                f"This command can only be used in <#{constants.VERIFY_CHANNEL}>"
+        if str(iactn.channel_id) != constants.VERIFY_CHANNEL:
+            await iactn.response.send_message(
+                f"This command can only be used in <#{constants.VERIFY_CHANNEL}>",
+                ephemeral=True,
             )
             return
 
-        if msg is None:
-            await ctx.reply(
-                "Please give either your email or your verification code\neg. `$verify freud@oedipus.com\nor `$verify 123456`"
-            )
-
-            return
-
-        msg = msg.strip().lower()
+        msg = argument.strip().lower()
 
         if len(msg.split(" ")) != 1:
-            await ctx.reply(
-                "This command only takes one argument\neg. `$verify freud@oedipus.com`\nor `$verify 123456`"
+            await iactn.response.send_message(
+                "This command only takes one argument\neg. `/verify freud@oedipus.com`\nor `/verify 123456`",
+                ephemeral=True,
             )
 
             return
 
         try:
             if EMAIL_REGEX.match(msg):
-                await self.verify_email(ctx, msg)
+                await self.verify_email(iactn, msg)
             elif match := CODE_REGEX.search(msg):
                 code = match.group(1)
-                await self.verify_code(ctx, code)
+                await self.verify_code(iactn, code)
             else:
                 logger.info(f"{author_id} submitted invalid email or code: '{msg}'")
-                await ctx.reply(
-                    "This doesn't look like a valid UGent email or a valid verification code\nIf you think this is a mistake please contact a server admin"
+                await iactn.response.send_message(
+                    "This doesn't look like a valid UGent email or a valid verification code\nIf you think this is a mistake please contact a server admin",
+                    ephemeral=True,
                 )
         except Exception:
-            await ctx.reply("Something went wrong, please notify the server admins")
+            await iactn.response.send_message(
+                "Something went wrong, please notify the server admins"
+            )
             logger.error(traceback.format_exc())
 
 
-def setup(bot: Bot):
-    bot.add_cog(Verify(bot))
+async def setup(bot: Bot):
+    await bot.add_cog(Verify(bot))

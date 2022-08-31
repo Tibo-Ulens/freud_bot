@@ -5,6 +5,10 @@ services:
         build:
             context: .
         container_name: freud_bot
+        environment:
+          - GUILD_ID=983088370509053983
+          - VERIFY_CHANNEL=983088370966212609
+          - VERIFIED_ROLE=Verified
         logging:
             options:
                 max-size: "4096m"

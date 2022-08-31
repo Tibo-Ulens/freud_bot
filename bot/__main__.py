@@ -14,7 +14,7 @@ async def main():
     bot.instance = Bot.create()
 
     logger.info("Loading extensions...")
-    bot.instance.load_extensions()
+    await bot.instance.load_extensions()
 
     logger.info("Starting bot...")
     await bot.instance.start(DISCORD_TOKEN)

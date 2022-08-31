@@ -1,15 +1,23 @@
 import random
+import logging
 
 from discord import Message
-from discord.ext.commands import Cog, Context
+from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
 
 
+logger = logging.getLogger("bot")
+
+
 class Listeners(Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+
+    @Cog.listener()
+    async def on_ready(self):
+        logger.info("ready")
 
     @Cog.listener()
     async def on_message(self, msg: Message):
@@ -22,5 +30,5 @@ class Listeners(Cog):
         await msg.reply(quote)
 
 
-def setup(bot: Bot):
-    bot.add_cog(Listeners(bot))
+async def setup(bot: Bot):
+    await bot.add_cog(Listeners(bot))
