@@ -11,7 +11,7 @@ logger = logging.getLogger("main")
 
 async def main():
     logger.info("Creating bot...")
-    bot.instance = Bot.create()
+    bot.instance = await Bot.create()
 
     logger.info("Loading extensions...")
     await bot.instance.load_extensions()

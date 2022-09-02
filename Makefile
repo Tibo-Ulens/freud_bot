@@ -1,7 +1,7 @@
-.PHONY: all
+.PHONY: all fmt
 
-all: format
+all: fmt
 	docker-compose up --build
 
-format:
+fmt:
 	black .

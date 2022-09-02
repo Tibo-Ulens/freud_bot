@@ -1,5 +1,7 @@
+import os
+
 import logging
-import psycopg2
+import psycopg
 from contextlib import suppress
 
 import discord
@@ -14,13 +16,13 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, pg_conn, *args, **kwargs):
+    def __init__(self, pg_conn: psycopg.AsyncConnection, *args, **kwargs):
         self.pg_conn = pg_conn
 
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def create(cls) -> "Bot":
+    async def create(cls) -> "Bot":
         """Create and return a new bot instance"""
 
         intents = discord.Intents.default()
@@ -38,13 +40,7 @@ class Bot(commands.Bot):
 
         intents.webhooks = False
 
-        conn = psycopg2.connect(
-            user="postgres_user",
-            password="postgres_password",
-            host="freud_bot_db",
-            port="5432",
-            database="freud_bot",
-        )
+        conn = await psycopg.AsyncConnection.connect(os.environ.get("DB_URL"))
 
         cursor = conn.cursor()
 
@@ -55,8 +51,8 @@ class Bot(commands.Bot):
             confirmation_code TEXT          UNIQUE
         );
         """
-        cursor.execute(verified_user_table_query)
-        conn.commit()
+        await cursor.execute(verified_user_table_query)
+        await conn.commit()
 
         return cls(conn, command_prefix="$", intents=intents)
 

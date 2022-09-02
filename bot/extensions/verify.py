@@ -64,8 +64,8 @@ class Verify(Cog):
 
         conn = self.bot.pg_conn
         cursor = conn.cursor()
-        cursor.execute(FIND_USER_QUERY.format(id=author_id))
-        if (user := cursor.fetchone()) is not None:
+        await cursor.execute(FIND_USER_QUERY.format(id=author_id))
+        if (user := await cursor.fetchone()) is not None:
             if user[2] is None:
                 logger.info(
                     f"{author_id} requested verification for already verified user"
@@ -77,10 +77,10 @@ class Verify(Cog):
                 return
             else:
                 logger.info(f"{author_id} requested verification code reset")
-                cursor.execute(
+                await cursor.execute(
                     UPDATE_USER_QUERY.format(code=verification_code, id=author_id)
                 )
-                conn.commit()
+                await conn.commit()
 
                 self.send_confirmation_email(email, verification_code)
                 await iactn.response.send_message(
@@ -91,10 +91,10 @@ class Verify(Cog):
                 return
 
         logger.info(f"{author_id} requested new verification code")
-        cursor.execute(
+        await cursor.execute(
             INSERT_USER_QUERY.format(id=author_id, email=email, code=verification_code)
         )
-        conn.commit()
+        await conn.commit()
 
         self.send_confirmation_email(email, verification_code)
         await iactn.response.send_message(
@@ -108,8 +108,8 @@ class Verify(Cog):
 
         conn = self.bot.pg_conn
         cursor = conn.cursor()
-        cursor.execute(FIND_USER_QUERY.format(id=author_id))
-        user = cursor.fetchone()
+        await cursor.execute(FIND_USER_QUERY.format(id=author_id))
+        user = await cursor.fetchone()
 
         if user is None:
             logger.info(f"{author_id} attempted to verify without requesting a code")
@@ -142,8 +142,8 @@ class Verify(Cog):
 
             return
 
-        cursor.execute(VERIFY_USER_QUERY.format(id=author_id))
-        conn.commit()
+        await cursor.execute(VERIFY_USER_QUERY.format(id=author_id))
+        await conn.commit()
 
         user = iactn.user
 
