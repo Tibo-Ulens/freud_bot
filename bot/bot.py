@@ -61,6 +61,8 @@ class Bot(commands.Bot):
         return cls(conn, command_prefix="$", intents=intents)
 
     async def setup_hook(self):
+        """Sync slash commands to guild"""
+
         self.tree.copy_global_to(guild=GUILD_ID)
         await self.tree.sync()
 
@@ -80,7 +82,7 @@ class Bot(commands.Bot):
         await super().add_cog(cog)
 
     async def close(self) -> None:
-        """Close the Discord connection, aiohttp session, connector, and resolver"""
+        """Close the Discord connection"""
 
         # Remove all extensions and cogs
         for ext in list(self.extensions):
