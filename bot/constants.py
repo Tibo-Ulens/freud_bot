@@ -16,6 +16,20 @@ VERIFIED_ROLE = os.environ.get("VERIFIED_ROLE")
 
 VERIFY_CHANNEL = os.environ.get("VERIFY_CHANNEL")
 
+DRIVE_LINKS = {
+    "Grondslagen van de Psychologie": "https://drive.google.com/drive/folders/10ZKbgdHg49_DRjH5TtPtZ7sZjQt6GmMD?usp=sharing",
+    "Kwalitatieve Data Analyse": "https://drive.google.com/drive/folders/10EKAngz_VfQzSQ1RKgZbvKOZ61SmEmMZ?usp=sharing",
+    "Ontwikkelingspsychologie": "https://drive.google.com/drive/folders/1-AF5LQKTqdSFFAXBM49yk3o9UhnTLOFN?usp=sharing",
+    "Sociale Psychologie": "https://drive.google.com/drive/folders/1-0tAWRMPh9m2RmZKrI6uNDVkSSmmFekh?usp=sharing",
+    "Statistiek 1": "https://drive.google.com/drive/folders/1-6cUn4w0ixenP2UesO1qk3BK5-3f1-nl?usp=sharing",
+    "Algemene Psychologie": "https://drive.google.com/drive/folders/1OXNVWr46Ihyne1pQ_QB5-0f_WJYy91G4?usp=sharing",
+    "Differentiële Psychologie": "https://drive.google.com/drive/folders/1OXEmLY3tIlZdL9wNyerdrpFCWg4xZfKO?usp=sharing",
+    "Erfelijkheidsleer": "https://drive.google.com/drive/folders/1OZnTXhyvYF87f7EK5_qN5BqZ5jNtvmTg?usp=sharing",
+    "Introductie Cognitieve Psychologie 1": "https://drive.google.com/drive/folders/1O_oBm21jgn9_0c9OuZjc6PS1-AIq0AEw?usp=sharing",
+    "Methodologie": "https://drive.google.com/drive/folders/1OuNgRibMgktYOPwTd2UiuREfRrctGURL?usp=sharing",
+    "Maatschappelijke Structuren": "https://drive.google.com/drive/folders/1OpxdJA__BYx0RlsJIV8ei2zdWuZ_Mh45?usp=sharing",
+}
+
 FREUD_QUOTES = [
     "One day, in retrospect, the years of struggle will strike you as the most beautiful.",
     "Being entirely honest with oneself is a good exercise.",
