@@ -147,7 +147,9 @@ class Verify(Cog):
             "You have verified succesfully! Welcome to the psychology server"
         )
 
-    @app_commands.command(name="verify")
+    @app_commands.command(
+        name="verify", description="Verify that you are a true UGentStudent"
+    )
     @app_commands.describe(argument="Your UGent email or verification code")
     async def verify(self, iactn: Interaction, argument: str):
         author_id = iactn.user.id

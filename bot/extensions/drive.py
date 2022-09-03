@@ -10,7 +10,10 @@ class Drive(Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-    @app_commands.command(name="drive")
+    @app_commands.command(
+        name="drive",
+        description="Send a link to the Google Drive folder for a specific course",
+    )
     @app_commands.describe(course="The name of the course to link to")
     @app_commands.choices(
         course=[
