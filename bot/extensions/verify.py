@@ -4,14 +4,13 @@ import smtplib
 import traceback
 import uuid
 
-from typing import Optional
-
 import discord
 from discord import app_commands, Interaction
 from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
+from bot.models.profile import Profile
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
@@ -19,15 +18,6 @@ CODE_REGEX = re.compile(r"^'?([a-z0-9]{32})'?$")
 
 EMAIL_USER = "psychology.ugent@gmail.com"
 EMAIL_MESSAGE = "From: psychology.ugent@gmail.com\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
-
-FIND_USER_QUERY = "SELECT * FROM verified_user WHERE discord_id = '{id}';"
-UPDATE_USER_QUERY = (
-    "UPDATE verified_user SET confirmation_code = '{code}' WHERE discord_id = '{id}';"
-)
-INSERT_USER_QUERY = "INSERT INTO verified_user VALUES ({id}, '{email}', '{code}');"
-VERIFY_USER_QUERY = (
-    "UPDATE verified_user SET confirmation_code = NULL WHERE discord_id = '{id}';"
-)
 
 
 logger = logging.getLogger("bot")
@@ -56,45 +46,50 @@ class Verify(Cog):
         email_logger.info("done")
 
     async def verify_email(self, iactn: Interaction, email: str):
-        author_id = iactn.user.id
+        author_id = str(iactn.user.id)
 
         logger.info(f"verifying email '{email}' for {author_id}")
 
         verification_code = str(uuid.uuid4().hex)
 
-        conn = self.bot.pg_conn
-        cursor = conn.cursor()
-        await cursor.execute(FIND_USER_QUERY.format(id=author_id))
-        if (user := await cursor.fetchone()) is not None:
-            if user[2] is None:
+        profile = await Profile.find_by_discord_id(author_id)
+        if profile is not None:
+            if profile.confirmation_code is None:
                 logger.info(
                     f"{author_id} requested verification for already verified user"
                 )
                 await iactn.response.send_message(
-                    "A verified user with this email address already exists\nIf you think this is a mistake please contact a server admin",
+                    "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
                     ephemeral=True,
                 )
                 return
             else:
                 logger.info(f"{author_id} requested verification code reset")
-                await cursor.execute(
-                    UPDATE_USER_QUERY.format(code=verification_code, id=author_id)
-                )
-                await conn.commit()
+
+                profile.confirmation_code = verification_code
+                await profile.save()
 
                 self.send_confirmation_email(email, verification_code)
                 await iactn.response.send_message(
-                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `$verify <code>` now to complete verification",
+                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification",
                     ephemeral=True,
                 )
 
                 return
 
+        other = await Profile.find_by_email(email)
+        if other is not None:
+            logger.info(f"{author_id} requested verification for already used email")
+            await iactn.response.send_message(
+                "A different profile with this email already exists\nIf you think this is a mistake please contact a server admin",
+                ephemeral=True,
+            )
+            return
+
         logger.info(f"{author_id} requested new verification code")
-        await cursor.execute(
-            INSERT_USER_QUERY.format(id=author_id, email=email, code=verification_code)
+        await Profile.create(
+            discord_id=author_id, email=email, confirmation_code=verification_code
         )
-        await conn.commit()
 
         self.send_confirmation_email(email, verification_code)
         await iactn.response.send_message(
@@ -102,16 +97,13 @@ class Verify(Cog):
         )
 
     async def verify_code(self, iactn: Interaction, code: str):
-        author_id = iactn.user.id
+        author_id = str(iactn.user.id)
 
         logger.info(f"verifying code '{code}' for {author_id}")
 
-        conn = self.bot.pg_conn
-        cursor = conn.cursor()
-        await cursor.execute(FIND_USER_QUERY.format(id=author_id))
-        user = await cursor.fetchone()
+        profile = await Profile.find_by_discord_id(author_id)
 
-        if user is None:
+        if profile is None:
             logger.info(f"{author_id} attempted to verify without requesting a code")
             await iactn.response.send_message(
                 "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
@@ -120,7 +112,7 @@ class Verify(Cog):
 
             return
 
-        if user[2] is None:
+        if profile.confirmation_code is None:
             logger.info(
                 f"{author_id} attempted to verify again after already having been verified"
             )
@@ -131,7 +123,7 @@ class Verify(Cog):
 
             return
 
-        stored_code: str = user[2]
+        stored_code: str = profile.confirmation_code
 
         if code != stored_code:
             logger.info(f"{author_id} attempted to verify with an invalid code")
@@ -142,8 +134,8 @@ class Verify(Cog):
 
             return
 
-        await cursor.execute(VERIFY_USER_QUERY.format(id=author_id))
-        await conn.commit()
+        profile.confirmation_code = None
+        await profile.save()
 
         user = iactn.user
 

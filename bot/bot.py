@@ -1,11 +1,10 @@
 import os
-
-import logging
-import psycopg
 from contextlib import suppress
 
+import logging
 import discord
 from discord.ext import commands
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
 from bot.constants import GUILD_ID
 
@@ -16,9 +15,7 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, pg_conn: psycopg.AsyncConnection, *args, **kwargs):
-        self.pg_conn = pg_conn
-
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -40,21 +37,7 @@ class Bot(commands.Bot):
 
         intents.webhooks = False
 
-        conn = await psycopg.AsyncConnection.connect(os.environ.get("DB_URL"))
-
-        cursor = conn.cursor()
-
-        verified_user_table_query = """
-        CREATE TABLE IF NOT EXISTS verified_user (
-            discord_id        TEXT NOT NULL UNIQUE,
-            email             TEXT NOT NULL UNIQUE,
-            confirmation_code TEXT          UNIQUE
-        );
-        """
-        await cursor.execute(verified_user_table_query)
-        await conn.commit()
-
-        return cls(conn, command_prefix="$", intents=intents)
+        return cls(command_prefix="$", intents=intents)
 
     async def setup_hook(self):
         """Sync slash commands to guild"""
