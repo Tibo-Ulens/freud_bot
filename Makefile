@@ -1,7 +1,7 @@
 .PHONY: all fmt migrate down dbd setup
 
 all: fmt
-	docker-compose up --build
+	docker compose up --build
 
 fmt:
 	black .
