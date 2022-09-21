@@ -1,4 +1,7 @@
 secrets/
+privacy-policy/*
+!privacy-policy/*.tex
+!privacy-policy/*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

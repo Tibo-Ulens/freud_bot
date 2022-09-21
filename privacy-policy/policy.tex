@@ -1,0 +1,126 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[dutch]{babel}
+\usepackage[scaled]{helvet}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\setlength{\parindent}{0cm}
+
+\begin{document}
+	\begin{center}
+		\vspace{1cm}
+		\huge
+		\textbf{FreudBot Privacybeleid}
+		\vspace{1cm}
+		\normalsize
+	\end{center}
+
+	De Discord-server voor de Bachelor of Science in de psychologie aan de
+	UGent maakt gebruik van een bot (FreudBot) om te verifiëren als een persoon
+	effectief is ingeschreven aan de UGent. De bot bereikt dit door de persoon
+	voor hun e-mail te vragen en ze vervolgens een code te versturen via e-mail.
+	De persoon zal deze code dan opnieuw aan de bot geven, waarna de bot tot
+	slot bevestigt dat deze code overeenkomt met degene die origineel aan de
+	persoon werd gegeven.
+
+	Dit privacybeleid wil aantonen aan personen die zich verifiëren via
+	FreudBot (hierna te noemen: geverifieerden) hoe deze data verzameld en
+	verwerkt worden, en welke rechten de geverifieerden hebben over deze data.
+
+	\section{Wanneer is dit privacybeleid van toepassing?}
+	Dit beleid is geldig omtrent alle zaken gerelateerd aan de persoonlijke
+	data van geverifieerden die door FreudBot worden bijgehouden.
+
+	FreudBot zal enkel en alleen data over geverifieerden bijhouden, dit begint
+	wanneer de persoon in kwestie vrijwillig het '/verify' commando in de
+	server gebruikt.
+
+	FreudBot zal geen persoonlijke data opslaan over personen die in de server
+	zitten en zich niet verifiëren.
+
+	\section{Welke data worden er verzameld en waarvoor worden ze gebruikt?}
+	FreudBot houdt 2 soorten persoonlijke data over geverifieerden bij:
+	\begin{itemize}
+		\setlength{\itemsep}{0cm}
+		\setlength{\parskip}{0cm}
+
+		\item \textbf{E-mailaddressen} - Dit om te verzekeren dat een
+		e-mailaddres slechts één keer wordt gebruikt.
+		\item \textbf{Discord Account IDs} - Dit om te verzekeren dat een
+		zekere Discord account zich slechts één keer verifieert.
+	\end{itemize}
+
+	Deze data worden door de geverifieerden aan FreudBot verstrekt op het
+	moment dat ze het '/verify' commando gebruiken.
+
+	Deze data worden voor geen enkel doeleinde gebruikt behalve garanderen dat
+	een persoon effectief een UGent e-mailaddres heeft.
+
+	\section{Hoe worden de data opgeslagen?}
+	Alle data worden opgeslagen in een PostgreSQL databank draaiende op een
+	server in het huis van Emiel Verbeeren. Deze databank is niet publiek
+	toegankelijk.
+
+	\section{Wie heeft er toegang tot de verzamelde data?}
+	Zowel Emiel Verbeeren als Tibo Ulens (zie sectie \ref{contactpersonen})
+	hebben toegang tot de verzamelde data.
+
+	Zij beperken hun inzage in de data tot het strikt noodzakelijke om de
+	succesvolle operatie van FreudBot te garanderen.
+
+	\section{Welke rechten hebben geverifieerden omstreke hun data?}
+	Om hun rechten te laten gelden of om opmerking en/of vragen hierover te
+	stellen kunnen geverifieerden contact opnemen met één van de
+	contactpersonen vermeldt in sectie \ref{contactpersonen}.
+	\\
+	\\
+	Hieronder volgt een korte oplijsting van de rechten van geverifieerden
+	omtrent hun opgeslagen data:
+
+	\begin{itemize}
+		\setlength{\itemsep}{0cm}
+		\setlength{\parskip}{0cm}
+
+		\item \textbf{Recht op Inzage} - Geverifieerden hebben het recht te
+		weten of FreudBot data van hen heeft, welke dit zijn, en op welke
+		manier of waarom deze gebruikt worden.
+		\item \textbf{Recht op Rectificatie en Aanvulling} - Geverifieerden
+		hebben het recht in voorkomend geval foute en/of ontbrekende gegevens
+		te laten corrigeren en/of aanvullen.
+		\item \textbf{Recht op Vergetelheid} - Geverifieerden hebben het recht
+		te vragen dat eenderwelke opgeslagen data van hun worden verwijdert.
+		\item \textbf{Recht op Overdraagbaarheid} - Geverifieerden hebben het
+		recht hun persoonlijke data op te vragen in een machine-leesbaar,
+		gestructureerd document.
+		\item \textbf{Recht op Bezwaar} - Geverifieerden hebben het recht
+		bezwaar aan te tekenen indien zij vernemen dat hun data onrechtmatig
+		verwerkt zouden worden.
+	\end{itemize}
+
+	\section{Contactpersonen} \label{contactpersonen}
+	\subsection{Emiel Verbeeren}
+	Beheerder van de Discordserver en eigenaar van de fysieke server waarop
+	FreudBot draait.
+
+	\begin{itemize}
+		\setlength{\itemsep}{0cm}
+		\setlength{\parskip}{0cm}
+
+		\item \textbf{E-mailaddres} - emiel.verbeeren@ugent.be
+		\item \textbf{Discord Gebruikersnaam} - Piglet\#3720
+	\end{itemize}
+
+	\subsection{Tibo Ulens}
+	Ontwikkelaar van FreudBot, heeft vanop afstand toegang tot de server waarop
+	FreudBot draait.
+
+	\begin{itemize}
+		\setlength{\itemsep}{0cm}
+		\setlength{\parskip}{0cm}
+
+		\item \textbf{E-mailaddres} - tibo.ulens@ugent.be
+		\item \textbf{Discord Gebruikersnaam} - Capy\#9030
+	\end{itemize}
+\end{document}
