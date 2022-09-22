@@ -14,7 +14,7 @@ from bot.models.profile import Profile
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
-CODE_REGEX = re.compile(r"^'?([a-z0-9]{32})'?$")
+CODE_REGEX = re.compile(r"^['|<]?([a-z0-9]{32})[>|']?$")
 
 EMAIL_USER = "psychology.ugent@gmail.com"
 EMAIL_MESSAGE = "From: psychology.ugent@gmail.com\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
