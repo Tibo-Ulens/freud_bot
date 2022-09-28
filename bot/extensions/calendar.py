@@ -1,6 +1,5 @@
 import logging
 
-import discord
 from discord import app_commands, Interaction
 from discord.app_commands import errors
 from discord.ext.commands import Cog
@@ -9,6 +8,7 @@ from selenium.webdriver import FirefoxOptions
 from selenium.webdriver.common.by import By
 
 from bot.bot import Bot
+from bot.models.course import Course
 
 
 TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
@@ -40,7 +40,8 @@ def levenshtein_ratio(s1: str, s2: str) -> int:
 async def course_autocomplete(
     _: Interaction, current: str
 ) -> list[app_commands.Choice[str]]:
-    courses = ["math", "art", "science", "history"]
+    courses = await Course.get_all()
+    courses = list(map(lambda c: c.name, courses))
     courses.sort(key=lambda c: levenshtein_ratio(c, current))
 
     return [app_commands.Choice(name=course, value=course) for course in courses]
@@ -82,21 +83,41 @@ class Calendar(Cog):
     async def add(self, iactn: Interaction, code: str, name: str):
         logger.info(f"adding course '{name}' with code '{code}'")
 
-        await iactn.response.send_message("WIP")
+        course = await Course.find_by_name(name)
+        if course is not None:
+            await iactn.response.send_message(f"Course {name} already exists")
+            return
+
+        await Course.create(code=code, name=name)
+
+        await iactn.response.send_message(f"Added course [{code}] {name}")
 
     @app_commands.guild_only()
-    @group.command(
-        name="remove", description="Remove a course from the list of courses"
-    )
+    @group.command(name="remove", description="Remove an available course")
     @app_commands.checks.has_role("Moderator")
-    @app_commands.autocomplete(course=course_autocomplete)
-    async def remove(self, iactn: Interaction, course: str):
-        logger.info(f"removing course '{course}'")
+    @app_commands.describe(name="The name of the course to remove")
+    @app_commands.autocomplete(name=course_autocomplete)
+    async def remove(self, iactn: Interaction, name: str):
+        logger.info(f"removing course '{name}'")
 
-        await iactn.response.send_message("WIP")
+        course = await Course.find_by_name(name)
+        if course is None:
+            await iactn.response.send_message(f"Course {name} does not exist")
+
+        await course.delete()
+        await iactn.response.send_message(f"Removed course [{course.code}] {name}")
+
+    @app_commands.guild_only()
+    @group.command(name="list", description="List all available courses")
+    @app_commands.checks.has_role("Moderator")
+    async def list_courses(self, iactn: Interaction):
+        courses = await Course.get_all()
+        courses = map(lambda c: f"[{c.code}] {c.name}")
+        await iactn.response.send_message(courses.join("\n"))
 
     @add.error
     @remove.error
+    @list_courses.error
     async def handle_command_error(self, iactn: Interaction, error):
         if isinstance(error, errors.MissingRole):
             await iactn.response.send_message(
