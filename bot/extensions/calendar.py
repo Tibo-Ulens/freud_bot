@@ -74,6 +74,7 @@ class Calendar(Cog):
     async def drop(self, iactn: Interaction):
         await iactn.response.send_message("WIP")
 
+    @app_commands.guild_only()
     @group.command(name="add", description="Add a new course to the list of courses")
     @app_commands.checks.has_role("Moderator")
     @app_commands.describe(code="The course code for the new course")
@@ -83,6 +84,7 @@ class Calendar(Cog):
 
         await iactn.response.send_message("WIP")
 
+    @app_commands.guild_only()
     @group.command(
         name="remove", description="Remove a course from the list of courses"
     )
@@ -100,6 +102,8 @@ class Calendar(Cog):
             await iactn.response.send_message(
                 "You are not allowed to use this command", ephemeral=True
             )
+        else:
+            await iactn.response.send_message("Unknown error")
 
 
 async def setup(bot: Bot):
