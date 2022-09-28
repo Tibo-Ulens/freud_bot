@@ -10,6 +10,7 @@ python = "^3.10"
 SQLAlchemy = {extras = ["asyncio"], version = "^1.4.40"}
 alembic = "^1.8.1"
 asyncpg = "^0.26.0"
+selenium = "^4.4.3"
 
 [tool.poetry.dev-dependencies]
 
