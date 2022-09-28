@@ -16,7 +16,7 @@ WORKDIR /freud_bot
 
 # Install deps
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --no-dev
+RUN poetry install --only main
 
 COPY . .
 
