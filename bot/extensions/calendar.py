@@ -1,7 +1,9 @@
 import asyncio
+from io import StringIO
 import logging
 from time import sleep
 
+import csv
 from discord import app_commands, Interaction
 from discord.app_commands import errors
 from discord.ext.commands import Cog
@@ -107,6 +109,8 @@ def get_csv_link(course_codes: list[str]) -> str:
     driver.close()
     driver.quit()
 
+    web_logger.info("done")
+
     return href
 
 
@@ -138,9 +142,24 @@ class Calendar(Cog):
         await iactn.edit_original_response(content="Downloading course data...")
 
         res = requests.get(csv_url, allow_redirects=True)
-        logger.info(res.text)
+        content = res.content.decode()
 
-        await iactn.edit_original_response(content=csv_url)
+        file = StringIO(content)
+        csv_data = csv.reader(file, delimiter=",")
+
+        # UGent csv files start with:
+        next(csv_data)  # an empty line (?)
+        next(csv_data)  # the UGent name
+        next(csv_data)  # course info
+
+        s = ""
+        s += " ".join(next(csv_data))
+        s += "\n"
+        s += " ".join(next(csv_data))
+
+        file.close()
+
+        await iactn.edit_original_response(content=s)
 
     group = app_commands.Group(name="course", description="calendar stuff")
 
