@@ -16,12 +16,12 @@ class Enrollment(Base, Model):
         return f"<{self.__class__.__name__}> profile_id: {self.profile_id} course_id: {self.course_id}"
 
     @classmethod
-    async def find_for_profile(cls, profile: Profile) -> list["Enrollment"]:
+    async def find_for_profile(cls, profile_id: str) -> list["Enrollment"]:
         """Find all enrollments for a given profile"""
 
         async with session_factory() as session:
             result: Query = await session.execute(
-                select(cls).where(cls.profile_id == profile.discord_id)
+                select(cls).where(cls.profile_id == profile_id)
             )
 
             return result.scalars().all()

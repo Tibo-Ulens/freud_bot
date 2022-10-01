@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 
 from bot.bot import Bot
 from bot.models.course import Course
+from bot.models.enrollment import Enrollment
 
 
 TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
@@ -67,12 +68,23 @@ class Calendar(Cog):
 
     group = app_commands.Group(name="course", description="calendar stuff")
 
+    @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")
-    async def enroll(self, iactn: Interaction):
+    @app_commands.describe(name="The name of the course to enroll in")
+    @app_commands.autocomplete(name=course_autocomplete)
+    async def enroll_in_course(self, iactn: Interaction, name: str):
         await iactn.response.send_message("WIP")
 
+    @app_commands.guild_only()
     @group.command(name="drop", description="Drop a specific course")
-    async def drop(self, iactn: Interaction):
+    @app_commands.describe(name="The name of the course to drop")
+    @app_commands.autocomplete(name=course_autocomplete)
+    async def drop_course(self, iactn: Interaction, name: str):
+        await iactn.response.send_message("WIP")
+
+    @app_commands.guild_only()
+    @group.command(name="enrolled", description="Show all courses you are enrolled in")
+    async def show_enrolled(self, iactn: Interaction):
         await iactn.response.send_message("WIP")
 
     @app_commands.guild_only()
@@ -80,7 +92,7 @@ class Calendar(Cog):
     @app_commands.checks.has_role("Moderator")
     @app_commands.describe(code="The course code for the new course")
     @app_commands.describe(name="The full name of the new course")
-    async def add(self, iactn: Interaction, code: str, name: str):
+    async def add_course(self, iactn: Interaction, code: str, name: str):
         logger.info(f"adding course '{name}' with code '{code}'")
 
         course = await Course.find_by_name(name)
@@ -97,7 +109,7 @@ class Calendar(Cog):
     @app_commands.checks.has_role("Moderator")
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
-    async def remove(self, iactn: Interaction, name: str):
+    async def remove_course(self, iactn: Interaction, name: str):
         logger.info(f"removing course '{name}'")
 
         course = await Course.find_by_name(name)
@@ -119,8 +131,8 @@ class Calendar(Cog):
         else:
             await iactn.response.send_message("No courses found")
 
-    @add.error
-    @remove.error
+    @add_course.error
+    @remove_course.error
     @list_courses.error
     async def handle_command_error(self, iactn: Interaction, error):
         if isinstance(error, errors.MissingRole):
