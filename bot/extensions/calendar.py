@@ -112,8 +112,12 @@ class Calendar(Cog):
     @app_commands.checks.has_role("Moderator")
     async def list_courses(self, iactn: Interaction):
         courses = await Course.get_all()
-        courses = map(lambda c: f"[{c.code}] {c.name}")
-        await iactn.response.send_message(courses.join("\n"))
+        courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
+
+        if courses:
+            await iactn.response.send_message("\n".join(courses))
+        else:
+            await iactn.response.send_message("No courses found")
 
     @add.error
     @remove.error
@@ -124,6 +128,7 @@ class Calendar(Cog):
                 "You are not allowed to use this command", ephemeral=True
             )
         else:
+            logger.error(error)
             await iactn.response.send_message("Unknown error")
 
 
