@@ -77,16 +77,29 @@ class Calendar(Cog):
         course = await Course.find_by_name(name)
 
         if course is None:
-            await iactn.response.send_message(f"Course {name} does not exist")
+            await iactn.response.send_message(
+                f"Course {name} does not exist, if you think this is a mistake please contact a server admin",
+                ephemeral=True,
+            )
+            return
+
+        if await Enrollment.find(str(iactn.user.id), str(course.code)):
+            await iactn.response.send_message(
+                f"You are already enrolled in [{str(course.code)}] {name}, if you think this is a mistake please contact a server admin",
+                ephemeral=True,
+            )
             return
 
         await Enrollment.create(
             profile_id=str(iactn.user.id), course_id=str(course.code)
         )
 
-        logger.info(f"{iactn.user.id} enrolled in course [{str(course.code)}] {name}")
+        logger.info(
+            f"[{iactn.user.id}] {iactn.user.name} enrolled in course [{str(course.code)}] {name}"
+        )
         await iactn.response.send_message(
-            f"Enrolled in course [{str(course.code)}] {name}"
+            f"You have enrolled in the course [{str(course.code)}] {name}",
+            ephemeral=True,
         )
 
     @app_commands.guild_only()
@@ -99,14 +112,19 @@ class Calendar(Cog):
         enrollment = await Enrollment.find(str(iactn.user.id), str(course.code))
 
         if enrollment is None:
-            await iactn.response.send_message("You are not enrolled in this course")
+            await iactn.response.send_message(
+                "You are not enrolled in this course, if you think this is a mistake please contact a server admin",
+                ephemeral=True,
+            )
             return
 
         await enrollment.delete()
 
-        logger.info(f"{iactn.user.id} dropped course [{str(course.code)}] {name}")
+        logger.info(
+            f"[{iactn.user.id}] {iactn.user.name} dropped course [{str(course.code)}] {name}"
+        )
         await iactn.response.send_message(
-            f"You have dropped [{str(course.code)}] {name}"
+            f"You have dropped the course [{str(course.code)}] {name}", ephemeral=True
         )
 
     @app_commands.guild_only()
@@ -115,7 +133,10 @@ class Calendar(Cog):
         enrollments = await Enrollment.find_for_profile(str(iactn.user.id))
 
         if not enrollments:
-            await iactn.response.send_message("You are not enrolled in any courses")
+            await iactn.response.send_message(
+                "You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
+                ephemeral=True,
+            )
             return
 
         courses: list[Course] = await asyncio.gather(
@@ -123,7 +144,7 @@ class Calendar(Cog):
         )
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
 
-        await iactn.response.send_message("\n".join(courses))
+        await iactn.response.send_message("\n".join(courses), ephemeral=True)
 
     @app_commands.guild_only()
     @group.command(name="add", description="Add a new course to the list of courses")
@@ -133,7 +154,9 @@ class Calendar(Cog):
     async def add_course(self, iactn: Interaction, code: str, name: str):
         course = await Course.find_by_name(name)
         if course is not None:
-            await iactn.response.send_message(f"Course {name} already exists")
+            await iactn.response.send_message(
+                f"A course with the name {name} already exists, if you think this is a mistake please contact a server admin"
+            )
             return
 
         await Course.create(code=code, name=name)
@@ -149,7 +172,9 @@ class Calendar(Cog):
     async def remove_course(self, iactn: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
-            await iactn.response.send_message(f"Course {name} does not exist")
+            await iactn.response.send_message(
+                f"A course with the name {name} does not exist, if you think this is a mistake please contact a server admin"
+            )
 
         await course.delete()
 
@@ -173,6 +198,7 @@ class Calendar(Cog):
     @list_courses.error
     async def handle_command_error(self, iactn: Interaction, error):
         if isinstance(error, errors.MissingRole):
+            logger.warn(f"[{iactn.user.id}] {iactn.user.name} used moderator command")
             await iactn.response.send_message(
                 "You are not allowed to use this command", ephemeral=True
             )
