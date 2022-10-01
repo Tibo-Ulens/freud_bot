@@ -25,10 +25,3 @@ class Enrollment(Base, Model):
             )
 
             return result.scalars().all()
-
-    async def delete(self):
-        """Delete an enrollment"""
-
-        async with session_factory() as session:
-            await session.delete(self)
-            await session.commit()

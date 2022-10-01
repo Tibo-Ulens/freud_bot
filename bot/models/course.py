@@ -36,10 +36,3 @@ class Course(Base, Model):
             result: Query = await session.execute(select(cls))
 
             return result.scalars().all()
-
-    async def delete(self):
-        """Delete a course"""
-
-        async with session_factory() as session:
-            await session.delete(self)
-            await session.commit()
