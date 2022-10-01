@@ -1,12 +1,17 @@
 import asyncio
 import logging
+from time import sleep
 
 from discord import app_commands, Interaction
 from discord.app_commands import errors
 from discord.ext.commands import Cog
+import requests
 from selenium import webdriver
 from selenium.webdriver import FirefoxOptions
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait, Select
 
 from bot.bot import Bot
 from bot.models.course import Course
@@ -17,6 +22,7 @@ TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
 
 
 logger = logging.getLogger("bot")
+web_logger = logging.getLogger("selenium")
 
 
 def levenshtein_ratio(s1: str, s2: str) -> int:
@@ -49,6 +55,61 @@ async def course_autocomplete(
     return [app_commands.Choice(name=course, value=course) for course in courses]
 
 
+def get_csv_link(course_codes: list[str]) -> str:
+    """Build up the timeedit calendar and get the csv file download link for it"""
+
+    options = FirefoxOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
+    driver.get(TIMEEDIT_URL)
+    driver.find_element(By.CSS_SELECTOR, ".linklist a").click()
+
+    # Search by course
+    type_select = WebDriverWait(driver, 2).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, "select#fancytypeselector"))
+    )
+    type_select = Select(type_select)
+
+    # VERY IMPORTANT BUT DON'T ASK WHY
+    for opt in type_select.options:
+        opt.get_attribute("innerHTML")
+        opt.click()
+
+    type_select.select_by_visible_text("Cursus")
+
+    # Search for and add each course
+    search = driver.find_element(By.CSS_SELECTOR, "input#ffsearchname")
+    for code in course_codes:
+        search.clear()
+        search.send_keys(code)
+        search.send_keys(Keys.ENTER)
+
+        web_logger.info(f"sought for course {code}")
+        sleep(0.5)
+        add_btn = WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "#objectbasketitemX0"))
+        )
+        add_btn.click()
+
+        web_logger.info(f"added course {code}")
+
+    # Show the calendar
+    show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
+    show_btn.click()
+
+    csv_btn = WebDriverWait(driver, 2).until(
+        EC.presence_of_element_located(
+            (By.CSS_SELECTOR, "a.formatLinksItem[title='CSV']")
+        )
+    )
+    href = csv_btn.get_attribute("href")
+
+    driver.close()
+    driver.quit()
+
+    return href
+
+
 class Calendar(Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
@@ -58,14 +119,28 @@ class Calendar(Cog):
         description="Show your personal calendar for this week",
     )
     async def calendar(self, iactn: Interaction):
-        await iactn.response.send_message("thinking...")
+        await iactn.response.send_message("Finding courses...", ephemeral=True)
+        enrollments = await Enrollment.find_for_profile(str(iactn.user.id))
+        courses: list[Course] = await asyncio.gather(
+            *[Course.find_by_code(e.course_id) for e in enrollments]
+        )
 
-        options = FirefoxOptions()
-        options.add_argument("--headless")
-        driver = webdriver.Firefox(options=options)
-        driver.get("https://wiki.archlinux.org/")
+        await iactn.edit_original_response(content="Finding course data...")
 
-        await iactn.edit_original_response(content="done")
+        csv_url = ""
+        try:
+            csv_url = get_csv_link(list(map(lambda c: str(c.code), courses)))
+        except Exception as err:
+            logger.error(err)
+            await iactn.edit_original_response(content="error")
+            return
+
+        await iactn.edit_original_response(content="Downloading course data...")
+
+        res = requests.get(csv_url, allow_redirects=True)
+        logger.info(res.text)
+
+        await iactn.edit_original_response(content=csv_url)
 
     group = app_commands.Group(name="course", description="calendar stuff")
 
