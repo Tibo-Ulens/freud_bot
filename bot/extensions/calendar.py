@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from discord import app_commands, Interaction
@@ -73,19 +74,56 @@ class Calendar(Cog):
     @app_commands.describe(name="The name of the course to enroll in")
     @app_commands.autocomplete(name=course_autocomplete)
     async def enroll_in_course(self, iactn: Interaction, name: str):
-        await iactn.response.send_message("WIP")
+        course = await Course.find_by_name(name)
+
+        if course is None:
+            await iactn.response.send_message(f"Course {name} does not exist")
+            return
+
+        await Enrollment.create(
+            profile_id=str(iactn.user.id), course_id=str(course.code)
+        )
+
+        logger.info(f"{iactn.user.id} enrolled in course [{str(course.code)}] {name}")
+        await iactn.response.send_message(
+            f"Enrolled in course [{str(course.code)}] {name}"
+        )
 
     @app_commands.guild_only()
     @group.command(name="drop", description="Drop a specific course")
     @app_commands.describe(name="The name of the course to drop")
     @app_commands.autocomplete(name=course_autocomplete)
     async def drop_course(self, iactn: Interaction, name: str):
-        await iactn.response.send_message("WIP")
+        course = await Course.find_by_name(name)
+
+        enrollment = await Enrollment.find(str(iactn.user.id), str(course.code))
+
+        if enrollment is None:
+            await iactn.response.send_message("You are not enrolled in this course")
+            return
+
+        await enrollment.delete()
+
+        logger.info(f"{iactn.user.id} dropped course [{str(course.code)}] {name}")
+        await iactn.response.send_message(
+            f"You have dropped [{str(course.code)}] {name}"
+        )
 
     @app_commands.guild_only()
-    @group.command(name="enrolled", description="Show all courses you are enrolled in")
+    @group.command(name="overview", description="Show all courses you are enrolled in")
     async def show_enrolled(self, iactn: Interaction):
-        await iactn.response.send_message("WIP")
+        enrollments = await Enrollment.find_for_profile(str(iactn.user.id))
+
+        if not enrollments:
+            await iactn.response.send_message("You are not enrolled in any courses")
+            return
+
+        courses: list[Course] = await asyncio.gather(
+            *[(lambda e: Course.find_by_code(e.course_id))(enr) for enr in enrollments]
+        )
+        courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
+
+        await iactn.response.send_message("\n".join(courses))
 
     @app_commands.guild_only()
     @group.command(name="add", description="Add a new course to the list of courses")
@@ -93,8 +131,6 @@ class Calendar(Cog):
     @app_commands.describe(code="The course code for the new course")
     @app_commands.describe(name="The full name of the new course")
     async def add_course(self, iactn: Interaction, code: str, name: str):
-        logger.info(f"adding course '{name}' with code '{code}'")
-
         course = await Course.find_by_name(name)
         if course is not None:
             await iactn.response.send_message(f"Course {name} already exists")
@@ -102,6 +138,7 @@ class Calendar(Cog):
 
         await Course.create(code=code, name=name)
 
+        logger.info(f"added course [{code}] {name}")
         await iactn.response.send_message(f"Added course [{code}] {name}")
 
     @app_commands.guild_only()
@@ -110,13 +147,13 @@ class Calendar(Cog):
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
     async def remove_course(self, iactn: Interaction, name: str):
-        logger.info(f"removing course '{name}'")
-
         course = await Course.find_by_name(name)
         if course is None:
             await iactn.response.send_message(f"Course {name} does not exist")
 
         await course.delete()
+
+        logger.info(f"removed course [{str(course.code)}] {name}")
         await iactn.response.send_message(f"Removed course [{course.code}] {name}")
 
     @app_commands.guild_only()
