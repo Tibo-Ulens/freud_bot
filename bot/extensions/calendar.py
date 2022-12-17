@@ -1,11 +1,13 @@
 import asyncio
 from collections import defaultdict
 from contextlib import closing
+import csv
+import datetime
+from datetime import timedelta
 import json
 import logging
 from time import sleep
 
-import csv
 from discord import app_commands, Interaction
 from discord.app_commands import errors
 from discord.ext.commands import Cog
@@ -173,6 +175,8 @@ class Calendar(Cog):
                 map(
                     lambda i: {
                         "start_date": i["Start datum"],
+                        "start_time": i["Begin tijd"],
+                        "end_time": i["Eind tijd"],
                         "type": i["Aard"],
                         "name": i["Cursuscode,Naam"],
                         "lecturer": i["Lesgever"],
@@ -182,11 +186,20 @@ class Calendar(Cog):
                 )
             )
 
-        # Group the courses by course code so they're easier to retrieve
-        grouped_course_info: defaultdict[str, list[str]] = defaultdict(list)
+        # Group the courses by course code and by date so they're easier to
+        # retrieve
+        grouped_course_info: defaultdict[
+            str, defaultdict[str, dict[str, str]]
+        ] = defaultdict(lambda: defaultdict(list))
 
         for info in mapped_course_info:
-            grouped_course_info[info["name"].split(".")[0]].append(json.dumps(info))
+            grouped_course_info[info["name"].split(".")[0]][info["start_date"]].append(
+                info
+            )
+
+        grouped_course_info = {
+            name: json.dumps(info) for [name, info] in grouped_course_info.items()
+        }
 
         await iactn.edit_original_response(
             content="Updating cache: storing course data..."
@@ -194,7 +207,7 @@ class Calendar(Cog):
 
         async with self.bot.redis.pipeline(transaction=True) as pipe:
             for (name, info) in grouped_course_info.items():
-                pipe.lpush(name, *info)
+                pipe.set(name, info)
 
             await pipe.execute()
 
@@ -223,8 +236,27 @@ class Calendar(Cog):
 
         await self.maybe_update_cache(courses, iactn)
 
-        found = await self.bot.redis.exists(courses[0])
-        logger.info(f"found {found} matches")
+        today = datetime.date.today()
+        week_start = today - timedelta(days=today.weekday() % 7)
+        week_days = [
+            (week_start + timedelta(days=n)).strftime("%d-%m-%Y") for n in range(7)
+        ]
+
+        course_info: dict[str, dict[str, dict[str, str]]] = dict()
+        for course in courses:
+            cinfo = await self.bot.redis.get(course)
+            cinfo = json.loads(cinfo.decode("utf-8"))
+            cinfo = {date: info for [date, info] in cinfo.items() if date in week_days}
+
+            course_info[course] = cinfo
+
+        calendar = ""
+        for [name, dates] in course_info.items():
+            calendar += f"{name}:\n"
+            for [date, info] in dates.items():
+                calendar += f"\t{date}:\n\t\t{info}\n"
+
+        await iactn.edit_original_response(content=calendar[:1999])
 
     @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")
