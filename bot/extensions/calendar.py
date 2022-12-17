@@ -1,5 +1,7 @@
 import asyncio
-from io import StringIO
+from collections import defaultdict
+from contextlib import closing
+import json
 import logging
 from time import sleep
 
@@ -25,6 +27,7 @@ TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
 
 logger = logging.getLogger("bot")
 web_logger = logging.getLogger("selenium")
+cache_logger = logging.getLogger("cache")
 
 
 def levenshtein_ratio(s1: str, s2: str) -> int:
@@ -118,50 +121,110 @@ class Calendar(Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
+    group = app_commands.Group(name="course", description="course management")
+
+    async def maybe_update_cache(self, course_codes: list[str], iactn: Interaction):
+        """
+        Check if the cache is missing info on the given list of courses and if
+        so, add it
+        """
+
+        # Gotta decode here cuz redis returns bytestrings
+        stored_courses: set[str] = set(
+            [course.decode("utf-8") async for course in self.bot.redis.scan_iter()]
+        )
+
+        missing_courses = list(set(course_codes) - stored_courses)
+
+        if not missing_courses:
+            return
+
+        cache_logger.info(f"updating cache for courses {' '.join(missing_courses)}")
+        await iactn.edit_original_response(
+            content="Updating cache: finding course data (this may take a while)..."
+        )
+
+        try:
+            csv_url = get_csv_link(missing_courses)
+        except Exception as err:
+            cache_logger.error(err)
+            await iactn.edit_original_response(
+                content="Something went wrong, please contact a server admin"
+            )
+            return
+
+        await iactn.edit_original_response(
+            content="Updating cache: downloading course data..."
+        )
+
+        with closing(requests.get(csv_url, allow_redirects=True, stream=True)) as req:
+            line_content = (
+                line.decode("utf-8") for line in req.iter_lines(chunk_size=1024)
+            )
+
+            # UGent csv files start with:
+            next(line_content)  # an empty line (?)
+            next(line_content)  # the UGent name
+            next(line_content)  # course info
+
+            reader = csv.DictReader(line_content, delimiter=",")
+
+            mapped_course_info = list(
+                map(
+                    lambda i: {
+                        "start_date": i["Start datum"],
+                        "type": i["Aard"],
+                        "name": i["Cursuscode,Naam"],
+                        "lecturer": i["Lesgever"],
+                        "location": i["Lokaal,Gebouw,Campus"],
+                    },
+                    reader,
+                )
+            )
+
+        # Group the courses by course code so they're easier to retrieve
+        grouped_course_info: defaultdict[str, list[str]] = defaultdict(list)
+
+        for info in mapped_course_info:
+            grouped_course_info[info["name"].split(".")[0]].append(json.dumps(info))
+
+        await iactn.edit_original_response(
+            content="Updating cache: storing course data..."
+        )
+
+        async with self.bot.redis.pipeline(transaction=True) as pipe:
+            for (name, info) in grouped_course_info.items():
+                pipe.lpush(name, *info)
+
+            await pipe.execute()
+
     @app_commands.command(
         name="calendar",
         description="Show your personal calendar for this week",
     )
     async def calendar(self, iactn: Interaction):
-        await iactn.response.send_message("Finding courses...", ephemeral=True)
         enrollments = await Enrollment.find_for_profile(str(iactn.user.id))
+
+        if not enrollments:
+            await iactn.response.send_message(
+                "You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
+                ephemeral=True,
+            )
+            return
+
         courses: list[Course] = await asyncio.gather(
             *[Course.find_by_code(e.course_id) for e in enrollments]
         )
+        courses: list[str] = list(map(lambda c: c.code, courses))
 
-        await iactn.edit_original_response(content="Finding course data...")
+        await iactn.response.send_message(
+            "Building calendar overview...", ephemeral=True
+        )
 
-        csv_url = ""
-        try:
-            csv_url = get_csv_link(list(map(lambda c: str(c.code), courses)))
-        except Exception as err:
-            logger.error(err)
-            await iactn.edit_original_response(content="error")
-            return
+        await self.maybe_update_cache(courses, iactn)
 
-        await iactn.edit_original_response(content="Downloading course data...")
-
-        res = requests.get(csv_url, allow_redirects=True)
-        content = res.content.decode()
-
-        file = StringIO(content)
-        csv_data = csv.reader(file, delimiter=",")
-
-        # UGent csv files start with:
-        next(csv_data)  # an empty line (?)
-        next(csv_data)  # the UGent name
-        next(csv_data)  # course info
-
-        s = ""
-        s += " ".join(next(csv_data))
-        s += "\n"
-        s += " ".join(next(csv_data))
-
-        file.close()
-
-        await iactn.edit_original_response(content=s)
-
-    group = app_commands.Group(name="course", description="calendar stuff")
+        found = await self.bot.redis.exists(courses[0])
+        logger.info(f"found {found} matches")
 
     @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")
@@ -234,7 +297,8 @@ class Calendar(Cog):
             return
 
         courses: list[Course] = await asyncio.gather(
-            *[(lambda e: Course.find_by_code(e.course_id))(enr) for enr in enrollments]
+            # *[(lambda e: Course.find_by_code(e.course_id))(enr) for enr in enrollments]
+            *[Course.find_by_code(enr.course_id) for enr in enrollments]
         )
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
 

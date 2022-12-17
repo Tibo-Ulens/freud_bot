@@ -9,6 +9,9 @@ services:
           - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
           - PGPASSWORD=postgres_password
 
+          - CACHE_HOST=freud_bot_cache
+          - CACHE_PORT=6379
+
           - GUILD_ID=983088370509053983
           - VERIFY_CHANNEL=983088370966212609
           - VERIFIED_ROLE=Verified
@@ -20,6 +23,7 @@ services:
           - gmail_app_password
         depends_on:
           - freud_bot_db
+          - freud_bot_cache
 
     freud_bot_db:
         image: postgres:alpine
@@ -41,6 +45,15 @@ services:
             interval: 10m
             timeout: 5s
             retries: 2
+
+    freud_bot_cache:
+        image: redis:latest
+        restart: unless-stopped
+        logging:
+            options:
+                max-size: "4096m"
+        ports:
+          - "6379:6379"
 
 volumes:
     freud_bot_data:

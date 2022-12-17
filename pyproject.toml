@@ -12,6 +12,7 @@ alembic = "^1.8.1"
 asyncpg = "^0.26.0"
 selenium = "^4.4.3"
 requests = "^2.28.1"
+redis = "^4.4.0"
 
 [tool.poetry.dev-dependencies]
 
