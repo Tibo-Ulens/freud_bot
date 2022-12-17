@@ -190,12 +190,10 @@ class Calendar(Cog):
         # retrieve
         grouped_course_info: defaultdict[
             str, defaultdict[str, dict[str, str]]
-        ] = defaultdict(lambda: defaultdict(list))
+        ] = defaultdict(lambda: defaultdict(dict))
 
         for info in mapped_course_info:
-            grouped_course_info[info["name"].split(".")[0]][info["start_date"]].append(
-                info
-            )
+            grouped_course_info[info["name"].split(".")[0]][info["start_date"]] = info
 
         grouped_course_info = {
             name: json.dumps(info) for [name, info] in grouped_course_info.items()
