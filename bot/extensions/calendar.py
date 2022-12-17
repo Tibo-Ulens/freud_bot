@@ -36,16 +36,16 @@ def levenshtein_ratio(s1: str, s2: str) -> int:
 
     distances = range(len(s1) + 1)
     for index2, char2 in enumerate(s2):
-        newDistances = [index2 + 1]
+        new_distances = [index2 + 1]
         for index1, char1 in enumerate(s1):
             if char1 == char2:
-                newDistances.append(distances[index1])
+                new_distances.append(distances[index1])
             else:
-                newDistances.append(
+                new_distances.append(
                     1
-                    + min((distances[index1], distances[index1 + 1], newDistances[-1]))
+                    + min((distances[index1], distances[index1 + 1], new_distances[-1]))
                 )
-        distances = newDistances
+        distances = new_distances
 
     return distances[-1] / max(len(s1), len(s2))
 
@@ -139,7 +139,7 @@ class Calendar(Cog):
         if not missing_courses:
             return
 
-        cache_logger.info(f"updating cache for courses {' '.join(missing_courses)}")
+        cache_logger.info(f"updating cache for courses {','.join(missing_courses)}")
         await iactn.edit_original_response(
             content="Updating cache: finding course data (this may take a while)..."
         )
@@ -297,7 +297,6 @@ class Calendar(Cog):
             return
 
         courses: list[Course] = await asyncio.gather(
-            # *[(lambda e: Course.find_by_code(e.course_id))(enr) for enr in enrollments]
             *[Course.find_by_code(enr.course_id) for enr in enrollments]
         )
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
@@ -351,6 +350,21 @@ class Calendar(Cog):
         else:
             await iactn.response.send_message("No courses found")
 
+    @app_commands.guild_only()
+    @group.command(name="clearcache", description="Clear the course info cache")
+    @app_commands.checks.has_role("Moderator")
+    async def clear_cache(self, iactn: Interaction):
+        await iactn.response.send_message("Clearing course cache...")
+
+        keys = [key async for key in self.bot.redis.scan_iter()]
+        async with self.bot.redis.pipeline(transaction=True) as pipe:
+            for key in keys:
+                pipe.delete(key)
+
+            await pipe.execute()
+
+        await iactn.edit_original_response(content="Course cache cleared")
+
     @add_course.error
     @remove_course.error
     @list_courses.error
@@ -362,7 +376,9 @@ class Calendar(Cog):
             )
         else:
             logger.error(error)
-            await iactn.response.send_message("Unknown error")
+            await iactn.response.send_message(
+                "Unknown error, please contact a server admin"
+            )
 
 
 async def setup(bot: Bot):
