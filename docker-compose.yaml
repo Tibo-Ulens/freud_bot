@@ -48,6 +48,7 @@ services:
 
     freud_bot_cache:
         image: redis:latest
+        container_name: freud_bot_cache
         restart: unless-stopped
         logging:
             options:

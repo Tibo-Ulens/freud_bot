@@ -265,7 +265,7 @@ class Calendar(Cog):
         )
 
         week_planners = {
-            f"planner{i}": day_to_planner(day_info[1])
+            f"planner{i}": day_to_planner(i, day_info[1])
             for [i, day_info] in enumerate(week_info)
         }
 

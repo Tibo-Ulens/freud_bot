@@ -1,6 +1,12 @@
+import datetime
+import logging
 import os
+import textwrap
+import math
 
 import discord
+
+logger = logging.getLogger("bot")
 
 DISCORD_TOKEN: str
 with open("/run/secrets/discord_token") as secret:
@@ -93,20 +99,29 @@ _DAY_WIDTH = (_SVG_WIDTH - _HOUR_WIDTH) / 7
 _HOUR_HEIGHT = (_SVG_HEIGHT - _HEADER_HEIGHT) / 10
 
 _TEXT_COLOR = "#f9f5d7"
+_BG_COLOR = "#202020"
+_LINE_GREY = "#928374"
+_VPPK_ORANGE = "#ec9635"
+_VPPK_ORANGE_DARK = "#2f1b04"
 _NL = "\n"
-CALENDAR_TEMPLATE = f"""
+CALENDAR_TEMPLATE = f"""<?xml version="1.0"?>
 <svg
     xlmns="http://www.w3.org/2000/svg"
+    version="1.2"
+    baseProfile="tiny"
     width="{_SVG_WIDTH}"
     height="{_SVG_HEIGHT}"
     viewBox="0 0 {_SVG_WIDTH} {_SVG_HEIGHT}"
-    fill="#202020"
+    fill="{_BG_COLOR}"
     stroke="none"
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
     font="20px sans-serif"
 >
+    <!-- Background -->
+    <rect x="0" y="0" width="{_SVG_WIDTH}" height="{_SVG_HEIGHT}"/>
+
     <!-- Week indicator -->
     <g stroke="{_TEXT_COLOR}" stroke-width="1">
         <rect x="0" y="0" width="{_HOUR_WIDTH}" height="{_HEADER_HEIGHT}"/>
@@ -145,12 +160,20 @@ CALENDAR_TEMPLATE = f"""
         )}
     </g>
 
+    <!-- Hour division lines -->
+    <g stroke="{_LINE_GREY}">
+        {_NL.join(
+            f'<line x1="0" y1="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}" x2="{_SVG_WIDTH}" y2="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}"/>'
+            for i in range(1,10)
+        )}
+    </g>
+
     <!-- Weekday planners -->
     <g>
         {_NL.join(
             f'''
             <g>
-                <rect x="{_DAY_WIDTH * i + _HOUR_WIDTH}" y="{_HEADER_HEIGHT}" width="{_DAY_WIDTH}" height="{_SVG_HEIGHT}"/>
+                <rect x="{_DAY_WIDTH * i + _HOUR_WIDTH}" y="{_HEADER_HEIGHT}" width="{_DAY_WIDTH}" height="{_SVG_HEIGHT}" fill="none"/>
                 {f"{{planner{i}}}"}
             </g>
             '''
@@ -160,16 +183,8 @@ CALENDAR_TEMPLATE = f"""
 
     <!-- Lines are drawn last so they don't get covered up -->
 
-    <!-- Hour division lines -->
-    <g stroke="#928374">
-        {_NL.join(
-            f'<line x1="0" y1="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}" x2="{_SVG_WIDTH}" y2="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}"/>'
-            for i in range(1,10)
-        )}
-    </g>
-
     <!-- Weekday division lines -->
-    <g stroke="#928374">
+    <g stroke="{_LINE_GREY}">
         {_NL.join(
             f'<line x1="{_DAY_WIDTH * i + _HOUR_WIDTH}" y1="0" x2="{_DAY_WIDTH * i + _HOUR_WIDTH}" y2="{_SVG_HEIGHT}"/>'
             for i in range(1,7)
@@ -177,7 +192,7 @@ CALENDAR_TEMPLATE = f"""
     </g>
 
     <!-- Outer box -->
-    <g stroke-width="4" stroke="#ec9635">
+    <g stroke-width="4" stroke="{_VPPK_ORANGE}">
         <line x1="0" y1="0" x2="{_SVG_WIDTH}" y2="0"/>
         <line x1="{_SVG_WIDTH}" y1="0" x2="{_SVG_WIDTH}" y2="{_SVG_HEIGHT}"/>
         <line x1="{_SVG_WIDTH}" y1="{_SVG_HEIGHT}" x2="0" y2="{_SVG_HEIGHT}"/>
@@ -185,18 +200,123 @@ CALENDAR_TEMPLATE = f"""
     </g>
 
     <!-- Hour division line -->
-    <line stroke="#ec9635" x1="{_HOUR_WIDTH}" y1="0" x2="{_HOUR_WIDTH}" y2="{_SVG_HEIGHT}"/>
+    <line stroke="{_VPPK_ORANGE}" x1="{_HOUR_WIDTH}" y1="0" x2="{_HOUR_WIDTH}" y2="{_SVG_HEIGHT}"/>
 
     <!-- Header division line -->
-    <line stroke="#ec9635" x1="0" y1="{_HEADER_HEIGHT}" x2="{_SVG_WIDTH}" y2="{_HEADER_HEIGHT}"/>
+    <line stroke="{_VPPK_ORANGE}" x1="0" y1="{_HEADER_HEIGHT}" x2="{_SVG_WIDTH}" y2="{_HEADER_HEIGHT}"/>
 </svg>
 """
 
 
-def day_to_planner(day_info: list[dict[str, str]]) -> str:
+def day_to_planner(day_idx: int, day_infos: list[dict[str, str]]) -> str:
     """
-    Convert a list of classes happening on a given day to a visual
+    Convert a list of courses happening on a given day to a visual
     representation using svg elements
     """
 
-    return ""
+    to_time = lambda d: datetime.datetime.strptime(d, "%d-%m-%YT%H:%M").timestamp()
+
+    day_infos.sort(key=lambda i: to_time(f'{i["start_date"]}T{i["start_time"]}'))
+
+    # Group the day_infos into non-overlapping groups
+    # If two day_infos overlap, they'll be in the same group
+    day_info_groups: list[list[dict[str, str]]] = []
+    day_info_group_idx = 0
+    for day_info in day_infos:
+        if day_info_group_idx == len(day_info_groups):
+            day_info_groups.append([day_info])
+            continue
+
+        is_new_group = True
+
+        for grouped_day_info in day_info_groups[day_info_group_idx]:
+            if to_time(
+                f'{grouped_day_info["start_date"]}T{grouped_day_info["end_time"]}'
+            ) > to_time(f'{day_info["start_date"]}T{day_info["start_time"]}'):
+                day_info_groups[day_info_group_idx].append(day_info)
+                is_new_group = False
+                break
+
+        if is_new_group:
+            day_info_group_idx += 1
+            day_info_groups.append([day_info])
+
+    return "\n".join(_group_to_items(day_idx, group) for group in day_info_groups)
+
+
+def _group_to_items(day_idx: int, group: list[dict[str, str]]) -> str:
+    width = _DAY_WIDTH / len(group)
+
+    items = []
+    for [info_idx, day_info] in enumerate(group):
+        x = _HOUR_WIDTH + _DAY_WIDTH * day_idx + width * info_idx
+        y_start = _time_to_y_coord(day_info["start_time"])
+        y_end = _time_to_y_coord(day_info["end_time"])
+        height = y_end - y_start
+
+        items.append(
+            f"""
+            <g>
+                <rect
+                    x="{x}"
+                    y="{y_start}"
+                    width="{width}"
+                    height="{height}"
+                    fill="{_VPPK_ORANGE_DARK}"
+                    stroke="{_VPPK_ORANGE}"
+                />
+                <text
+                    x="{x + width/2}"
+                    y="{y_start}"
+                    fill="{_TEXT_COLOR}"
+                    stroke="{_TEXT_COLOR}"
+                    font="20px monospace"
+                    dominant-baseline="middle"
+                    text-anchor="middle"
+                >
+                    {_make_wrapped_text(x, y_start, width, height, day_info)}
+                </text>
+            </g>
+        """
+        )
+
+    return "\n".join(items)
+
+
+def _time_to_y_coord(time: str) -> int:
+    hours = int(time.split(":")[0])
+    minutes = int(time.split(":")[1])
+
+    return (
+        _HEADER_HEIGHT + ((hours - 8) * _HOUR_HEIGHT) + ((minutes / 60) * _HOUR_HEIGHT)
+    )
+
+
+def _make_wrapped_text(
+    x: int, y: int, width: int, height: int, info: dict[str, str]
+) -> str:
+    name_text = f"{info['name'].split('.')[1].strip()}"
+    time_text = f"{info['start_time']} - {info['end_time']}"
+    loc_text = f"{info['location']}"
+
+    chars_per_line = math.floor(width / (20 / 1.5))
+    max_lines = math.floor(height / (20 * 1.2))
+
+    name_lines = textwrap.wrap(name_text, chars_per_line)
+    time_lines = textwrap.wrap(time_text, chars_per_line)
+    loc_lines = textwrap.wrap(loc_text, chars_per_line)
+
+    lines = name_lines + time_lines + loc_lines
+    stripped_lines = lines[:max_lines]
+
+    if len(lines) != len(stripped_lines):
+        stripped_lines[-1] = stripped_lines[-1][:-4] + "..."
+
+    return f"""
+        <g>
+            {_NL.join(
+                f'<tspan x="{x + width/2}" dy="1.2em">{line}</tspan>'
+                for line in stripped_lines
+            )}
+        </g>
+    """
