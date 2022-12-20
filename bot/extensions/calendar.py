@@ -4,11 +4,13 @@ from contextlib import closing
 import csv
 import datetime
 from datetime import timedelta
+from io import BytesIO
 import json
 import logging
 from time import sleep
 
-from discord import app_commands, Interaction
+from cairosvg import svg2png
+from discord import app_commands, Interaction, File
 from discord.app_commands import errors
 from discord.ext.commands import Cog
 import requests
@@ -19,12 +21,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait, Select
 
+from bot import constants
 from bot.bot import Bot
+from bot.constants import day_to_planner
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
-
-
-TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
 
 
 logger = logging.getLogger("bot")
@@ -68,7 +69,7 @@ def get_csv_link(course_codes: list[str]) -> str:
     options = FirefoxOptions()
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
-    driver.get(TIMEEDIT_URL)
+    driver.get(constants.TIMEEDIT_URL)
     driver.find_element(By.CSS_SELECTOR, ".linklist a").click()
 
     # Search by course
@@ -235,26 +236,49 @@ class Calendar(Cog):
         await self.maybe_update_cache(courses, iactn)
 
         today = datetime.date.today()
+        week_nr = today.isocalendar()[1]
         week_start = today - timedelta(days=today.weekday() % 7)
         week_days = [
             (week_start + timedelta(days=n)).strftime("%d-%m-%Y") for n in range(7)
         ]
 
-        course_info: dict[str, dict[str, dict[str, str]]] = dict()
+        # Create the dictionary from week_days so that every date is present,
+        # not just ones that have items
+        # {date: [{course}, {course}, ...], ...}
+        week_info_dict: dict[str, list[dict[str, str]]] = {
+            day: list() for day in week_days
+        }
         for course in courses:
-            cinfo = await self.bot.redis.get(course)
-            cinfo = json.loads(cinfo.decode("utf-8"))
-            cinfo = {date: info for [date, info] in cinfo.items() if date in week_days}
+            course_info = await self.bot.redis.get(course)
+            course_info = json.loads(course_info.decode("utf-8"))
 
-            course_info[course] = cinfo
+            for [date, info] in course_info.items():
+                if date in week_days:
+                    week_info_dict[date].append(info)
 
-        calendar = ""
-        for [name, dates] in course_info.items():
-            calendar += f"{name}:\n"
-            for [date, info] in dates.items():
-                calendar += f"\t{date}:\n\t\t{info}\n"
+        week_info = list(week_info_dict.items())
 
-        await iactn.edit_original_response(content=calendar[:1999])
+        # week_info must be sorted as the svg arguments are simply indexed from
+        # 0 to 6
+        week_info.sort(
+            key=lambda i: datetime.datetime.strptime(i[0], "%d-%m-%Y").date()
+        )
+
+        week_planners = {
+            f"planner{i}": day_to_planner(day_info[1])
+            for [i, day_info] in enumerate(week_info)
+        }
+
+        labeled_week_days = {f"date{i}": d for [i, d] in enumerate(week_days)}
+        filled_svg = constants.CALENDAR_TEMPLATE.format(
+            week=week_nr, **labeled_week_days, **week_planners
+        )
+
+        png_bytes = svg2png(bytestring=bytes(filled_svg, "utf-8"), write_to=None)
+        png_virt_file = BytesIO(initial_bytes=png_bytes)
+        png_file = File(png_virt_file, filename="calendar.png")
+
+        await iactn.edit_original_response(content="", attachments=[png_file])
 
     @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")

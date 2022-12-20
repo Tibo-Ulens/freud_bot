@@ -81,3 +81,122 @@ FREUD_QUOTES = [
     "Who lacks sex speaks about sex, hungry talks about food, a person who has no money - about money, and our oligarchs and bankers talk about morality",
     "Mathematics enjoys the greatest reputation as a diversion from sexuality. This had been the very advice to which Jean-Jacques Rousseau was obliged to listen from a lady who was dissatisfied with him: 'Lascia le donne e studia la matematica!' So too our fugitive threw himself with special eagerness into the mathematics and geometry which he was taught at school, till suddenly one day his powers of comprehension were paralysed in the face of some apparently innocent problems. It was possible to establish two of these problems; 'Two bodies come together, one with a speed of ... etc' and 'On a cylinder, the diameter of whose surface is m, describe a cone ... etc' Other people would certainly not have regarded these as very striking allusions to sexual events; but he felt that he had been betrayed by mathematics as well, and took flight from it too.",
 ]
+
+TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
+
+_SVG_WIDTH = 2800
+_SVG_HEIGHT = 1200
+_HEADER_HEIGHT = 120
+_HOUR_WIDTH = 200
+
+_DAY_WIDTH = (_SVG_WIDTH - _HOUR_WIDTH) / 7
+_HOUR_HEIGHT = (_SVG_HEIGHT - _HEADER_HEIGHT) / 10
+
+_TEXT_COLOR = "#f9f5d7"
+_NL = "\n"
+CALENDAR_TEMPLATE = f"""
+<svg
+    xlmns="http://www.w3.org/2000/svg"
+    width="{_SVG_WIDTH}"
+    height="{_SVG_HEIGHT}"
+    viewBox="0 0 {_SVG_WIDTH} {_SVG_HEIGHT}"
+    fill="#202020"
+    stroke="none"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    font="20px sans-serif"
+>
+    <!-- Week indicator -->
+    <g stroke="{_TEXT_COLOR}" stroke-width="1">
+        <rect x="0" y="0" width="{_HOUR_WIDTH}" height="{_HEADER_HEIGHT}"/>
+        <text x="{_HOUR_WIDTH / 2}" y="{_HEADER_HEIGHT / 2}" fill="{_TEXT_COLOR}" dominant-baseline="middle" text-anchor="middle">
+            W {{week}}
+        </text>
+    </g>
+
+    <!-- Hour indicators -->
+    <g stroke="{_TEXT_COLOR}" stroke-width="1">
+        {_NL.join(
+            f'''
+            <g>
+                <rect x="0" y="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}" width="{_HOUR_WIDTH}" height="{_HOUR_HEIGHT}"/>
+                <text x="{_HOUR_WIDTH / 2}" y="{_HOUR_HEIGHT * (i+0.5) + _HEADER_HEIGHT}" fill="{_TEXT_COLOR}" dominant-baseline="middle" text-anchor="middle">
+                    {f"{8+i:02d}:00"}
+                </text>
+            </g>
+            '''
+            for i in range(10)
+        )}
+    </g>
+
+    <!-- Weekday dates -->
+    <g stroke="{_TEXT_COLOR}" stroke-width="1">
+        {_NL.join(
+            f'''
+            <g>
+                <rect x="{_DAY_WIDTH * i + _HOUR_WIDTH}" y="0" width="{_DAY_WIDTH}" height="{_HEADER_HEIGHT}"/>
+                <text x="{_DAY_WIDTH * (i+0.5) + _HOUR_WIDTH}" y="{_HEADER_HEIGHT / 2}" fill="{_TEXT_COLOR}" dominant-baseline="middle" text-anchor="middle">
+                    {f"{{date{i}}}"}
+                </text>
+            </g>
+            '''
+            for i in range(7)
+        )}
+    </g>
+
+    <!-- Weekday planners -->
+    <g>
+        {_NL.join(
+            f'''
+            <g>
+                <rect x="{_DAY_WIDTH * i + _HOUR_WIDTH}" y="{_HEADER_HEIGHT}" width="{_DAY_WIDTH}" height="{_SVG_HEIGHT}"/>
+                {f"{{planner{i}}}"}
+            </g>
+            '''
+            for i in range(7)
+        )}
+    </g>
+
+    <!-- Lines are drawn last so they don't get covered up -->
+
+    <!-- Hour division lines -->
+    <g stroke="#928374">
+        {_NL.join(
+            f'<line x1="0" y1="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}" x2="{_SVG_WIDTH}" y2="{_HOUR_HEIGHT * i + _HEADER_HEIGHT}"/>'
+            for i in range(1,10)
+        )}
+    </g>
+
+    <!-- Weekday division lines -->
+    <g stroke="#928374">
+        {_NL.join(
+            f'<line x1="{_DAY_WIDTH * i + _HOUR_WIDTH}" y1="0" x2="{_DAY_WIDTH * i + _HOUR_WIDTH}" y2="{_SVG_HEIGHT}"/>'
+            for i in range(1,7)
+        )}
+    </g>
+
+    <!-- Outer box -->
+    <g stroke-width="4" stroke="#ec9635">
+        <line x1="0" y1="0" x2="{_SVG_WIDTH}" y2="0"/>
+        <line x1="{_SVG_WIDTH}" y1="0" x2="{_SVG_WIDTH}" y2="{_SVG_HEIGHT}"/>
+        <line x1="{_SVG_WIDTH}" y1="{_SVG_HEIGHT}" x2="0" y2="{_SVG_HEIGHT}"/>
+        <line x1="0" y1="{_SVG_HEIGHT}" x2="0" y2="0"/>
+    </g>
+
+    <!-- Hour division line -->
+    <line stroke="#ec9635" x1="{_HOUR_WIDTH}" y1="0" x2="{_HOUR_WIDTH}" y2="{_SVG_HEIGHT}"/>
+
+    <!-- Header division line -->
+    <line stroke="#ec9635" x1="0" y1="{_HEADER_HEIGHT}" x2="{_SVG_WIDTH}" y2="{_HEADER_HEIGHT}"/>
+</svg>
+"""
+
+
+def day_to_planner(day_info: list[dict[str, str]]) -> str:
+    """
+    Convert a list of classes happening on a given day to a visual
+    representation using svg elements
+    """
+
+    return ""
