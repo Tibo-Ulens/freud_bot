@@ -48,7 +48,7 @@ class Verify(Cog):
     async def verify_email(self, iactn: Interaction, email: str):
         author_id = str(iactn.user.id)
 
-        logger.info(f"verifying email '{email}' for {author_id}")
+        logger.info(f"verifying email '{email}' for [{author_id}] {iactn.user.name}")
 
         verification_code = str(uuid.uuid4().hex)
 
@@ -56,7 +56,7 @@ class Verify(Cog):
         if profile is not None:
             if profile.confirmation_code is None:
                 logger.info(
-                    f"{author_id} requested verification for already verified user"
+                    f"[{author_id}] {iactn.user.name} requested verification for already verified user"
                 )
                 await iactn.response.send_message(
                     "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
@@ -64,7 +64,9 @@ class Verify(Cog):
                 )
                 return
             else:
-                logger.info(f"{author_id} requested verification code reset")
+                logger.info(
+                    f"[{author_id}] {iactn.user.name} requested verification code reset"
+                )
 
                 profile.confirmation_code = verification_code
                 await profile.save()
@@ -79,14 +81,16 @@ class Verify(Cog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            logger.info(f"{author_id} requested verification for already used email")
+            logger.info(
+                f"[{author_id}] {iactn.user.name} requested verification for already used email"
+            )
             await iactn.response.send_message(
                 "A different profile with this email already exists\nIf you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
             return
 
-        logger.info(f"{author_id} requested new verification code")
+        logger.info(f"[{author_id}] {iactn.user.name} requested new verification code")
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
@@ -99,12 +103,14 @@ class Verify(Cog):
     async def verify_code(self, iactn: Interaction, code: str):
         author_id = str(iactn.user.id)
 
-        logger.info(f"verifying code '{code}' for {author_id}")
+        logger.info(f"verifying code '{code}' for [{author_id}] {iactn.user.name}")
 
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            logger.info(f"{author_id} attempted to verify without requesting a code")
+            logger.info(
+                f"[{author_id}] {iactn.user.name} attempted to verify without requesting a code"
+            )
             await iactn.response.send_message(
                 "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
                 ephemeral=True,
@@ -114,7 +120,7 @@ class Verify(Cog):
 
         if profile.confirmation_code is None:
             logger.info(
-                f"{author_id} attempted to verify again after already having been verified"
+                f"[{author_id}] {iactn.user.name} attempted to verify again after already having been verified"
             )
             await iactn.response.send_message(
                 "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
@@ -126,7 +132,9 @@ class Verify(Cog):
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            logger.info(f"{author_id} attempted to verify with an invalid code")
+            logger.info(
+                f"[{author_id}] {iactn.user.name} attempted to verify with an invalid code"
+            )
             await iactn.response.send_message(
                 "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
                 ephemeral=True,
@@ -139,7 +147,7 @@ class Verify(Cog):
 
         user = iactn.user
 
-        logger.info(f"{author_id} verified succesfully")
+        logger.info(f"[{author_id}] {iactn.user.name} verified succesfully")
         await user.add_roles(
             discord.utils.get(user.guild.roles, name=constants.VERIFIED_ROLE)
         )

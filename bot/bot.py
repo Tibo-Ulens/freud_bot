@@ -4,7 +4,8 @@ from contextlib import suppress
 import logging
 import discord
 from discord.ext import commands
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
+import redis.asyncio as redis
+from redis.asyncio import Redis
 
 from bot.constants import GUILD_ID
 
@@ -15,7 +16,8 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, redis: Redis, *args, **kwargs):
+        self.redis = redis
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -37,7 +39,14 @@ class Bot(commands.Bot):
 
         intents.webhooks = False
 
-        return cls(command_prefix="$", intents=intents)
+        redis_conn = redis.Redis(
+            host=os.environ.get("CACHE_HOST"), port=os.environ.get("CACHE_PORT")
+        )
+        await redis_conn.ping()
+
+        logger.info("Cache connection established")
+
+        return cls(command_prefix="$", intents=intents, redis=redis_conn)
 
     async def setup_hook(self):
         """Sync slash commands to guild"""
