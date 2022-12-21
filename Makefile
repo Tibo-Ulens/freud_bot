@@ -7,8 +7,8 @@ fmt:
 	black .
 
 setup:
-	docker volume create freud_bot_data
-	poetry install
+	chmod +x ./bin/setup.sh
+	./bin/setup.sh
 
 dbd:
 	docker compose up --build freud_bot_db --remove-orphans -d
