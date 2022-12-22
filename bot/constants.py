@@ -12,9 +12,11 @@ DISCORD_TOKEN: str
 with open("/run/secrets/discord_token") as secret:
     DISCORD_TOKEN = secret.readline().rstrip("\n")
 
-GMAIL_APP_PASSWORD: str
-with open("/run/secrets/gmail_app_password") as secret:
-    GMAIL_APP_PASSWORD = secret.readline().rstrip("\n")
+SMTP_USER: str
+SMTP_PASSWORD: str
+with open("/run/secrets/smtp_credentials") as secret:
+    SMTP_USER = secret.readline().rstrip("\n")
+    SMTP_PASSWORD = secret.readline().rstrip("\n")
 
 GUILD_ID = discord.Object(id=int(os.environ.get("GUILD_ID")))
 

@@ -87,3 +87,17 @@ tput cuu 1
 tput cuf 26
 echo " OK"
 tput rc
+
+echo "creating secrets..."
+mkdir -p secrets
+read -p "enter discord bot token: " discord_token
+read -p "enter smtp username: " smtp_user
+read -p "enter smtp password: " smtp_pwd
+echo "${discord_token}" > "${PROJECT_ROOT}/secrets/discord_token.txt"
+echo "${smtp_user}" > "${PROJECT_ROOT}/secrets/smtp_credentials.txt"
+echo "${smtp_pwd}" >> "${PROJECT_ROOT}/secrets/smtp_credentials.txt"
+tput sc
+tput cuu 4
+tput cuf 19
+echo " OK"
+tput rc

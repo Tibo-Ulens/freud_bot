@@ -1,0 +1,23 @@
+categories:
+  - title: "Features"
+    labels:
+      - "enhancement"
+      - "feature"
+  - title: "Bug Fixes"
+    labels:
+      - "bug"
+      - "bugfix"
+      - "fix"
+  - title: "Maintenance"
+    label: "chore"
+  - title: "Documentation"
+    labels:
+      - "documentation"
+      - "doc"
+      - "docs"
+
+exclude-labels:
+  - "dependencies"
+
+template: |
+    $CHANGES

@@ -16,7 +16,6 @@ from bot.models.profile import Profile
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
 CODE_REGEX = re.compile(r"^['|<]?([a-z0-9]{32})[>|']?$")
 
-EMAIL_USER = "psychology.ugent@gmail.com"
 EMAIL_MESSAGE = "From: psychology.ugent@gmail.com\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
 
 
@@ -37,9 +36,9 @@ class Verify(Cog):
 
         server.ehlo()
         server.starttls()
-        server.login(EMAIL_USER, constants.GMAIL_APP_PASSWORD)
+        server.login(constants.SMTP_USER, constants.SMTP_PASSWORD)
 
-        server.sendmail(EMAIL_USER, to, message)
+        server.sendmail(constants.SMTP_USER, to, message)
 
         server.close()
 
