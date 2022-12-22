@@ -70,6 +70,7 @@ for hook in ${HOOKS}; do
 	hook_file=$(basename "${hook}")
 	echo "  ${hook} -> ${GIT_HOOKS_PATH}/${hook_file}"
 	ln -s -f "${hook}" "${GIT_HOOKS_PATH}/${hook_file}"
+	chmod +x "${GIT_HOOKS_PATH}/${hook_file}"
 
 	cursor_v_offset=$((cursor_v_offset+1))
 done
