@@ -25,7 +25,7 @@ jobs:
             env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: build new image
-            run: docker build -t ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }}
+            run: docker build . -t ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }}
           - name: log in to ghcr
             run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
           - name: tag new image as latest
