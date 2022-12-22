@@ -15,9 +15,10 @@ class Config(Base, Model):
 
     guild_id = Column(Text, primary_key=True)
     verified_role = Column(Text, unique=True, nullable=False)
+    verification_channel = Column(Text, unique=True, nullable=False)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}> guild_id: {self.guild_id} verified_role: {self.verified_role}"
+        return f"<{self.__class__.__name__}> guild_id: {self.guild_id} verified_role: {self.verified_role} verification_channel: {self.verification_channel}"
 
     @classmethod
     async def get(cls, id_: int) -> Optional["Config"]:

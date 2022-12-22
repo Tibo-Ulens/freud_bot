@@ -177,9 +177,27 @@ class Verify(Cog):
     async def verify(self, iactn: Interaction, argument: str):
         author_id = iactn.user.id
 
-        if str(iactn.channel_id) != constants.VERIFY_CHANNEL:
+        config = await Config.get(iactn.guild_id)
+        if config is None:
+            logger.error(f"no config for guild {iactn.guild_id} exists yet")
             await iactn.response.send_message(
-                f"This command can only be used in <#{constants.VERIFY_CHANNEL}>",
+                "The bot has not been set up properly yet, please notify a server admin"
+            )
+            return
+
+        verification_channel = config.verification_channel
+        if verification_channel is None:
+            logger.error(
+                f"no verification channel for guild {iactn.guild_id} exists yet"
+            )
+            await iactn.response.send_message(
+                "The bot has not been set up properly yet, please notify a server admin"
+            )
+            return
+
+        if str(iactn.channel_id) != verification_channel:
+            await iactn.response.send_message(
+                f"This command can only be used in <#{verification_channel}>",
                 ephemeral=True,
             )
             return

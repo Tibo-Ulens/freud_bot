@@ -21,8 +21,10 @@ def upgrade() -> None:
         "config",
         sa.Column("guild_id", sa.Text, primary_key=True),
         sa.Column("verified_role", sa.Text, nullable=True),
+        sa.Column("verification_channel", sa.Text, nullable=True),
         sa.UniqueConstraint("guild_id", name="unique_guild_id"),
         sa.UniqueConstraint("verified_role", name="unique_verified_role"),
+        sa.UniqueConstraint("verification_channel", name="unique_verification_channel"),
     )
 
 

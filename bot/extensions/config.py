@@ -1,4 +1,4 @@
-from discord import app_commands, Interaction, Role
+from discord import app_commands, Interaction, Role, TextChannel
 from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 import logging
@@ -39,8 +39,23 @@ class Config(Cog):
         guild_config.verified_role = str(role.id)
         await guild_config.save()
 
-        logger.info(f"set verified_role to {role.id} for guild {ia.guild_id}")
+        logger.info(f"set verified role to {role.id} for guild {ia.guild_id}")
         await ia.response.send_message(f"set verified role to <@&{role.id}>")
+
+    @app_commands.guild_only()
+    @config_group.command(
+        name="verification_channel",
+        description="Set the channel in which the /verify command can be used",
+    )
+    @app_commands.describe(channel="The channel to select")
+    async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
+        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+
+        guild_config.verification_channel = str(channel.id)
+        await guild_config.save()
+
+        logger.info(f"set verification channel to {channel.id} for guild {ia.guild_id}")
+        await ia.response.send_message(f"set verification channel to <#{channel.id}>")
 
 
 async def setup(bot: Bot):
