@@ -1,10 +1,8 @@
 import datetime
 import logging
-import os
 import textwrap
 import math
 
-import discord
 
 logger = logging.getLogger("bot")
 
@@ -17,12 +15,6 @@ SMTP_PASSWORD: str
 with open("/run/secrets/smtp_credentials") as secret:
     SMTP_USER = secret.readline().rstrip("\n")
     SMTP_PASSWORD = secret.readline().rstrip("\n")
-
-GUILD_ID = discord.Object(id=int(os.environ.get("GUILD_ID")))
-
-VERIFIED_ROLE = os.environ.get("VERIFIED_ROLE")
-
-VERIFY_CHANNEL = os.environ.get("VERIFY_CHANNEL")
 
 DRIVE_LINKS = {
     "Grondslagen van de Psychologie": "https://drive.google.com/drive/folders/10ZKbgdHg49_DRjH5TtPtZ7sZjQt6GmMD?usp=sharing",

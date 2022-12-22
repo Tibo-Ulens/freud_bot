@@ -7,8 +7,6 @@ from discord.ext import commands
 import redis.asyncio as redis
 from redis.asyncio import Redis
 
-from bot.constants import GUILD_ID
-
 
 logger = logging.getLogger("bot")
 
@@ -25,6 +23,7 @@ class Bot(commands.Bot):
         """Create and return a new bot instance"""
 
         intents = discord.Intents.default()
+        intents.message_content = True
         intents.bans = False
 
         intents.dm_messages = False
@@ -48,12 +47,6 @@ class Bot(commands.Bot):
 
         return cls(command_prefix="$", intents=intents, redis=redis_conn)
 
-    async def setup_hook(self):
-        """Sync slash commands to guild"""
-
-        self.tree.copy_global_to(guild=GUILD_ID)
-        await self.tree.sync()
-
     async def load_extensions(self) -> None:
         """Load all enabled extensions"""
 
@@ -70,8 +63,6 @@ class Bot(commands.Bot):
         await super().add_cog(cog)
 
     async def close(self) -> None:
-        """Close the Discord connection"""
-
         # Remove all extensions and cogs
         for ext in list(self.extensions):
             with suppress(Exception):
@@ -83,8 +74,8 @@ class Bot(commands.Bot):
                 logger.info(f"Removing cog {cog}")
                 self.remove_cog(cog)
 
-        logger.info("Closing Postgres connection")
-        self.pg_conn.close()
+        logger.info("Closing redis connection")
+        await self.redis.close()
 
         logger.info("Closing bot client...")
 
