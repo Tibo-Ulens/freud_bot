@@ -1,14 +1,18 @@
 .PHONY: all fmt migrate down dbd setup
 
-all: fmt
-	docker compose up --build
+all:
+	docker compose up --build freud_bot
+
+dev: fmt
+	docker compose up --build freud_bot_dev
 
 fmt:
 	black .
 
 setup:
-	docker volume create freud_bot_data
-	poetry install
+	chmod +x ./bin/setup.sh
+	./bin/setup.sh
+	$(MAKE) migrate
 
 dbd:
 	docker compose up --build freud_bot_db --remove-orphans -d

@@ -13,11 +13,11 @@
        per-server configuration of stuff like verification channels, what
 	   courses to scrape, etc.
 
+# Done
+
 ## General
 
- - [ ] Add a github hook to check formatting
- - [ ] Add a github action to deploy to dockerhub or ghcr
-   - [ ] Update the docker compose file to pull from the container repository
+ - [x] Add a github hook to check formatting
+ - [x] Add a github action to deploy to dockerhub or ghcr
+   - [x] Update the docker compose file to pull from the container repository
          instead of building locally
-
-# Done
