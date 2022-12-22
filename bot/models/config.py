@@ -20,7 +20,22 @@ class Config(Base, Model):
         return f"<{self.__class__.__name__}> guild_id: {self.guild_id} verified_role: {self.verified_role}"
 
     @classmethod
-    async def get_or_create(cls, id_: int) -> Optional["Config"]:
+    async def get(cls, id_: int) -> Optional["Config"]:
+        """Find a config given its guild ID"""
+
+        async with session_factory() as session:
+            result: Query = await session.execute(
+                select(cls).where(cls.guild_id == str(id_))
+            )
+
+            r = result.first()
+            if r is None:
+                return None
+            else:
+                return r[0]
+
+    @classmethod
+    async def get_or_create(cls, id_: int) -> "Config":
         """Find a config given its guild ID, or create an empty config if it does not exist"""
 
         async with session_factory() as session:

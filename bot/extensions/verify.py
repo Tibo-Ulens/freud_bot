@@ -11,12 +11,13 @@ from discord.ext.commands import Cog
 from bot import constants
 from bot.bot import Bot
 from bot.models.profile import Profile
+from bot.models.config import Config
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
 CODE_REGEX = re.compile(r"^['|<]?([a-z0-9]{32})[>|']?$")
 
-EMAIL_MESSAGE = "From: psychology.ugent@gmail.com\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
+EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
 
 
 logger = logging.getLogger("bot")
@@ -29,7 +30,7 @@ class Verify(Cog):
 
     @staticmethod
     def send_confirmation_email(to: str, code: str):
-        message = EMAIL_MESSAGE.format(to=to, code=code)
+        message = EMAIL_MESSAGE.format(from_=constants.SMTP_USER, to=to, code=code)
 
         email_logger.info(f"sending email to {to}...")
         server = smtplib.SMTP("smtp.gmail.com", 587)
@@ -141,18 +142,33 @@ class Verify(Cog):
 
             return
 
-        profile.confirmation_code = None
-        await profile.save()
-
         user = iactn.user
 
         logger.info(f"[{author_id}] {iactn.user.name} verified succesfully")
-        await user.add_roles(
-            discord.utils.get(user.guild.roles, name=constants.VERIFIED_ROLE)
-        )
+
+        config = await Config.get(iactn.guild_id)
+        if config is None:
+            logger.error(f"no config for guild {iactn.guild_id} exists yet")
+            await iactn.response.send_message(
+                "The bot has not been set up properly yet, please notify a server admin"
+            )
+            return
+
+        verified_role = config.verified_role
+        if verified_role is None:
+            logger.error(f"no verified role for guild {iactn.guild_id} exists yet")
+            await iactn.response.send_message(
+                "The bot has not been set up properly yet, please notify a server admin"
+            )
+            return
+
+        await user.add_roles(discord.utils.get(user.guild.roles, id=int(verified_role)))
         await iactn.response.send_message(
-            "You have verified succesfully! Welcome to the psychology server"
+            "You have verified succesfully! Welcome to the server"
         )
+
+        profile.confirmation_code = None
+        await profile.save()
 
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
