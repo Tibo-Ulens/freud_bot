@@ -16,12 +16,15 @@ session_factory = sessionmaker(engine, expire_on_commit=False, class_=AsyncSessi
 
 class Model:
     @classmethod
-    async def create(cls, **kwargs):
+    async def create(cls, **kwargs) -> "Model":
         """Create a new row"""
 
         async with session_factory() as session:
-            session.add(cls(**kwargs))
+            instance = cls(**kwargs)
+            session.add(instance)
             await session.commit()
+
+            return instance
 
     async def save(self):
         """Save an updated row"""

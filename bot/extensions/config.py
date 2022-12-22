@@ -1,8 +1,10 @@
+from discord import app_commands, Interaction, Role
 from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 import logging
 
 from bot.bot import Bot
+from bot.models.config import Config as ConfigModel
 from bot import constants
 
 
@@ -10,6 +12,8 @@ logger = logging.getLogger("bot")
 
 
 class Config(Cog):
+    config_group = app_commands.Group(name="config", description="bot configuration")
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
@@ -22,6 +26,21 @@ class Config(Cog):
 
         logger.info(f"synced {len(synced)} commands to {ctx.guild.name}")
         await ctx.reply(f"synced {len(synced)} commands to the current guild")
+
+    @app_commands.guild_only()
+    @config_group.command(
+        name="verified_role",
+        description="Set the role to be applied to members once they have been verified",
+    )
+    @app_commands.describe(role="The role to be applied")
+    async def set_verified_role(self, ia: Interaction, role: Role):
+        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+
+        guild_config.verified_role = str(role.id)
+        await guild_config.save()
+
+        logger.info(f"set verified_role to {role.id} for guild {ia.guild_id}")
+        await ia.response.send_message(f"set verified role to <@&{role.id}>")
 
 
 async def setup(bot: Bot):
