@@ -20,6 +20,8 @@ jobs:
                 name: v${{ steps.parse_tag.outputs.version }}
                 tag: v${{ steps.parse_tag.outputs.version }}
                 version: v${{ steps.parse_tag.outputs.version }}
+                prerelease: false
+                commitish: main
             env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: build new image
