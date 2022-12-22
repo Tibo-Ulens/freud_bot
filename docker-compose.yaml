@@ -10,9 +10,6 @@ services:
 
           - CACHE_HOST=freud_bot_cache
           - CACHE_PORT=6379
-
-          - VERIFY_CHANNEL=983088370966212609
-          - VERIFIED_ROLE=Verified
         logging:
             options:
                 max-size: "4096m"
@@ -33,9 +30,6 @@ services:
 
           - CACHE_HOST=freud_bot_cache
           - CACHE_PORT=6379
-
-          - VERIFY_CHANNEL=983088370966212609
-          - VERIFIED_ROLE=Verified
         logging:
             options:
                 max-size: "4096m"
