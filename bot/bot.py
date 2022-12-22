@@ -23,6 +23,7 @@ class Bot(commands.Bot):
         """Create and return a new bot instance"""
 
         intents = discord.Intents.default()
+        intents.message_content = True
         intents.bans = False
 
         intents.dm_messages = False
