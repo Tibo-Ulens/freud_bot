@@ -1,5 +1,10 @@
 # TODO
 
+## Configuration
+
+ - [ ] Add a command to specify an admin/moderator role and a decorator to
+       get this role from the database and check if a user has it
+
 ## Calendar
 
  - [ ] Select the correct roster link in selenium based on the current time
