@@ -15,9 +15,12 @@
 
 ## General
 
- - [ ] Add a github hook to check formatting
  - [ ] Add a github action to deploy to dockerhub or ghcr
    - [ ] Update the docker compose file to pull from the container repository
          instead of building locally
 
 # Done
+
+## General
+
+ - [x] Add a github hook to check formatting
