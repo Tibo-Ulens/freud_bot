@@ -2,8 +2,6 @@ name: Release new version
 
 on:
     push:
-        branches:
-          - "main"
         tags:
           - "v*"
 
