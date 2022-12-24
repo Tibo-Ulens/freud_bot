@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import suppress
 
@@ -6,6 +7,7 @@ import discord
 from discord.ext import commands
 import redis.asyncio as redis
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 
 logger = logging.getLogger("bot")
@@ -14,8 +16,9 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, redis: Redis, *args, **kwargs):
-        self.redis = redis
+    def __init__(self, db: AsyncEngine, cache: Redis, *args, **kwargs):
+        self.db = db
+        self.cache = cache
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -38,14 +41,16 @@ class Bot(commands.Bot):
 
         intents.webhooks = False
 
+        pg_engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
+        logger.info("Database connection established")
+
         redis_conn = redis.Redis(
             host=os.environ.get("CACHE_HOST"), port=os.environ.get("CACHE_PORT")
         )
         await redis_conn.ping()
-
         logger.info("Cache connection established")
 
-        return cls(command_prefix="$", intents=intents, redis=redis_conn)
+        return cls(db=pg_engine, cache=redis_conn, command_prefix="$", intents=intents)
 
     async def load_extensions(self) -> None:
         """Load all enabled extensions"""
@@ -63,24 +68,34 @@ class Bot(commands.Bot):
         await super().add_cog(cog)
 
     async def close(self) -> None:
-        # Remove all extensions and cogs
+        # Remove all extensions
+        extension_tasks = []
         for ext in list(self.extensions):
             with suppress(Exception):
-                logger.info(f"Unloading extensions {ext}")
-                self.unload_extension(ext)
+                logger.info(f"Unloading extension {ext}")
+                extension_tasks.append(self.unload_extension(ext))
 
+        await asyncio.gather(*extension_tasks)
+
+        # Remove all cogs
+        cog_tasks = []
         for cog in list(self.cogs):
             with suppress(Exception):
                 logger.info(f"Removing cog {cog}")
-                self.remove_cog(cog)
+                cog_tasks.append(self.remove_cog(cog))
 
-        logger.info("Closing redis connection")
-        await self.redis.close()
+        await asyncio.gather(*cog_tasks)
 
         logger.info("Closing bot client...")
-
         await super().close()
 
+        logger.info("Closing database connection...")
+        await self.db.dispose()
+
+        logger.info("Closing cache connection...")
+        await self.cache.close()
+
+        logger.info("Exiting...")
         await self.logout()
 
     async def on_error(self, event: str) -> None:

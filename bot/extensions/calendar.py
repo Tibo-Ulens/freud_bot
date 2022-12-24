@@ -134,7 +134,7 @@ class Calendar(Cog):
 
         # Gotta decode here cuz redis returns bytestrings
         stored_courses: set[str] = set(
-            [course.decode("utf-8") async for course in self.bot.redis.scan_iter()]
+            [course.decode("utf-8") async for course in self.bot.cache.scan_iter()]
         )
 
         missing_courses = list(set(course_codes) - stored_courses)
@@ -204,7 +204,7 @@ class Calendar(Cog):
             content="Updating cache: storing course data..."
         )
 
-        async with self.bot.redis.pipeline(transaction=True) as pipe:
+        async with self.bot.cache.pipeline(transaction=True) as pipe:
             for (name, info) in grouped_course_info.items():
                 pipe.set(name, info)
 
@@ -249,7 +249,7 @@ class Calendar(Cog):
             day: list() for day in week_days
         }
         for course in courses:
-            course_info = await self.bot.redis.get(course)
+            course_info = await self.bot.cache.get(course)
             course_info = json.loads(course_info.decode("utf-8"))
 
             for [date, info] in course_info.items():
@@ -410,8 +410,8 @@ class Calendar(Cog):
     async def clear_cache(self, iactn: Interaction):
         await iactn.response.send_message("Clearing course cache...")
 
-        keys = [key async for key in self.bot.redis.scan_iter()]
-        async with self.bot.redis.pipeline(transaction=True) as pipe:
+        keys = [key async for key in self.bot.cache.scan_iter()]
+        async with self.bot.cache.pipeline(transaction=True) as pipe:
             for key in keys:
                 pipe.delete(key)
 

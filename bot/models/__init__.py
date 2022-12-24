@@ -1,17 +1,13 @@
-import logging
-import os
-
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-logger = logging.getLogger("bot")
+import bot
+
+engine = bot.instance.db
+session_factory = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 Base = declarative_base()
-
-engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
-logger.info("Database connection established")
-session_factory = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
 class Model:
