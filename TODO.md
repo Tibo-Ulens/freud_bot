@@ -1,5 +1,9 @@
 # TODO
 
+## General
+
+ - [ ] Better logging
+
 ## Configuration
 
  - [ ] Add a command to specify an admin/moderator role and a decorator to
