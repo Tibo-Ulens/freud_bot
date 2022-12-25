@@ -5,8 +5,6 @@ from contextlib import suppress
 import logging
 import discord
 from discord.ext import commands
-import redis.asyncio as redis
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 
@@ -16,9 +14,8 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, db: AsyncEngine, cache: Redis, *args, **kwargs):
+    def __init__(self, db: AsyncEngine, *args, **kwargs):
         self.db = db
-        self.cache = cache
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -44,13 +41,7 @@ class Bot(commands.Bot):
         pg_engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
         logger.info("Database connection established")
 
-        redis_conn = redis.Redis(
-            host=os.environ.get("CACHE_HOST"), port=os.environ.get("CACHE_PORT")
-        )
-        await redis_conn.ping()
-        logger.info("Cache connection established")
-
-        return cls(db=pg_engine, cache=redis_conn, command_prefix="$", intents=intents)
+        return cls(db=pg_engine, command_prefix="$", intents=intents)
 
     async def load_extensions(self) -> None:
         """Load all enabled extensions"""
@@ -91,9 +82,6 @@ class Bot(commands.Bot):
 
         logger.info("Closing database connection...")
         await self.db.dispose()
-
-        logger.info("Closing cache connection...")
-        await self.cache.close()
 
         logger.info("Exiting...")
         await self.logout()
