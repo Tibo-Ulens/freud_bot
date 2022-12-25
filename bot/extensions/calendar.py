@@ -1,13 +1,12 @@
 import asyncio
-from collections import defaultdict
 from contextlib import closing
 import csv
 import datetime
 from datetime import timedelta, datetime as DateTime
 from io import BytesIO
-import json
 import logging
 from time import sleep
+from typing import Iterator
 
 from cairosvg import svg2png
 from discord import app_commands, Interaction, File
@@ -15,6 +14,7 @@ from discord.app_commands import errors
 from discord.ext.commands import Cog
 import requests
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import FirefoxOptions
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -34,60 +34,75 @@ logger = logging.getLogger("bot")
 web_logger = logging.getLogger("selenium")
 
 
-def get_csv_link(course_code: str) -> str:
-    """Select a course in TimeEdit given its code and get the csv download link for it"""
+def get_csv_links(course_code: str) -> Iterator[str]:
+    """Select a course in TimeEdit given its code and get the csv download links for it"""
 
     options = FirefoxOptions()
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
-    driver.get(constants.TIMEEDIT_URL)
-    driver.find_element(By.CSS_SELECTOR, ".linklist a").click()
 
-    # Search by course
-    type_select = WebDriverWait(driver, 2).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, "select#fancytypeselector"))
-    )
-    type_select = Select(type_select)
+    for time_idx in range(1, 5):
+        driver.get(constants.TIMEEDIT_URL)
+        driver.find_element(
+            By.CSS_SELECTOR, f".linklist a:nth-of-type({time_idx})"
+        ).click()
 
-    # VERY IMPORTANT BUT DON'T ASK WHY
-    for opt in type_select.options:
-        opt.get_attribute("innerHTML")
-        opt.click()
+        web_logger.info(f"searching timestep: {time_idx}")
 
-    type_select.select_by_visible_text("Cursus")
-
-    # Search for and add each course
-    search = driver.find_element(By.CSS_SELECTOR, "input#ffsearchname")
-    search.clear()
-    search.send_keys(course_code)
-    search.send_keys(Keys.ENTER)
-
-    web_logger.info(f"sought for course {course_code}")
-    sleep(0.5)
-    add_btn = WebDriverWait(driver, 5).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, "#objectbasketitemX0"))
-    )
-    add_btn.click()
-
-    web_logger.info(f"added course {course_code}")
-
-    # Show the calendar
-    show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
-    show_btn.click()
-
-    csv_btn = WebDriverWait(driver, 2).until(
-        EC.presence_of_element_located(
-            (By.CSS_SELECTOR, "a.formatLinksItem[title='CSV']")
+        # Search by course
+        type_select = WebDriverWait(driver, 2).until(
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, "select#fancytypeselector")
+            )
         )
-    )
-    href = csv_btn.get_attribute("href")
+        type_select = Select(type_select)
+
+        # VERY IMPORTANT BUT DON'T ASK WHY
+        for opt in type_select.options:
+            opt.get_attribute("innerHTML")
+            opt.click()
+
+        type_select.select_by_visible_text("Cursus")
+
+        # Search for and add each course
+        search = driver.find_element(By.CSS_SELECTOR, "input#ffsearchname")
+        search.clear()
+        search.send_keys(course_code)
+        search.send_keys(Keys.ENTER)
+
+        web_logger.info(f"sought for course {course_code}")
+        sleep(0.5)
+        try:
+            add_btn = WebDriverWait(driver, 2).until(
+                EC.visibility_of_element_located(
+                    (By.CSS_SELECTOR, "#objectbasketitemX0")
+                )
+            )
+        except TimeoutException:
+            web_logger.info("not found, skipping")
+            continue
+
+        add_btn.click()
+
+        web_logger.info(f"added course {course_code}")
+
+        # Show the calendar
+        show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
+        show_btn.click()
+
+        csv_btn = WebDriverWait(driver, 2).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "a.formatLinksItem[title='CSV']")
+            )
+        )
+        href = csv_btn.get_attribute("href")
+
+        web_logger.info("done")
+
+        yield href
 
     driver.close()
     driver.quit()
-
-    web_logger.info("done")
-
-    return href
 
 
 class Calendar(Cog):
@@ -108,7 +123,7 @@ class Calendar(Cog):
         )
 
         try:
-            csv_url = get_csv_link(course_code)
+            csv_urls = [url for url in get_csv_links(course_code)]
         except Exception as err:
             logger.error(err)
             await ia.edit_original_response(
@@ -125,20 +140,23 @@ class Calendar(Cog):
 
         create_lecture_futures = []
 
-        with closing(requests.get(csv_url, allow_redirects=True, stream=True)) as req:
-            line_generator = (
-                line.decode("utf-8") for line in req.iter_lines(chunk_size=1024)
-            )
+        for csv_url in csv_urls:
+            with closing(
+                requests.get(csv_url, allow_redirects=True, stream=True)
+            ) as req:
+                line_generator = (
+                    line.decode("utf-8") for line in req.iter_lines(chunk_size=1024)
+                )
 
-            # UGent csv files start with:
-            next(line_generator)  # an empty line (?)
-            next(line_generator)  # the UGent name
-            next(line_generator)  # course info
+                # UGent csv files start with:
+                next(line_generator)  # an empty line (?)
+                next(line_generator)  # the UGent name
+                next(line_generator)  # course info
 
-            reader = csv.DictReader(line_generator, delimiter=",")
+                reader = csv.DictReader(line_generator, delimiter=",")
 
-            for entry in reader:
-                create_lecture_futures.append(Lecture.from_csv_entry(entry))
+                for entry in reader:
+                    create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
         logger.info(f"storing lecture info for course [{course_code}] {course_name}")
         await ia.edit_original_response(

@@ -9,13 +9,6 @@
  - [ ] Add a command to specify an admin/moderator role and a decorator to
        get this role from the database and check if a user has it
 
-## Calendar
-
- - [ ] Select the correct roster link in selenium based on the current time
-       (eg. semester 1/2, exam period 1/2)
- - [ ] Automatically fetch a list of all courses for the current period instead
-       of needing to use `/course add`
-
 # Done
 
 ## General
@@ -25,6 +18,11 @@
    - [x] Update the docker compose file to pull from the container repository
          instead of building locally
 
+## Calendar
+
+ - [x] Select the correct roster link in selenium ~~based on the current time~~
+       (eg. semester 1/2, exam period 1/2) (it just scrapes everything and
+	   ignores courses it can't find)
 ## Configuration
 
  - [x] Add a `/setup` command or a set of `/config {option}` commands to allow
