@@ -1,4 +1,6 @@
-from discord import Interaction
+from discord import Interaction, app_commands
+
+from bot.models.course import Course
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -21,6 +23,20 @@ def levenshtein_distance(s1: str, s2: str) -> int:
         distances = new_distances
 
     return distances[-1] / max(len(s1), len(s2))
+
+
+async def course_autocomplete(
+    _: Interaction, current: str
+) -> list[app_commands.Choice[str]]:
+    """
+    Order the list of availble courses by 'likeness' to the current argument
+    and send them as an autocomplete list
+    """
+
+    courses = await Course.get_all_names()
+    courses.sort(key=lambda c: levenshtein_distance(c, current))
+
+    return [app_commands.Choice(name=course, value=course) for course in courses]
 
 
 def check_has_manage_guild(ia: Interaction) -> bool:

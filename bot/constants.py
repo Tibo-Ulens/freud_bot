@@ -289,9 +289,9 @@ def _time_to_y_coord(time: str) -> int:
 def _make_wrapped_text(
     x: int, y: int, width: int, height: int, info: dict[str, str]
 ) -> str:
-    name_text = f"{info['name'].split('.')[1].strip()}"
+    name_text = info["course_name"]
     time_text = f"{info['start_time']} - {info['end_time']}"
-    loc_text = f"{info['location']}"
+    loc_text = f'{info["classroom"]}, {info["building"]}, {info["campus"]}'
 
     chars_per_line = math.floor(width / (20 / 1.5))
     max_lines = math.floor(height / (20 * 1.2))

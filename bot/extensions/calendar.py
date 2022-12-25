@@ -3,7 +3,7 @@ from collections import defaultdict
 from contextlib import closing
 import csv
 import datetime
-from datetime import timedelta
+from datetime import timedelta, datetime as DateTime
 from io import BytesIO
 import json
 import logging
@@ -26,30 +26,16 @@ from bot.bot import Bot
 from bot.constants import day_to_planner
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
-from bot.util import levenshtein_distance, check_has_manage_guild
+from bot.models.lecture import Lecture
+from bot.util import course_autocomplete, check_has_manage_guild
 
 
 logger = logging.getLogger("bot")
 web_logger = logging.getLogger("selenium")
-cache_logger = logging.getLogger("cache")
 
 
-async def course_autocomplete(
-    _: Interaction, current: str
-) -> list[app_commands.Choice[str]]:
-    """
-    Order the list of availble courses by 'likeness' to the current argument
-    and send them as an autocomplete list
-    """
-
-    courses = await Course.get_all_names()
-    courses.sort(key=lambda c: levenshtein_distance(c, current))
-
-    return [app_commands.Choice(name=course, value=course) for course in courses]
-
-
-def get_csv_link(course_codes: list[str]) -> str:
-    """Build up the timeedit calendar and get the csv file download link for it"""
+def get_csv_link(course_code: str) -> str:
+    """Select a course in TimeEdit given its code and get the csv download link for it"""
 
     options = FirefoxOptions()
     options.add_argument("--headless")
@@ -72,19 +58,18 @@ def get_csv_link(course_codes: list[str]) -> str:
 
     # Search for and add each course
     search = driver.find_element(By.CSS_SELECTOR, "input#ffsearchname")
-    for code in course_codes:
-        search.clear()
-        search.send_keys(code)
-        search.send_keys(Keys.ENTER)
+    search.clear()
+    search.send_keys(course_code)
+    search.send_keys(Keys.ENTER)
 
-        web_logger.info(f"sought for course {code}")
-        sleep(0.5)
-        add_btn = WebDriverWait(driver, 5).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, "#objectbasketitemX0"))
-        )
-        add_btn.click()
+    web_logger.info(f"sought for course {course_code}")
+    sleep(0.5)
+    add_btn = WebDriverWait(driver, 5).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, "#objectbasketitemX0"))
+    )
+    add_btn.click()
 
-        web_logger.info(f"added course {code}")
+    web_logger.info(f"added course {course_code}")
 
     # Show the calendar
     show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
@@ -111,99 +96,65 @@ class Calendar(Cog):
 
     group = app_commands.Group(name="course", description="course management")
 
-    async def maybe_update_cache(self, course_codes: list[str], iactn: Interaction):
+    @staticmethod
+    async def store_lecture_info(course_code: str, course_name: str, ia: Interaction):
         """
-        Check if the cache is missing info on the given list of courses and if
-        so, add it
+        Scrape and store the lecture info for a given course
         """
 
-        # Gotta decode here cuz redis returns bytestrings
-        stored_courses: set[str] = set(
-            [course.decode("utf-8") async for course in self.bot.cache.scan_iter()]
-        )
-
-        missing_courses = list(set(course_codes) - stored_courses)
-
-        if not missing_courses:
-            return
-
-        cache_logger.info(f"updating cache for courses {','.join(missing_courses)}")
-        await iactn.edit_original_response(
-            content="Updating cache: finding course data (this may take a while)..."
+        logger.info(f"finding lecture info for course [{course_code}] {course_name}")
+        await ia.edit_original_response(
+            content=f"finding lecture info for course {course_name} (this may take a while)..."
         )
 
         try:
-            csv_url = get_csv_link(missing_courses)
+            csv_url = get_csv_link(course_code)
         except Exception as err:
-            cache_logger.error(err)
-            await iactn.edit_original_response(
+            logger.error(err)
+            await ia.edit_original_response(
                 content="Something went wrong, please contact a server admin"
             )
             return
 
-        await iactn.edit_original_response(
-            content="Updating cache: downloading course data..."
+        logger.info(
+            f"downloading lecture info for course [{course_code}] {course_name}"
+        )
+        await ia.edit_original_response(
+            content=f"downloading lecture info for course {course_name}"
         )
 
+        create_lecture_futures = []
+
         with closing(requests.get(csv_url, allow_redirects=True, stream=True)) as req:
-            line_content = (
+            line_generator = (
                 line.decode("utf-8") for line in req.iter_lines(chunk_size=1024)
             )
 
             # UGent csv files start with:
-            next(line_content)  # an empty line (?)
-            next(line_content)  # the UGent name
-            next(line_content)  # course info
+            next(line_generator)  # an empty line (?)
+            next(line_generator)  # the UGent name
+            next(line_generator)  # course info
 
-            reader = csv.DictReader(line_content, delimiter=",")
+            reader = csv.DictReader(line_generator, delimiter=",")
 
-            mapped_course_info = list(
-                map(
-                    lambda i: {
-                        "start_date": i["Start datum"],
-                        "start_time": i["Begin tijd"],
-                        "end_time": i["Eind tijd"],
-                        "type": i["Aard"],
-                        "name": i["Cursuscode,Naam"],
-                        "lecturer": i["Lesgever"],
-                        "location": i["Lokaal,Gebouw,Campus"],
-                    },
-                    reader,
-                )
-            )
+            for entry in reader:
+                create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
-        # Group the courses by course code and by date so they're easier to
-        # retrieve
-        grouped_course_info: defaultdict[
-            str, defaultdict[str, dict[str, str]]
-        ] = defaultdict(lambda: defaultdict(dict))
-
-        for info in mapped_course_info:
-            grouped_course_info[info["name"].split(".")[0]][info["start_date"]] = info
-
-        grouped_course_info = {
-            name: json.dumps(info) for [name, info] in grouped_course_info.items()
-        }
-
-        await iactn.edit_original_response(
-            content="Updating cache: storing course data..."
+        logger.info(f"storing lecture info for course [{course_code}] {course_name}")
+        await ia.edit_original_response(
+            content=f"storing lecture info for course {course_name}"
         )
-
-        async with self.bot.cache.pipeline(transaction=True) as pipe:
-            for (name, info) in grouped_course_info.items():
-                pipe.set(name, info)
-
-            await pipe.execute()
+        await asyncio.gather(*create_lecture_futures)
 
     @app_commands.command(
         name="calendar",
         description="Show your personal calendar for this week",
     )
-    async def calendar(self, iactn: Interaction):
-        enrollments = await Enrollment.find_for_profile(str(iactn.user.id))
+    async def calendar(self, ia: Interaction):
+        enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
         if not enrollments:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
@@ -212,13 +163,9 @@ class Calendar(Cog):
         courses: list[Course] = await asyncio.gather(
             *[Course.find_by_code(e.course_id) for e in enrollments]
         )
-        courses: list[str] = list(map(lambda c: c.code, courses))
+        course_codes: list[str] = list(map(lambda c: c.code, courses))
 
-        await iactn.response.send_message(
-            "Building calendar overview...", ephemeral=True
-        )
-
-        await self.maybe_update_cache(courses, iactn)
+        await ia.response.send_message("Building calendar overview...", ephemeral=True)
 
         today = datetime.date.today()
         week_nr = today.isocalendar()[1]
@@ -230,16 +177,15 @@ class Calendar(Cog):
         # Create the dictionary from week_days so that every date is present,
         # not just ones that have items
         # {date: [{course}, {course}, ...], ...}
-        week_info_dict: dict[str, list[dict[str, str]]] = {
+        week_info_dict: dict[DateTime, list[dict[str, str]]] = {
             day: list() for day in week_days
         }
-        for course in courses:
-            course_info = await self.bot.cache.get(course)
-            course_info = json.loads(course_info.decode("utf-8"))
+        for course_code in course_codes:
+            course_lectures = await Lecture.find_for_course(course_code)
 
-            for [date, info] in course_info.items():
-                if date in week_days:
-                    week_info_dict[date].append(info)
+            for lecture in course_lectures:
+                if lecture.start_date in week_days:
+                    week_info_dict[lecture.start_date].append(lecture.__dict__)
 
         week_info = list(week_info_dict.items())
 
@@ -263,37 +209,35 @@ class Calendar(Cog):
         png_virt_file = BytesIO(initial_bytes=png_bytes)
         png_file = File(png_virt_file, filename="calendar.png")
 
-        await iactn.edit_original_response(content="", attachments=[png_file])
+        await ia.edit_original_response(content="", attachments=[png_file])
 
     @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")
     @app_commands.describe(name="The name of the course to enroll in")
     @app_commands.autocomplete(name=course_autocomplete)
-    async def enroll_in_course(self, iactn: Interaction, name: str):
+    async def enroll_in_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
         if course is None:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 f"Course {name} does not exist, if you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
             return
 
-        if await Enrollment.find(str(iactn.user.id), str(course.code)):
-            await iactn.response.send_message(
+        if await Enrollment.find(str(ia.user.id), str(course.code)):
+            await ia.response.send_message(
                 f"You are already enrolled in [{str(course.code)}] {name}, if you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
             return
 
-        await Enrollment.create(
-            profile_id=str(iactn.user.id), course_id=str(course.code)
-        )
+        await Enrollment.create(profile_id=str(ia.user.id), course_id=str(course.code))
 
         logger.info(
-            f"[{iactn.user.id}] {iactn.user.name} enrolled in course [{str(course.code)}] {name}"
+            f"[{ia.user.id}] {ia.user.name} enrolled in course [{str(course.code)}] {name}"
         )
-        await iactn.response.send_message(
+        await ia.response.send_message(
             f"You have enrolled in the course [{str(course.code)}] {name}",
             ephemeral=True,
         )
@@ -302,13 +246,13 @@ class Calendar(Cog):
     @group.command(name="drop", description="Drop a specific course")
     @app_commands.describe(name="The name of the course to drop")
     @app_commands.autocomplete(name=course_autocomplete)
-    async def drop_course(self, iactn: Interaction, name: str):
+    async def drop_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
-        enrollment = await Enrollment.find(str(iactn.user.id), str(course.code))
+        enrollment = await Enrollment.find(str(ia.user.id), str(course.code))
 
         if enrollment is None:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "You are not enrolled in this course, if you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
@@ -317,19 +261,19 @@ class Calendar(Cog):
         await enrollment.delete()
 
         logger.info(
-            f"[{iactn.user.id}] {iactn.user.name} dropped course [{str(course.code)}] {name}"
+            f"[{ia.user.id}] {ia.user.name} dropped course [{str(course.code)}] {name}"
         )
-        await iactn.response.send_message(
+        await ia.response.send_message(
             f"You have dropped the course [{str(course.code)}] {name}", ephemeral=True
         )
 
     @app_commands.guild_only()
     @group.command(name="overview", description="Show all courses you are enrolled in")
-    async def show_enrolled(self, iactn: Interaction):
-        enrollments = await Enrollment.find_for_profile(str(iactn.user.id))
+    async def show_enrolled(self, ia: Interaction):
+        enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
         if not enrollments:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
@@ -340,83 +284,103 @@ class Calendar(Cog):
         )
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
 
-        await iactn.response.send_message("\n".join(courses), ephemeral=True)
+        await ia.response.send_message("\n".join(courses), ephemeral=True)
 
     @app_commands.guild_only()
     @group.command(name="add", description="Add a new course to the list of courses")
     @app_commands.checks.has_role("Moderator")
-    @app_commands.describe(code="The course code for the new course")
+    @app_commands.describe(code="The course code of the new course")
     @app_commands.describe(name="The full name of the new course")
-    async def add_course(self, iactn: Interaction, code: str, name: str):
+    async def add_course(self, ia: Interaction, code: str, name: str):
         course = await Course.find_by_name(name)
         if course is not None:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 f"A course with the name {name} already exists, if you think this is a mistake please contact a server admin"
             )
             return
 
         await Course.create(code=code, name=name)
 
+        logger.info(f"scraping lectures for course [{code}] {name}")
+        await ia.response.send_message(f"scraping lectures for course [{code}] {name}")
+        await self.store_lecture_info(code, name, ia)
+
         logger.info(f"added course [{code}] {name}")
-        await iactn.response.send_message(f"Added course [{code}] {name}")
+        await ia.edit_original_response(content=f"Added course [{code}] {name}")
 
     @app_commands.guild_only()
     @group.command(name="remove", description="Remove an available course")
     @app_commands.checks.has_role("Moderator")
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
-    async def remove_course(self, iactn: Interaction, name: str):
+    async def remove_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 f"A course with the name {name} does not exist, if you think this is a mistake please contact a server admin"
             )
+            return
 
         await course.delete()
 
         logger.info(f"removed course [{str(course.code)}] {name}")
-        await iactn.response.send_message(f"Removed course [{course.code}] {name}")
+        await ia.response.send_message(f"Removed course [{course.code}] {name}")
 
     @app_commands.guild_only()
     @group.command(name="list", description="List all available courses")
     @app_commands.checks.has_role("Moderator")
-    async def list_courses(self, iactn: Interaction):
+    async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
 
         if courses:
-            await iactn.response.send_message("\n".join(courses))
+            await ia.response.send_message("\n".join(courses))
         else:
-            await iactn.response.send_message("No courses found")
+            await ia.response.send_message("No courses found")
 
     @app_commands.guild_only()
     @app_commands.check(check_has_manage_guild)
-    @group.command(name="clearcache", description="Clear the course info cache")
-    async def clear_cache(self, iactn: Interaction):
-        await iactn.response.send_message("Clearing course cache...")
+    @group.command(name="refresh", description="Refresh the lecture info for a course")
+    @app_commands.autocomplete(name=course_autocomplete)
+    async def course_refresh(self, ia: Interaction, name: str):
+        course = await Course.find_by_name(name)
+        if course is None:
+            await ia.response.send_message(
+                f"A course with the name {name} does not exist, if you think this is a mistake please contact a server admin"
+            )
+            return
 
-        keys = [key async for key in self.bot.cache.scan_iter()]
-        async with self.bot.cache.pipeline(transaction=True) as pipe:
-            for key in keys:
-                pipe.delete(key)
+        logger.info(
+            f"deleting old lecture info for course [{course.code}] {course.name}"
+        )
+        await ia.response.send_message(
+            f"Deleting old lecture info for course {course.name}"
+        )
+        lectures = await Lecture.find_for_course(course.code)
+        await asyncio.gather(*[l.delete() for l in lectures])
 
-            await pipe.execute()
-
-        await iactn.edit_original_response(content="Course cache cleared")
+        await self.store_lecture_info(course.code, course.name, ia)
+        logger.info(f"refreshed lecture info [{course.code}] {course.name}")
+        await ia.edit_original_response(
+            content=f"Refreshed lecture info for course {course.name}"
+        )
 
     @add_course.error
     @remove_course.error
     @list_courses.error
-    async def handle_command_error(self, iactn: Interaction, error):
-        if isinstance(error, errors.MissingRole):
-            logger.warn(f"[{iactn.user.id}] {iactn.user.name} used moderator command")
-            await iactn.response.send_message(
-                "You are not allowed to use this command", ephemeral=True
+    @course_refresh.error
+    async def handle_command_error(self, ia: Interaction, error):
+        if isinstance(error, errors.MissingRole) or isinstance(
+            error, errors.MissingPermissions
+        ):
+            logger.warn(f"[{ia.user.id}] {ia.user.name} used moderator command")
+            await ia.followup.send(
+                content="You are not allowed to use this command", ephemeral=True
             )
         else:
             logger.error(error)
-            await iactn.response.send_message(
-                "Unknown error, please contact a server admin"
+            await ia.followup.send(
+                content="Unknown error, please contact a server admin"
             )
 
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Query
 
 from bot.models import Base, Model, session_factory
 from bot.models.enrollment import Enrollment
+from bot.models.lecture import Lecture
 
 
 class Course(Base, Model):
@@ -62,11 +63,14 @@ class Course(Base, Model):
             return result.scalars().all()
 
     async def delete(self):
-        """Delete a course and its enrollments"""
+        """Delete a course, its enrollments, and its lectures"""
 
         async with session_factory() as session:
             enrollments = await Enrollment.find_for_course(self.code)
             await asyncio.gather(*[session.delete(e) for e in enrollments])
+
+            lectures = await Lecture.find_for_course(self.code)
+            await asyncio.gather(*[session.delete(l) for l in lectures])
 
             await session.delete(self)
             await session.commit()
