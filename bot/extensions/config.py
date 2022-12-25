@@ -25,7 +25,7 @@ class Config(Cog):
     @commands.has_guild_permissions(manage_guild=True)
     async def sync(self, ctx: Context):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
-        synced = await ctx.bot.tree.sync(guild=ctx.guild)
+        synced = await ctx.bot.tree.sync()
 
         logger.info(f"synced {len(synced)} commands to {ctx.guild.name}")
         await ctx.reply(f"synced {len(synced)} commands to the current guild")
