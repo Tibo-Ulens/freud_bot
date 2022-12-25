@@ -5,13 +5,10 @@ import logging
 
 from bot.bot import Bot
 from bot.models.config import Config as ConfigModel
+from bot.util import check_has_manage_guild
 
 
 logger = logging.getLogger("bot")
-
-
-def manage_guild_check(ia: Interaction) -> bool:
-    return ia.user.guild_permissions.manage_guild
 
 
 class Config(Cog):
@@ -31,7 +28,7 @@ class Config(Cog):
         await ctx.reply(f"synced {len(synced)} commands to the current guild")
 
     @app_commands.guild_only()
-    @app_commands.check(manage_guild_check)
+    @app_commands.check(check_has_manage_guild)
     @config_group.command(
         name="verified_role",
         description="Set the role to be applied to members once they have been verified",
@@ -47,7 +44,7 @@ class Config(Cog):
         await ia.response.send_message(f"set verified role to <@&{role.id}>")
 
     @app_commands.guild_only()
-    @app_commands.check(manage_guild_check)
+    @app_commands.check(check_has_manage_guild)
     @config_group.command(
         name="verification_channel",
         description="Set the channel in which the /verify command can be used",

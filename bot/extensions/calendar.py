@@ -26,6 +26,7 @@ from bot.bot import Bot
 from bot.constants import day_to_planner
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
+from bot.util import levenshtein_distance, check_has_manage_guild
 
 
 logger = logging.getLogger("bot")
@@ -33,32 +34,16 @@ web_logger = logging.getLogger("selenium")
 cache_logger = logging.getLogger("cache")
 
 
-def levenshtein_ratio(s1: str, s2: str) -> int:
-    if len(s1) > len(s2):
-        s1, s2 = s2, s1
-
-    distances = range(len(s1) + 1)
-    for index2, char2 in enumerate(s2):
-        new_distances = [index2 + 1]
-        for index1, char1 in enumerate(s1):
-            if char1 == char2:
-                new_distances.append(distances[index1])
-            else:
-                new_distances.append(
-                    1
-                    + min((distances[index1], distances[index1 + 1], new_distances[-1]))
-                )
-        distances = new_distances
-
-    return distances[-1] / max(len(s1), len(s2))
-
-
 async def course_autocomplete(
     _: Interaction, current: str
 ) -> list[app_commands.Choice[str]]:
-    courses = await Course.get_all()
-    courses = list(map(lambda c: c.name, courses))
-    courses.sort(key=lambda c: levenshtein_ratio(c, current))
+    """
+    Order the list of availble courses by 'likeness' to the current argument
+    and send them as an autocomplete list
+    """
+
+    courses = await Course.get_all_names()
+    courses.sort(key=lambda c: levenshtein_distance(c, current))
 
     return [app_commands.Choice(name=course, value=course) for course in courses]
 
@@ -405,8 +390,8 @@ class Calendar(Cog):
             await iactn.response.send_message("No courses found")
 
     @app_commands.guild_only()
+    @app_commands.check(check_has_manage_guild)
     @group.command(name="clearcache", description="Clear the course info cache")
-    @app_commands.checks.has_role("Moderator")
     async def clear_cache(self, iactn: Interaction):
         await iactn.response.send_message("Clearing course cache...")
 
