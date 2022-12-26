@@ -45,10 +45,10 @@ class Verify(Cog):
 
         email_logger.info("done")
 
-    async def verify_email(self, iactn: Interaction, email: str):
-        author_id = str(iactn.user.id)
+    async def verify_email(self, ia: Interaction, email: str):
+        author_id = str(ia.user.id)
 
-        logger.info(f"verifying email '{email}' for [{author_id}] {iactn.user.name}")
+        logger.info(f"verifying email '{email}' for [{author_id}] {ia.user.name}")
 
         verification_code = str(uuid.uuid4().hex)
 
@@ -56,23 +56,23 @@ class Verify(Cog):
         if profile is not None:
             if profile.confirmation_code is None:
                 logger.info(
-                    f"[{author_id}] {iactn.user.name} requested verification for already verified user"
+                    f"[{author_id}] {ia.user.name} requested verification for already verified user"
                 )
-                await iactn.response.send_message(
+                await ia.response.send_message(
                     "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
                     ephemeral=True,
                 )
                 return
             else:
                 logger.info(
-                    f"[{author_id}] {iactn.user.name} requested verification code reset"
+                    f"[{author_id}] {ia.user.name} requested verification code reset"
                 )
 
                 profile.confirmation_code = verification_code
                 await profile.save()
 
                 self.send_confirmation_email(email, verification_code)
-                await iactn.response.send_message(
+                await ia.response.send_message(
                     f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification",
                     ephemeral=True,
                 )
@@ -82,36 +82,36 @@ class Verify(Cog):
         other = await Profile.find_by_email(email)
         if other is not None:
             logger.info(
-                f"[{author_id}] {iactn.user.name} requested verification for already used email"
+                f"[{author_id}] {ia.user.name} requested verification for already used email"
             )
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "A different profile with this email already exists\nIf you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
             return
 
-        logger.info(f"[{author_id}] {iactn.user.name} requested new verification code")
+        logger.info(f"[{author_id}] {ia.user.name} requested new verification code")
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
 
         self.send_confirmation_email(email, verification_code)
-        await iactn.response.send_message(
+        await ia.response.send_message(
             f"A confirmation code has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification"
         )
 
-    async def verify_code(self, iactn: Interaction, code: str):
-        author_id = str(iactn.user.id)
+    async def verify_code(self, ia: Interaction, code: str):
+        author_id = str(ia.user.id)
 
-        logger.info(f"verifying code '{code}' for [{author_id}] {iactn.user.name}")
+        logger.info(f"verifying code '{code}' for [{author_id}] {ia.user.name}")
 
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
             logger.info(
-                f"[{author_id}] {iactn.user.name} attempted to verify without requesting a code"
+                f"[{author_id}] {ia.user.name} attempted to verify without requesting a code"
             )
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
                 ephemeral=True,
             )
@@ -120,9 +120,9 @@ class Verify(Cog):
 
         if profile.confirmation_code is None:
             logger.info(
-                f"[{author_id}] {iactn.user.name} attempted to verify again after already having been verified"
+                f"[{author_id}] {ia.user.name} attempted to verify again after already having been verified"
             )
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
@@ -133,37 +133,37 @@ class Verify(Cog):
 
         if code != stored_code:
             logger.info(
-                f"[{author_id}] {iactn.user.name} attempted to verify with an invalid code"
+                f"[{author_id}] {ia.user.name} attempted to verify with an invalid code"
             )
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
                 ephemeral=True,
             )
 
             return
 
-        user = iactn.user
+        user = ia.user
 
-        logger.info(f"[{author_id}] {iactn.user.name} verified succesfully")
+        logger.info(f"[{author_id}] {ia.user.name} verified succesfully")
 
-        config = await Config.get(iactn.guild_id)
+        config = await Config.get(ia.guild_id)
         if config is None:
-            logger.error(f"no config for guild {iactn.guild_id} exists yet")
-            await iactn.response.send_message(
+            logger.error(f"no config for guild {ia.guild_id} exists yet")
+            await ia.response.send_message(
                 "The bot has not been set up properly yet, please notify a server admin"
             )
             return
 
         verified_role = config.verified_role
         if verified_role is None:
-            logger.error(f"no verified role for guild {iactn.guild_id} exists yet")
-            await iactn.response.send_message(
+            logger.error(f"no verified role for guild {ia.guild_id} exists yet")
+            await ia.response.send_message(
                 "The bot has not been set up properly yet, please notify a server admin"
             )
             return
 
         await user.add_roles(discord.utils.get(user.guild.roles, id=int(verified_role)))
-        await iactn.response.send_message(
+        await ia.response.send_message(
             "You have verified succesfully! Welcome to the server"
         )
 
@@ -174,29 +174,27 @@ class Verify(Cog):
         name="verify", description="Verify that you are a true UGentStudent"
     )
     @app_commands.describe(argument="Your UGent email or verification code")
-    async def verify(self, iactn: Interaction, argument: str):
-        author_id = iactn.user.id
+    async def verify(self, ia: Interaction, argument: str):
+        author_id = ia.user.id
 
-        config = await Config.get(iactn.guild_id)
+        config = await Config.get(ia.guild_id)
         if config is None:
-            logger.error(f"no config for guild {iactn.guild_id} exists yet")
-            await iactn.response.send_message(
+            logger.error(f"no config for guild {ia.guild_id} exists yet")
+            await ia.response.send_message(
                 "The bot has not been set up properly yet, please notify a server admin"
             )
             return
 
         verification_channel = config.verification_channel
         if verification_channel is None:
-            logger.error(
-                f"no verification channel for guild {iactn.guild_id} exists yet"
-            )
-            await iactn.response.send_message(
+            logger.error(f"no verification channel for guild {ia.guild_id} exists yet")
+            await ia.response.send_message(
                 "The bot has not been set up properly yet, please notify a server admin"
             )
             return
 
-        if str(iactn.channel_id) != verification_channel:
-            await iactn.response.send_message(
+        if str(ia.channel_id) != verification_channel:
+            await ia.response.send_message(
                 f"This command can only be used in <#{verification_channel}>",
                 ephemeral=True,
             )
@@ -205,7 +203,7 @@ class Verify(Cog):
         msg = argument.strip().lower()
 
         if len(msg.split(" ")) != 1:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "This command only takes one argument\neg. `/verify freud@oedipus.com`\nor `/verify 123456`",
                 ephemeral=True,
             )
@@ -214,18 +212,18 @@ class Verify(Cog):
 
         try:
             if EMAIL_REGEX.match(msg):
-                await self.verify_email(iactn, msg)
+                await self.verify_email(ia, msg)
             elif match := CODE_REGEX.search(msg):
                 code = match.group(1)
-                await self.verify_code(iactn, code)
+                await self.verify_code(ia, code)
             else:
                 logger.info(f"{author_id} submitted invalid email or code: '{msg}'")
-                await iactn.response.send_message(
+                await ia.response.send_message(
                     "This doesn't look like a valid UGent email or a valid verification code\nIf you think this is a mistake please contact a server admin",
                     ephemeral=True,
                 )
         except Exception:
-            await iactn.response.send_message(
+            await ia.response.send_message(
                 "Something went wrong, please notify the server admins"
             )
             logger.error(traceback.format_exc())
