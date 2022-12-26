@@ -1,5 +1,13 @@
 import discord
-from discord import Interaction, app_commands, User, Member
+from discord import (
+    Interaction,
+    app_commands,
+    User,
+    Member,
+    Role,
+    TextChannel,
+    VoiceChannel,
+)
 from discord.app_commands.errors import MissingRole
 
 from bot.models.course import Course
@@ -62,3 +70,15 @@ def render_user(user: User | Member) -> str:
     """Render a user object as a discord mention"""
 
     return f"<@{user.id}>"
+
+
+def render_role(role: Role) -> str:
+    """Render a role object as a discord mention"""
+
+    return f"<@&{role.id}>"
+
+
+def render_channel(channel: TextChannel | VoiceChannel) -> str:
+    """Render a channel object as a discord mention"""
+
+    return f"<#{channel.id}>"

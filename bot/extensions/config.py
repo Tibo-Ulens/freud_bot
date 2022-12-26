@@ -4,8 +4,9 @@ from discord.ext.commands import Cog, command, Context
 import logging
 
 from bot.bot import Bot
+from bot.events.config import Config as ConfigEvent
 from bot.models.config import Config as ConfigModel
-from bot.util import has_admin_role
+from bot.util import has_admin_role, render_role, render_channel
 
 
 logger = logging.getLogger("bot")
@@ -24,7 +25,7 @@ class Config(Cog):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
 
-        logger.info(f"synced {len(synced)} commands to {ctx.guild.name}")
+        logger.info(ConfigEvent.SyncedCommands(ctx.guild, len(synced)))
         await ctx.reply(f"synced {len(synced)} commands to the current guild")
 
     @app_commands.guild_only()
@@ -40,8 +41,8 @@ class Config(Cog):
         guild_config.verified_role = str(role.id)
         await guild_config.save()
 
-        logger.info(f"set verified role to {role.id} for guild {ia.guild_id}")
-        await ia.response.send_message(f"set verified role to <@&{role.id}>")
+        logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role))
+        await ia.response.send_message(f"set verified role to {render_role(role)}")
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -56,8 +57,10 @@ class Config(Cog):
         guild_config.verification_channel = str(channel.id)
         await guild_config.save()
 
-        logger.info(f"set verification channel to {channel.id} for guild {ia.guild_id}")
-        await ia.response.send_message(f"set verification channel to <#{channel.id}>")
+        logger.info(ConfigEvent.SetVerificationChannel(ia.guild, channel))
+        await ia.response.send_message(
+            f"set verification channel to {render_channel(channel)}"
+        )
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -72,8 +75,8 @@ class Config(Cog):
         guild_config.admin_role = str(role.id)
         await guild_config.save()
 
-        logger.info(f"set admin role to {role.id} for guild {ia.guild_id}")
-        await ia.response.send_message(f"set admin role to <@&{role.id}>")
+        logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
+        await ia.response.send_message(f"set admin role to {render_role(role)}")
 
 
 async def setup(bot: Bot):
