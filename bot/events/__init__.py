@@ -26,7 +26,7 @@ class Event:
         return f"{self.event_name} | {{{formatted_attrs}}}"
 
     @staticmethod
-    def _create_named_event(human: str | None, **kwargs) -> str:
+    def _create_named_event(human: str | None = None, **kwargs) -> str:
         """
         Create a new event with the given kwargs and a name based on the
         called methods name and parent class
