@@ -14,8 +14,8 @@ class Event:
     alongside the passed values.
     """
 
-    def __init__(self, human: str, event_name: str, **kwargs) -> None:
-        self.human = human
+    def __init__(self, human: str | None, event_name: str, **kwargs) -> None:
+        self.human = human or ""
         self.event_name = event_name
         self.custom_attrs = kwargs
 
@@ -26,7 +26,7 @@ class Event:
         return f"{self.event_name} | {{{formatted_attrs}}}"
 
     @staticmethod
-    def _create_named_event(human: str, **kwargs) -> str:
+    def _create_named_event(human: str | None, **kwargs) -> str:
         """
         Create a new event with the given kwargs and a name based on the
         called methods name and parent class
