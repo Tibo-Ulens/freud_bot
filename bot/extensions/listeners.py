@@ -6,6 +6,7 @@ from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
+from bot.events.bot import BotEvent as BotEvent
 
 
 logger = logging.getLogger("bot")
@@ -17,7 +18,7 @@ class Listeners(Cog):
 
     @Cog.listener()
     async def on_ready(self):
-        logger.info("ready")
+        logger.info(BotEvent.Ready())
 
     @Cog.listener()
     async def on_message(self, msg: Message):

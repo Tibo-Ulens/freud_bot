@@ -13,7 +13,7 @@ class Enrollment(Base, Model):
     course_id = Column(Text, primary_key=True)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}> profile_id: {self.profile_id} course_id: {self.course_id}"
+        return f"Enrollment(profile_id={self.profile_id}, course_id={self.course_id})"
 
     @classmethod
     async def find(cls, profile_id: str, course_id: str) -> Optional["Enrollment"]:

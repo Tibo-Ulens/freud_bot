@@ -10,6 +10,9 @@ from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
+from bot.events.verify import EmailEvent, VerifyEvent
+from bot.events.config import ConfigEvent
+from bot.events.moderation import ModerationEvent
 from bot.models.profile import Profile
 from bot.models.config import Config
 
@@ -32,7 +35,7 @@ class Verify(Cog):
     def send_confirmation_email(to: str, code: str):
         message = EMAIL_MESSAGE.format(from_=constants.SMTP_USER, to=to, code=code)
 
-        email_logger.info(f"sending email to {to}...")
+        email_logger.info(EmailEvent.Creating(to))
         server = smtplib.SMTP("smtp.gmail.com", 587)
 
         server.ehlo()
@@ -43,37 +46,29 @@ class Verify(Cog):
 
         server.close()
 
-        email_logger.info("done")
+        email_logger.info(EmailEvent.Sent())
 
     async def verify_email(self, ia: Interaction, email: str):
         author_id = str(ia.user.id)
-
-        logger.info(f"verifying email '{email}' for [{author_id}] {ia.user.name}")
-
         verification_code = str(uuid.uuid4().hex)
 
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                logger.info(
-                    f"[{author_id}] {ia.user.name} requested verification for already verified user"
-                )
+                logger.warn(VerifyEvent.DoubleVerification(ia.user))
                 await ia.response.send_message(
-                    "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
-                    ephemeral=True,
+                    VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
                 )
                 return
             else:
-                logger.info(
-                    f"[{author_id}] {ia.user.name} requested verification code reset"
-                )
+                logger.info(VerifyEvent.CodeResetRequest(ia.user, email))
 
                 profile.confirmation_code = verification_code
                 await profile.save()
 
                 self.send_confirmation_email(email, verification_code)
                 await ia.response.send_message(
-                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification",
+                    VerifyEvent.CodeResetRequest(ia.user, email).human,
                     ephemeral=True,
                 )
 
@@ -81,94 +76,73 @@ class Verify(Cog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            logger.info(
-                f"[{author_id}] {ia.user.name} requested verification for already used email"
-            )
+            logger.warn(VerifyEvent.DuplicateEmail(ia.user))
             await ia.response.send_message(
-                "A different profile with this email already exists\nIf you think this is a mistake please contact a server admin",
+                VerifyEvent.DuplicateEmail(ia.user).human,
                 ephemeral=True,
             )
             return
 
-        logger.info(f"[{author_id}] {ia.user.name} requested new verification code")
+        logger.info(VerifyEvent.CodeRequest(ia.user, email))
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
 
         self.send_confirmation_email(email, verification_code)
-        await ia.response.send_message(
-            f"A confirmation code has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification"
-        )
+        await ia.response.send_message(VerifyEvent.CodeRequest(ia.user, email).human)
 
     async def verify_code(self, ia: Interaction, code: str):
         author_id = str(ia.user.id)
-
-        logger.info(f"verifying code '{code}' for [{author_id}] {ia.user.name}")
-
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            logger.info(
-                f"[{author_id}] {ia.user.name} attempted to verify without requesting a code"
-            )
+            logger.warn(VerifyEvent.MissingCode(ia.user))
             await ia.response.send_message(
-                "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
+                VerifyEvent.MissingCode(ia.user).human,
                 ephemeral=True,
             )
 
             return
 
         if profile.confirmation_code is None:
-            logger.info(
-                f"[{author_id}] {ia.user.name} attempted to verify again after already having been verified"
-            )
+            logger.warn(VerifyEvent.DoubleVerification(ia.user))
             await ia.response.send_message(
-                "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
-                ephemeral=True,
+                VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
             )
-
             return
 
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            logger.info(
-                f"[{author_id}] {ia.user.name} attempted to verify with an invalid code"
-            )
+            logger.warn(VerifyEvent.InvalidCode(ia.user))
             await ia.response.send_message(
-                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
-                ephemeral=True,
+                VerifyEvent.InvalidCode(ia.user).human, ephemeral=True
             )
-
             return
 
         user = ia.user
 
-        logger.info(f"[{author_id}] {ia.user.name} verified succesfully")
-
         config = await Config.get(ia.guild_id)
         if config is None:
-            logger.error(f"no config for guild {ia.guild_id} exists yet")
-            await ia.response.send_message(
-                "The bot has not been set up properly yet, please notify a server admin"
-            )
+            logger.error(ConfigEvent.MissingConfig(ia.guild))
+            await ia.response.send_message(ConfigEvent.MissingConfig(ia.guild).human)
             return
 
         verified_role = config.verified_role
         if verified_role is None:
-            logger.error(f"no verified role for guild {ia.guild_id} exists yet")
+            logger.error(ConfigEvent.MissingVerifiedRole(ia.guild))
             await ia.response.send_message(
-                "The bot has not been set up properly yet, please notify a server admin"
+                ConfigEvent.MissingVerifiedRole(ia.guild).human
             )
             return
 
         await user.add_roles(discord.utils.get(user.guild.roles, id=int(verified_role)))
-        await ia.response.send_message(
-            "You have verified succesfully! Welcome to the server"
-        )
 
         profile.confirmation_code = None
         await profile.save()
+
+        logger.info(VerifyEvent.Verified(ia.user))
+        await ia.response.send_message(VerifyEvent.Verified(ia.user).human)
 
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
@@ -179,23 +153,31 @@ class Verify(Cog):
 
         config = await Config.get(ia.guild_id)
         if config is None:
-            logger.error(f"no config for guild {ia.guild_id} exists yet")
-            await ia.response.send_message(
-                "The bot has not been set up properly yet, please notify a server admin"
-            )
+            logger.error(ConfigEvent.MissingConfig(ia.guild))
+            await ia.response.send_message(ConfigEvent.MissingConfig(ia.guild).human)
             return
 
         verification_channel = config.verification_channel
         if verification_channel is None:
-            logger.error(f"no verification channel for guild {ia.guild_id} exists yet")
+            logger.error(ConfigEvent.MissingVerificationChannel(ia.guild))
             await ia.response.send_message(
-                "The bot has not been set up properly yet, please notify a server admin"
+                ConfigEvent.MissingVerificationChannel(ia.guild).human
             )
             return
 
         if str(ia.channel_id) != verification_channel:
+            allowed_channel = discord.utils.get(
+                ia.guild.channels, id=int(verification_channel)
+            )
+            logger.warn(
+                ModerationEvent.WrongChannel(
+                    ia.user, ia.command, ia.channel, allowed_channel
+                )
+            )
             await ia.response.send_message(
-                f"This command can only be used in <#{verification_channel}>",
+                ModerationEvent.WrongChannel(
+                    ia.user, ia.command, ia.channel, allowed_channel
+                ).human,
                 ephemeral=True,
             )
             return
@@ -217,9 +199,9 @@ class Verify(Cog):
                 code = match.group(1)
                 await self.verify_code(ia, code)
             else:
-                logger.info(f"{author_id} submitted invalid email or code: '{msg}'")
+                logger.warn(VerifyEvent.MalformedArgument(ia.user, msg))
                 await ia.response.send_message(
-                    "This doesn't look like a valid UGent email or a valid verification code\nIf you think this is a mistake please contact a server admin",
+                    VerifyEvent.MalformedArgument(ia.user, msg).human,
                     ephemeral=True,
                 )
         except Exception:

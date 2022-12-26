@@ -2,10 +2,9 @@
 
 ## General
 
- - [ ] Better logging
-
 ## Configuration
 
+ - [ ] Add a logging channel and logging handler that can write to discord
  - [ ] Add a hierarchical permissions system and better error messages
 
 # Done
@@ -16,6 +15,7 @@
  - [x] Add a github action to deploy to dockerhub or ghcr
    - [x] Update the docker compose file to pull from the container repository
          instead of building locally
+ - [x] Better logging
 
 ## Calendar
 

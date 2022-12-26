@@ -19,7 +19,7 @@ class Config(Base, Model):
     admin_role = Column(Text, unique=True, nullable=False)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}> guild_id: {self.guild_id} verified_role: {self.verified_role} verification_channel: {self.verification_channel} admin_role: {self.admin_role}"
+        return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, verification_channel={self.verification_channel}, admin_role={self.admin_role})"
 
     @classmethod
     async def get(cls, id_: int) -> Optional["Config"]:
