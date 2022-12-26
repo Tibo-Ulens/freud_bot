@@ -27,7 +27,7 @@ from bot.constants import day_to_planner
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
 from bot.models.lecture import Lecture
-from bot.util import course_autocomplete, check_has_manage_guild
+from bot.util import course_autocomplete, has_admin_role
 
 
 logger = logging.getLogger("bot")
@@ -305,8 +305,8 @@ class Calendar(Cog):
         await ia.response.send_message("\n".join(courses), ephemeral=True)
 
     @app_commands.guild_only()
+    @has_admin_role()
     @group.command(name="add", description="Add a new course to the list of courses")
-    @app_commands.checks.has_role("Moderator")
     @app_commands.describe(code="The course code of the new course")
     @app_commands.describe(name="The full name of the new course")
     async def add_course(self, ia: Interaction, code: str, name: str):
@@ -327,8 +327,8 @@ class Calendar(Cog):
         await ia.edit_original_response(content=f"Added course [{code}] {name}")
 
     @app_commands.guild_only()
+    @has_admin_role()
     @group.command(name="remove", description="Remove an available course")
-    @app_commands.checks.has_role("Moderator")
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
     async def remove_course(self, ia: Interaction, name: str):
@@ -345,8 +345,8 @@ class Calendar(Cog):
         await ia.response.send_message(f"Removed course [{course.code}] {name}")
 
     @app_commands.guild_only()
+    @has_admin_role()
     @group.command(name="list", description="List all available courses")
-    @app_commands.checks.has_role("Moderator")
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
@@ -357,7 +357,7 @@ class Calendar(Cog):
             await ia.response.send_message("No courses found")
 
     @app_commands.guild_only()
-    @app_commands.check(check_has_manage_guild)
+    @has_admin_role()
     @group.command(name="refresh", description="Refresh the lecture info for a course")
     @app_commands.autocomplete(name=course_autocomplete)
     async def course_refresh(self, ia: Interaction, name: str):
@@ -392,12 +392,16 @@ class Calendar(Cog):
             error, errors.MissingPermissions
         ):
             logger.warn(f"[{ia.user.id}] {ia.user.name} used moderator command")
-            await ia.followup.send(
-                content="You are not allowed to use this command", ephemeral=True
+            await ia.response.send_message("You are not allowed to use this command")
+            return
+
+        logger.error(error)
+        try:
+            await ia.response.send_message(
+                "Unknown error, please contact a server admin"
             )
-        else:
-            logger.error(error)
-            await ia.followup.send(
+        except:
+            await ia.edit_original_response(
                 content="Unknown error, please contact a server admin"
             )
 
