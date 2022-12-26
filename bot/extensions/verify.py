@@ -55,7 +55,7 @@ class Verify(Cog):
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                logger.info(VerifyEvent.DoubleVerification(ia.user))
+                logger.warn(VerifyEvent.DoubleVerification(ia.user))
                 await ia.response.send_message(
                     VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
                 )
@@ -76,7 +76,7 @@ class Verify(Cog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            logger.info(VerifyEvent.DuplicateEmail(ia.user))
+            logger.warn(VerifyEvent.DuplicateEmail(ia.user))
             await ia.response.send_message(
                 VerifyEvent.DuplicateEmail(ia.user).human,
                 ephemeral=True,
@@ -96,7 +96,7 @@ class Verify(Cog):
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            logger.info(VerifyEvent.MissingCode(ia.user))
+            logger.warn(VerifyEvent.MissingCode(ia.user))
             await ia.response.send_message(
                 VerifyEvent.MissingCode(ia.user).human,
                 ephemeral=True,
@@ -105,7 +105,7 @@ class Verify(Cog):
             return
 
         if profile.confirmation_code is None:
-            logger.info(VerifyEvent.DoubleVerification(ia.user))
+            logger.warn(VerifyEvent.DoubleVerification(ia.user))
             await ia.response.send_message(
                 VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
             )
@@ -114,7 +114,7 @@ class Verify(Cog):
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            logger.info(VerifyEvent.InvalidCode(ia.user))
+            logger.warn(VerifyEvent.InvalidCode(ia.user))
             await ia.response.send_message(
                 VerifyEvent.InvalidCode(ia.user).human, ephemeral=True
             )

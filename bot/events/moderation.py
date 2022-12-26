@@ -22,6 +22,19 @@ class ModerationEvent(Event):
         )
 
     @classmethod
+    def MissingPermissions(
+        cls, user: User | Member, cmd: Command, missing_permissions: list[str]
+    ) -> Event:
+        """A user used a command without having the required permissions"""
+
+        return cls._create_named_event(
+            human=f"You are not allowed to use this command",
+            user=util.render_user(user),
+            cmd=util.render_command(cmd),
+            missing_permissions=missing_permissions,
+        )
+
+    @classmethod
     def WrongChannel(
         cls,
         user: User | Member,
