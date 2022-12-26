@@ -30,12 +30,12 @@ class Drive(Cog):
             Choice(name="Maatschappelijke Structuren", value="11"),
         ]
     )
-    async def drive(self, iactn: Interaction, course: Choice[str]):
+    async def drive(self, ia: Interaction, course: Choice[str]):
         embed = Embed(
             title="",
             description=f"[{course.name}]({constants.DRIVE_LINKS[course.name]})",
         )
-        await iactn.response.send_message(embed=embed)
+        await ia.response.send_message(embed=embed)
 
 
 async def setup(bot: Bot):

@@ -12,8 +12,8 @@ class Random(Cog):
         name="mommy",
         description="For when somebody likes their mother a little *too* much",
     )
-    async def mommy(self, iactn: Interaction):
-        await iactn.response.send_message(
+    async def mommy(self, ia: Interaction):
+        await ia.response.send_message(
             "The Oedipus complex is a phase in the life of a young boy in which he wishes to have sex with his mother"
         )
 
