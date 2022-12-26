@@ -24,8 +24,8 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
-from bot.events.calendar import TimeEdit, LectureInfo, Course as CourseEvent
-from bot.events.moderation import Moderation
+from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
+from bot.events.moderation import ModerationEvent
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
 from bot.models.lecture import Lecture
@@ -70,7 +70,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
         search.send_keys(course.code)
         search.send_keys(Keys.ENTER)
 
-        web_logger.info(TimeEdit.CourseSearch(time_period, course))
+        web_logger.info(TimeEditEvent.CourseSearch(time_period, course))
         sleep(0.5)
         try:
             add_btn = WebDriverWait(driver, 2).until(
@@ -79,12 +79,12 @@ def get_csv_links(course: Course) -> Iterator[str]:
                 )
             )
         except TimeoutException:
-            web_logger.info(TimeEdit.CourseNotfound(time_period, course))
+            web_logger.info(TimeEditEvent.CourseNotfound(time_period, course))
             continue
 
         add_btn.click()
 
-        web_logger.info(TimeEdit.CourseAdded(time_period, course))
+        web_logger.info(TimeEditEvent.CourseAdded(time_period, course))
 
         # Show the calendar
         show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
@@ -97,7 +97,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
         )
         href = csv_btn.get_attribute("href")
 
-        web_logger.info(TimeEdit.Done(time_period, course))
+        web_logger.info(TimeEditEvent.Done(time_period, course))
 
         yield href
 
@@ -117,8 +117,8 @@ class Calendar(Cog):
         Scrape and store the lecture info for a given course
         """
 
-        logger.info(LectureInfo.SearchingInfo(course))
-        await ia.edit_original_response(LectureInfo.SearchingInfo(course).human)
+        logger.info(LectureInfoEvent.SearchingInfo(course))
+        await ia.edit_original_response(LectureInfoEvent.SearchingInfo(course).human)
 
         try:
             csv_urls = [url for url in get_csv_links(course)]
@@ -129,8 +129,8 @@ class Calendar(Cog):
             )
             return
 
-        logger.info(LectureInfo.DownloadingInfo(course))
-        await ia.edit_original_response(LectureInfo.DownloadingInfo(course).human)
+        logger.info(LectureInfoEvent.DownloadingInfo(course))
+        await ia.edit_original_response(LectureInfoEvent.DownloadingInfo(course).human)
 
         create_lecture_futures = []
 
@@ -152,8 +152,8 @@ class Calendar(Cog):
                 for entry in reader:
                     create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
-        logger.info(LectureInfo.StoringInfo(course))
-        await ia.edit_original_response(LectureInfo.StoringInfo(course).human)
+        logger.info(LectureInfoEvent.StoringInfo(course))
+        await ia.edit_original_response(LectureInfoEvent.StoringInfo(course).human)
         await asyncio.gather(*create_lecture_futures)
 
     @app_commands.command(
@@ -357,14 +357,14 @@ class Calendar(Cog):
             )
             return
 
-        logger.info(LectureInfo.DeletingOldInfo(course))
-        await ia.response.send_message(LectureInfo.DeletingOldInfo(course).human)
+        logger.info(LectureInfoEvent.DeletingOldInfo(course))
+        await ia.response.send_message(LectureInfoEvent.DeletingOldInfo(course).human)
         lectures = await Lecture.find_for_course(course.code)
         await asyncio.gather(*[l.delete() for l in lectures])
 
         await self.store_lecture_info(course, ia)
-        logger.info(LectureInfo.Refreshed(course))
-        await ia.edit_original_response(LectureInfo.Refreshed(course).human)
+        logger.info(LectureInfoEvent.Refreshed(course))
+        await ia.edit_original_response(LectureInfoEvent.Refreshed(course).human)
 
     @add_course.error
     @remove_course.error
@@ -374,9 +374,9 @@ class Calendar(Cog):
         if isinstance(error, errors.MissingRole) or isinstance(
             error, errors.MissingPermissions
         ):
-            logger.warn(Moderation.PermissionViolation(ia.user))
+            logger.warn(ModerationEvent.PermissionViolation(ia.user))
             await ia.response.send_message(
-                Moderation.PermissionViolation(ia.user).human
+                ModerationEvent.PermissionViolation(ia.user).human
             )
             return
 

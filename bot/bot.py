@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from bot.events.bot import Bot as BotEvent
+from bot.events.bot import BotEvent as BotEvent
 
 
 logger = logging.getLogger("bot")

@@ -1,7 +1,7 @@
 from bot.events import Event
 
 
-class Bot(Event):
+class BotEvent(Event):
     """Events related to the bot itself"""
 
     @classmethod

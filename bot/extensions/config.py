@@ -4,7 +4,7 @@ from discord.ext.commands import Cog, command, Context
 import logging
 
 from bot.bot import Bot
-from bot.events.config import Config as ConfigEvent
+from bot.events.config import ConfigEvent as ConfigEvent
 from bot.models.config import Config as ConfigModel
 from bot.util import has_admin_role, render_role, render_channel
 

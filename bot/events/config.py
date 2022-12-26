@@ -4,7 +4,7 @@ from bot.events import Event
 from bot import util
 
 
-class Config(Event):
+class ConfigEvent(Event):
     """Configuration related events"""
 
     @classmethod

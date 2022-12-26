@@ -6,7 +6,7 @@ from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
-from bot.events.bot import Bot as BotEvent
+from bot.events.bot import BotEvent as BotEvent
 
 
 logger = logging.getLogger("bot")

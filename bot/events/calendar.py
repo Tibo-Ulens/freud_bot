@@ -5,7 +5,7 @@ from bot.models.course import Course
 from bot import util
 
 
-class Course(Event):
+class CourseEvent(Event):
     """Events related to courses"""
 
     @classmethod
@@ -41,7 +41,7 @@ class Course(Event):
         )
 
 
-class LectureInfo(Event):
+class LectureInfoEvent(Event):
     """Events emitted when handling lecture info"""
 
     @classmethod
@@ -86,7 +86,7 @@ class LectureInfo(Event):
         )
 
 
-class TimeEdit(Event):
+class TimeEditEvent(Event):
     """Events emitted while scraping TimeEdit"""
 
     @classmethod

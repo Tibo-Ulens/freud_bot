@@ -4,7 +4,7 @@ from bot.events import Event
 from bot import util
 
 
-class Moderation(Event):
+class ModerationEvent(Event):
     """Moderation related events"""
 
     @classmethod

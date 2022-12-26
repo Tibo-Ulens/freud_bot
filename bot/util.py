@@ -10,7 +10,7 @@ from discord import (
 )
 from discord.app_commands.errors import MissingRole
 
-from bot.models.course import Course
+from bot.models.course import CourseEvent
 from bot.models.config import Config
 
 
@@ -44,7 +44,7 @@ async def course_autocomplete(
     and send them as an autocomplete list
     """
 
-    courses = await Course.get_all_names()
+    courses = await CourseEvent.get_all_names()
     courses.sort(key=lambda c: levenshtein_distance(c, current))
 
     return [app_commands.Choice(name=course, value=course) for course in courses]
