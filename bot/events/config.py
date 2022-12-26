@@ -18,6 +18,15 @@ class ConfigEvent(Event):
         )
 
     @classmethod
+    def MissingConfig(cls, guild: Guild) -> Event:
+        """The guild does not have a config yet"""
+
+        return cls._create_named_event(
+            human="The bot has not been set up properly yet, please notify a server admin",
+            guild=guild.name,
+        )
+
+    @classmethod
     def SetVerifiedRole(cls, guild: Guild, role: Role) -> Event:
         """Set or updated the verified role"""
 
@@ -28,6 +37,15 @@ class ConfigEvent(Event):
         )
 
     @classmethod
+    def MissingVerifiedRole(cls, guild: Guild) -> Event:
+        """No verified role has been set yet"""
+
+        return cls._create_named_event(
+            human="The bot has not been set up properly yet, please notify a server admin",
+            guild=guild.name,
+        )
+
+    @classmethod
     def SetVerificationChannel(cls, guild: Guild, channel: TextChannel) -> Event:
         """Set or updated the verification channel"""
 
@@ -35,6 +53,15 @@ class ConfigEvent(Event):
             human=f"Set the verification channel to {util.render_channel(channel)}",
             guild=guild.name,
             channel=util.render_channel(channel),
+        )
+
+    @classmethod
+    def MissingVerificationChannel(cls, guild: Guild) -> Event:
+        """No verified role has been set yet"""
+
+        return cls._create_named_event(
+            human="The bot has not been set up properly yet, please notify a server admin",
+            guild=guild.name,
         )
 
     @classmethod
