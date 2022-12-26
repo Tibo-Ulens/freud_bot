@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "freud_bot"
-version = "0.1.0"
-description = ""
-authors = [""]
+version = "2.2.0"
+description = "UGent discord bot"
+authors = ["Tibo Ulens <ulens.tibo@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
