@@ -16,7 +16,10 @@ class Course(Base, Model):
     name = Column(Text, unique=True, nullable=False)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}> code: {self.code} name: {self.name}"
+        return f"Course(code={self.code}, name={self.name})"
+
+    def __str__(self) -> str:
+        return f"[{self.code}] {self.name}"
 
     @classmethod
     async def find_by_name(cls, name: str) -> Optional["Course"]:

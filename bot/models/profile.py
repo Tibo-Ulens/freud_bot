@@ -15,7 +15,7 @@ class Profile(Base, Model):
     confirmation_code = Column(Text, unique=True)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} discord_id:{self.discord_id} email:{self.email} confirmation_code:{self.confirmation_code}>"
+        return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
 
     @classmethod
     async def find_by_discord_id(cls, discord_id: str) -> Optional["Profile"]:
