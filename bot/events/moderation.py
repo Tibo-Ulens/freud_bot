@@ -5,7 +5,7 @@ from bot import util
 
 
 class Moderation(Event):
-    """Moderaton related events"""
+    """Moderation related events"""
 
     @classmethod
     def PermissionViolation(cls, user: Member | User) -> Event:
