@@ -6,8 +6,7 @@
 
 ## Configuration
 
- - [ ] Add a command to specify an admin/moderator role and a decorator to
-       get this role from the database and check if a user has it
+ - [ ] Add a hierarchical permissions system and better error messages
 
 # Done
 
@@ -28,3 +27,6 @@
  - [x] Add a `/setup` command or a set of `/config {option}` commands to allow
        per-server configuration of stuff like verification channels, what
 	   courses to scrape, etc.
+ - [x] Add a command to specify an admin/moderator role and a decorator to
+       get this role from the database and check if a user has it
+

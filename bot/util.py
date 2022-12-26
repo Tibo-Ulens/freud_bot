@@ -1,6 +1,9 @@
+import discord
 from discord import Interaction, app_commands
+from discord.app_commands.errors import MissingRole
 
 from bot.models.course import Course
+from bot.models.config import Config
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -39,7 +42,17 @@ async def course_autocomplete(
     return [app_commands.Choice(name=course, value=course) for course in courses]
 
 
-def check_has_manage_guild(ia: Interaction) -> bool:
-    """Check if a user has the "manage guild" permission"""
+def has_admin_role() -> bool:
+    async def predicate(ia: Interaction) -> bool:
+        guild_config = await Config.get(ia.guild_id)
+        if guild_config is None:
+            return False
 
-    return ia.user.guild_permissions.manage_guild
+        admin_role = discord.utils.get(ia.guild.roles, id=int(guild_config.admin_role))
+
+        if ia.user.get_role(admin_role.id) is None:
+            raise MissingRole(admin_role)
+
+        return True
+
+    return app_commands.check(predicate)

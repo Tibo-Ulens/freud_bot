@@ -5,7 +5,7 @@ import logging
 
 from bot.bot import Bot
 from bot.models.config import Config as ConfigModel
-from bot.util import check_has_manage_guild
+from bot.util import has_admin_role
 
 
 logger = logging.getLogger("bot")
@@ -28,7 +28,7 @@ class Config(Cog):
         await ctx.reply(f"synced {len(synced)} commands to the current guild")
 
     @app_commands.guild_only()
-    @app_commands.check(check_has_manage_guild)
+    @has_admin_role()
     @config_group.command(
         name="verified_role",
         description="Set the role to be applied to members once they have been verified",
@@ -44,7 +44,7 @@ class Config(Cog):
         await ia.response.send_message(f"set verified role to <@&{role.id}>")
 
     @app_commands.guild_only()
-    @app_commands.check(check_has_manage_guild)
+    @has_admin_role()
     @config_group.command(
         name="verification_channel",
         description="Set the channel in which the /verify command can be used",
@@ -58,6 +58,22 @@ class Config(Cog):
 
         logger.info(f"set verification channel to {channel.id} for guild {ia.guild_id}")
         await ia.response.send_message(f"set verification channel to <#{channel.id}>")
+
+    @app_commands.guild_only()
+    @has_admin_role()
+    @config_group.command(
+        name="admin_role",
+        description="Set the role that members with admin permissions will have",
+    )
+    @app_commands.describe(role="The role to be applied")
+    async def set_admin_role(self, ia: Interaction, role: Role):
+        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+
+        guild_config.admin_role = str(role.id)
+        await guild_config.save()
+
+        logger.info(f"set admin role to {role.id} for guild {ia.guild_id}")
+        await ia.response.send_message(f"set admin role to <@&{role.id}>")
 
 
 async def setup(bot: Bot):
