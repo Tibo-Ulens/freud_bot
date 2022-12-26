@@ -24,6 +24,8 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
+from bot.events.calendar import TimeEdit, LectureInfo, Course as CourseEvent
+from bot.events.moderation import Moderation
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
 from bot.models.lecture import Lecture
@@ -34,20 +36,18 @@ logger = logging.getLogger("bot")
 web_logger = logging.getLogger("selenium")
 
 
-def get_csv_links(course_code: str) -> Iterator[str]:
+def get_csv_links(course: Course) -> Iterator[str]:
     """Select a course in TimeEdit given its code and get the csv download links for it"""
 
     options = FirefoxOptions()
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
 
-    for time_idx in range(1, 5):
+    for time_period in range(1, 5):
         driver.get(constants.TIMEEDIT_URL)
         driver.find_element(
-            By.CSS_SELECTOR, f".linklist a:nth-of-type({time_idx})"
+            By.CSS_SELECTOR, f".linklist a:nth-of-type({time_period})"
         ).click()
-
-        web_logger.info(f"searching timestep: {time_idx}")
 
         # Search by course
         type_select = WebDriverWait(driver, 2).until(
@@ -67,10 +67,10 @@ def get_csv_links(course_code: str) -> Iterator[str]:
         # Search for and add each course
         search = driver.find_element(By.CSS_SELECTOR, "input#ffsearchname")
         search.clear()
-        search.send_keys(course_code)
+        search.send_keys(course.code)
         search.send_keys(Keys.ENTER)
 
-        web_logger.info(f"sought for course {course_code}")
+        web_logger.info(TimeEdit.CourseSearch(time_period, course))
         sleep(0.5)
         try:
             add_btn = WebDriverWait(driver, 2).until(
@@ -79,12 +79,12 @@ def get_csv_links(course_code: str) -> Iterator[str]:
                 )
             )
         except TimeoutException:
-            web_logger.info("not found, skipping")
+            web_logger.info(TimeEdit.CourseNotfound(time_period, course))
             continue
 
         add_btn.click()
 
-        web_logger.info(f"added course {course_code}")
+        web_logger.info(TimeEdit.CourseAdded(time_period, course))
 
         # Show the calendar
         show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
@@ -97,7 +97,7 @@ def get_csv_links(course_code: str) -> Iterator[str]:
         )
         href = csv_btn.get_attribute("href")
 
-        web_logger.info("done")
+        web_logger.info(TimeEdit.Done(time_period, course))
 
         yield href
 
@@ -112,18 +112,18 @@ class Calendar(Cog):
     group = app_commands.Group(name="course", description="course management")
 
     @staticmethod
-    async def store_lecture_info(course_code: str, course_name: str, ia: Interaction):
+    async def store_lecture_info(course: Course, ia: Interaction):
         """
         Scrape and store the lecture info for a given course
         """
 
-        logger.info(f"finding lecture info for course [{course_code}] {course_name}")
+        logger.info(LectureInfo.SearchingInfo(course))
         await ia.edit_original_response(
-            content=f"finding lecture info for course {course_name} (this may take a while)..."
+            content=f"searching lecture info for course {course} (this may take a while)..."
         )
 
         try:
-            csv_urls = [url for url in get_csv_links(course_code)]
+            csv_urls = [url for url in get_csv_links(course)]
         except Exception as err:
             logger.error(err)
             await ia.edit_original_response(
@@ -131,11 +131,9 @@ class Calendar(Cog):
             )
             return
 
-        logger.info(
-            f"downloading lecture info for course [{course_code}] {course_name}"
-        )
+        logger.info(LectureInfo.DownloadingInfo(course))
         await ia.edit_original_response(
-            content=f"downloading lecture info for course {course_name}"
+            content=f"downloading lecture info for course {course}"
         )
 
         create_lecture_futures = []
@@ -158,9 +156,9 @@ class Calendar(Cog):
                 for entry in reader:
                     create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
-        logger.info(f"storing lecture info for course [{course_code}] {course_name}")
+        logger.info(LectureInfo.StoringInfo(course))
         await ia.edit_original_response(
-            content=f"storing lecture info for course {course_name}"
+            content=f"storing lecture info for course {course}"
         )
         await asyncio.gather(*create_lecture_futures)
 
@@ -317,14 +315,15 @@ class Calendar(Cog):
             )
             return
 
-        await Course.create(code=code, name=name)
+        course = await Course.create(code=code, name=name)
 
-        logger.info(f"scraping lectures for course [{code}] {name}")
-        await ia.response.send_message(f"scraping lectures for course [{code}] {name}")
-        await self.store_lecture_info(code, name, ia)
+        # This message is needed so store_lecture_info will have a valid
+        # webhook when using edit_original_response
+        await ia.response.send_message(f"scraping lectures for course {course}")
+        await self.store_lecture_info(course, ia)
 
-        logger.info(f"added course [{code}] {name}")
-        await ia.edit_original_response(content=f"Added course [{code}] {name}")
+        logger.info(CourseEvent.Added(course))
+        await ia.edit_original_response(content=f"Added course {course}")
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -341,15 +340,15 @@ class Calendar(Cog):
 
         await course.delete()
 
-        logger.info(f"removed course [{str(course.code)}] {name}")
-        await ia.response.send_message(f"Removed course [{course.code}] {name}")
+        logger.info(CourseEvent.Removed(course))
+        await ia.response.send_message(f"Removed course {course}")
 
     @app_commands.guild_only()
     @has_admin_role()
     @group.command(name="list", description="List all available courses")
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
-        courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
+        courses = list(map(lambda c: str(c), courses))
 
         if courses:
             await ia.response.send_message("\n".join(courses))
@@ -368,17 +367,15 @@ class Calendar(Cog):
             )
             return
 
-        logger.info(
-            f"deleting old lecture info for course [{course.code}] {course.name}"
-        )
+        logger.info(LectureInfo.DeletingOldInfo(course))
         await ia.response.send_message(
             f"Deleting old lecture info for course {course.name}"
         )
         lectures = await Lecture.find_for_course(course.code)
         await asyncio.gather(*[l.delete() for l in lectures])
 
-        await self.store_lecture_info(course.code, course.name, ia)
-        logger.info(f"refreshed lecture info [{course.code}] {course.name}")
+        await self.store_lecture_info(course, ia)
+        logger.info(LectureInfo.Refreshed(course))
         await ia.edit_original_response(
             content=f"Refreshed lecture info for course {course.name}"
         )
@@ -391,7 +388,7 @@ class Calendar(Cog):
         if isinstance(error, errors.MissingRole) or isinstance(
             error, errors.MissingPermissions
         ):
-            logger.warn(f"[{ia.user.id}] {ia.user.name} used moderator command")
+            logger.warn(Moderation.PermissionViolation(ia.user))
             await ia.response.send_message("You are not allowed to use this command")
             return
 
