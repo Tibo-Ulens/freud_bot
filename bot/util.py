@@ -8,6 +8,7 @@ from discord import (
     TextChannel,
     VoiceChannel,
 )
+from discord.app_commands import Command
 from discord.app_commands.errors import MissingRole
 
 from bot.models.course import Course
@@ -82,3 +83,8 @@ def render_channel(channel: TextChannel | VoiceChannel) -> str:
     """Render a channel object as a discord mention"""
 
     return f"<#{channel.id}>"
+
+
+def render_command(cmd: Command) -> str:
+    group = f"{cmd.parent.name} " if cmd.parent else ""
+    return f"/{group}{cmd.name}"

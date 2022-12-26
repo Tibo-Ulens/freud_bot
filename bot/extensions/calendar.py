@@ -370,16 +370,33 @@ class Calendar(Cog):
     @remove_course.error
     @list_courses.error
     @course_refresh.error
-    async def handle_command_error(self, ia: Interaction, error):
-        if isinstance(error, errors.MissingRole) or isinstance(
-            error, errors.MissingPermissions
-        ):
-            logger.warn(ModerationEvent.PermissionViolation(ia.user))
+    async def handle_possible_user_error(self, ia: Interaction, error):
+        if isinstance(error, errors.MissingRole):
+            logger.warn(
+                ModerationEvent.MissingRole(ia.user, ia.command, error.missing_role)
+            )
             await ia.response.send_message(
-                ModerationEvent.PermissionViolation(ia.user).human
+                ModerationEvent.MissingRole(
+                    ia.user, ia.command, error.missing_role
+                ).human
             )
             return
 
+        logger.error(error)
+        try:
+            await ia.response.send_message(
+                "Unknown error, please contact a server admin"
+            )
+        except:
+            await ia.edit_original_response(
+                content="Unknown error, please contact a server admin"
+            )
+
+    @calendar.error
+    @enroll_in_course.error
+    @drop_course.error
+    @show_enrolled.error
+    async def handle_error(self, ia: Interaction, error):
         logger.error(error)
         try:
             await ia.response.send_message(
