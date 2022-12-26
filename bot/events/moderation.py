@@ -1,6 +1,7 @@
 from discord import Member, User
 
 from bot.events import Event
+from bot import util
 
 
 class Moderation(Event):
@@ -10,6 +11,4 @@ class Moderation(Event):
     def PermissionViolation(cls, user: Member | User) -> Event:
         """A user used a command without proper permissions"""
 
-        user_str = f"[{user.id}] {user.nick or user.name}"
-
-        return cls._create_named_event(user=user_str)
+        return cls._create_named_event(user=util.render_user(user))
