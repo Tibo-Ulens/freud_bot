@@ -118,9 +118,7 @@ class Calendar(Cog):
         """
 
         logger.info(LectureInfo.SearchingInfo(course))
-        await ia.edit_original_response(
-            content=f"searching lecture info for course {course} (this may take a while)..."
-        )
+        await ia.edit_original_response(LectureInfo.SearchingInfo(course).human)
 
         try:
             csv_urls = [url for url in get_csv_links(course)]
@@ -132,9 +130,7 @@ class Calendar(Cog):
             return
 
         logger.info(LectureInfo.DownloadingInfo(course))
-        await ia.edit_original_response(
-            content=f"downloading lecture info for course {course}"
-        )
+        await ia.edit_original_response(LectureInfo.DownloadingInfo(course).human)
 
         create_lecture_futures = []
 
@@ -157,9 +153,7 @@ class Calendar(Cog):
                     create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
         logger.info(LectureInfo.StoringInfo(course))
-        await ia.edit_original_response(
-            content=f"storing lecture info for course {course}"
-        )
+        await ia.edit_original_response(LectureInfo.StoringInfo(course).human)
         await asyncio.gather(*create_lecture_futures)
 
     @app_commands.command(
@@ -250,11 +244,9 @@ class Calendar(Cog):
 
         await Enrollment.create(profile_id=str(ia.user.id), course_id=str(course.code))
 
-        logger.info(
-            f"[{ia.user.id}] {ia.user.name} enrolled in course [{str(course.code)}] {name}"
-        )
+        logger.info(CourseEvent.Enrolled(ia.user, course))
         await ia.response.send_message(
-            f"You have enrolled in the course [{str(course.code)}] {name}",
+            CourseEvent.Enrolled(ia.user, course).human,
             ephemeral=True,
         )
 
@@ -276,11 +268,9 @@ class Calendar(Cog):
 
         await enrollment.delete()
 
-        logger.info(
-            f"[{ia.user.id}] {ia.user.name} dropped course [{str(course.code)}] {name}"
-        )
+        logger.info(CourseEvent.Dropped(ia.user, course))
         await ia.response.send_message(
-            f"You have dropped the course [{str(course.code)}] {name}", ephemeral=True
+            CourseEvent.Dropped(ia.user, course).human, ephemeral=True
         )
 
     @app_commands.guild_only()
@@ -323,7 +313,7 @@ class Calendar(Cog):
         await self.store_lecture_info(course, ia)
 
         logger.info(CourseEvent.Added(course))
-        await ia.edit_original_response(content=f"Added course {course}")
+        await ia.edit_original_response(content=CourseEvent.Added(course).human)
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -341,7 +331,7 @@ class Calendar(Cog):
         await course.delete()
 
         logger.info(CourseEvent.Removed(course))
-        await ia.response.send_message(f"Removed course {course}")
+        await ia.response.send_message(CourseEvent.Removed(course).human)
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -368,17 +358,13 @@ class Calendar(Cog):
             return
 
         logger.info(LectureInfo.DeletingOldInfo(course))
-        await ia.response.send_message(
-            f"Deleting old lecture info for course {course.name}"
-        )
+        await ia.response.send_message(LectureInfo.DeletingOldInfo(course).human)
         lectures = await Lecture.find_for_course(course.code)
         await asyncio.gather(*[l.delete() for l in lectures])
 
         await self.store_lecture_info(course, ia)
         logger.info(LectureInfo.Refreshed(course))
-        await ia.edit_original_response(
-            content=f"Refreshed lecture info for course {course.name}"
-        )
+        await ia.edit_original_response(LectureInfo.Refreshed(course).human)
 
     @add_course.error
     @remove_course.error
@@ -389,7 +375,9 @@ class Calendar(Cog):
             error, errors.MissingPermissions
         ):
             logger.warn(Moderation.PermissionViolation(ia.user))
-            await ia.response.send_message("You are not allowed to use this command")
+            await ia.response.send_message(
+                Moderation.PermissionViolation(ia.user).human
+            )
             return
 
         logger.error(error)

@@ -14,7 +14,8 @@ class Event:
     alongside the passed values.
     """
 
-    def __init__(self, event_name: str, **kwargs) -> None:
+    def __init__(self, human: str, event_name: str, **kwargs) -> None:
+        self.human = human
         self.event_name = event_name
         self.custom_attrs = kwargs
 
@@ -25,7 +26,7 @@ class Event:
         return f"{self.event_name} | {{{formatted_attrs}}}"
 
     @staticmethod
-    def _create_named_event(**kwargs) -> str:
+    def _create_named_event(human: str, **kwargs) -> str:
         """
         Create a new event with the given kwargs and a name based on the
         called methods name and parent class
@@ -33,4 +34,4 @@ class Event:
 
         class_name = inspect.currentframe().f_back.f_locals["cls"].__name__
         event_name = inspect.currentframe().f_back.f_code.co_name
-        return Event(event_name=f"{class_name}.{event_name}", **kwargs)
+        return Event(human=human, event_name=f"{class_name}.{event_name}", **kwargs)

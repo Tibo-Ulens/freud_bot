@@ -26,7 +26,7 @@ class Config(Cog):
         synced = await ctx.bot.tree.sync()
 
         logger.info(ConfigEvent.SyncedCommands(ctx.guild, len(synced)))
-        await ctx.reply(f"synced {len(synced)} commands to the current guild")
+        await ctx.reply(ConfigEvent.SyncedCommands(ctx.guild, len(synced)).human)
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -42,7 +42,9 @@ class Config(Cog):
         await guild_config.save()
 
         logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role))
-        await ia.response.send_message(f"set verified role to {render_role(role)}")
+        await ia.response.send_message(
+            ConfigEvent.SetVerifiedRole(ia.guild, role).human
+        )
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -59,11 +61,11 @@ class Config(Cog):
 
         logger.info(ConfigEvent.SetVerificationChannel(ia.guild, channel))
         await ia.response.send_message(
-            f"set verification channel to {render_channel(channel)}"
+            ConfigEvent.SetVerificationChannel(ia.guild, channel).human
         )
 
     @app_commands.guild_only()
-    @has_admin_role()
+    @commands.has_guild_permissions(manage_guild=True)
     @config_group.command(
         name="admin_role",
         description="Set the role that members with admin permissions will have",
@@ -76,7 +78,7 @@ class Config(Cog):
         await guild_config.save()
 
         logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
-        await ia.response.send_message(f"set admin role to {render_role(role)}")
+        await ia.response.send_message(ConfigEvent.SetAdminRole(ia.guild, role).human)
 
 
 async def setup(bot: Bot):
