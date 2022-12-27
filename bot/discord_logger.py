@@ -22,18 +22,11 @@ class DiscordHandler(Handler):
         self.loop = asyncio.get_event_loop()
 
     def emit(self, record: LogRecord) -> None:
-        if record.levelno == logging.ERROR:
-            self.loop.create_task(self.send_raw(record))
-        else:
-            self.loop.create_task(self.send_embed(record))
+        self.loop.create_task(self.send_embed(record))
 
     async def send_embed(self, record: LogRecord):
         embed = self.format_embed(record)
         await self.channel.send(embed=embed)
-
-    async def send_raw(self, record: LogRecord):
-        message = self.format(record)
-        await self.channel.send(content=message)
 
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()
@@ -44,15 +37,18 @@ class DiscordHandler(Handler):
 
         embed.add_field(name="timestamp", value=event_timestamp, inline=True)
 
-        [event, args] = record.message.split(" | ")
-        scope = event.split(".")[0]
-        event = event.split(".")[1]
-        args: dict[str, str] = json.loads(args)
+        if record.levelno == logging.ERROR:
+            embed.add_field(name="error", value=record.message, inline=False)
+        else:
+            [event, args] = record.message.split(" | ")
+            scope = event.split(".")[0]
+            event = event.split(".")[1]
+            args: dict[str, str] = json.loads(args)
 
-        embed.add_field(name="scope", value=scope, inline=True)
-        embed.add_field(name="event", value=event, inline=True)
-        for k, v in args.items():
-            embed.add_field(name=k, value=v, inline=False)
+            embed.add_field(name="scope", value=scope, inline=True)
+            embed.add_field(name="event", value=event, inline=True)
+            for k, v in args.items():
+                embed.add_field(name=k, value=v, inline=False)
 
         return embed
 
@@ -65,3 +61,5 @@ class DiscordHandler(Handler):
                 return Colour.from_str("#3fc03f")
             case logging.WARN:
                 return Colour.from_str("#fabd2f")
+            case logging.ERROR:
+                return Colour.from_str("#fb4934")
