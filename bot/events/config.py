@@ -18,6 +18,16 @@ class ConfigEvent(Event):
         )
 
     @classmethod
+    def SetAdminRole(cls, guild: Guild, role: Role) -> Event:
+        """Set or updated the admin role"""
+
+        return cls._create_named_event(
+            human=f"Set the admin role to {util.render_role(role)}",
+            guild=guild.name,
+            role=util.render_role(role),
+        )
+
+    @classmethod
     def MissingConfig(cls, guild: Guild) -> Event:
         """The guild does not have a config yet"""
 
@@ -65,11 +75,11 @@ class ConfigEvent(Event):
         )
 
     @classmethod
-    def SetAdminRole(cls, guild: Guild, role: Role) -> Event:
-        """Set or updated the admin role"""
+    def SetLoggingChannel(cls, guild: Guild, channel: TextChannel) -> Event:
+        """Set or updated the logging channel"""
 
         return cls._create_named_event(
-            human=f"Set the admin role to {util.render_role(role)}",
+            human=f"Set the logging channel to {util.render_channel(channel)}",
             guild=guild.name,
-            role=util.render_role(role),
+            channel=util.render_channel(channel),
         )

@@ -4,7 +4,9 @@ from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 import logging
 
+from bot import root_logger
 from bot.bot import Bot
+from bot.discord_logger import DiscordHandler
 from bot.events.config import ConfigEvent as ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.models.config import Config as ConfigModel
@@ -29,6 +31,22 @@ class Config(Cog):
 
         logger.info(ConfigEvent.SyncedCommands(ctx.guild, len(synced)))
         await ctx.reply(ConfigEvent.SyncedCommands(ctx.guild, len(synced)).human)
+
+    @app_commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    @config_group.command(
+        name="admin_role",
+        description="Set the role that members with admin permissions will have",
+    )
+    @app_commands.describe(role="The role to be applied")
+    async def set_admin_role(self, ia: Interaction, role: Role):
+        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+
+        guild_config.admin_role = str(role.id)
+        await guild_config.save()
+
+        logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
+        await ia.response.send_message(ConfigEvent.SetAdminRole(ia.guild, role).human)
 
     @app_commands.guild_only()
     @has_admin_role()
@@ -67,23 +85,31 @@ class Config(Cog):
         )
 
     @app_commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
+    @has_admin_role()
     @config_group.command(
-        name="admin_role",
-        description="Set the role that members with admin permissions will have",
+        name="logging_channel",
+        description="Set the channel to which FreudBot logs will be posted",
     )
-    @app_commands.describe(role="The role to be applied")
-    async def set_admin_role(self, ia: Interaction, role: Role):
+    @app_commands.describe(channel="The channel to select")
+    async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
-        guild_config.admin_role = str(role.id)
+        guild_config.logging_channel = str(channel.id)
         await guild_config.save()
 
-        logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
-        await ia.response.send_message(ConfigEvent.SetAdminRole(ia.guild, role).human)
+        discord_handler = DiscordHandler(channel=channel, filter_target="bot")
+        if self.bot.discord_handler:
+            root_logger.removeHandler(self.bot.discord_handler)
+        root_logger.addHandler(discord_handler)
+
+        logger.info(ConfigEvent.SetLoggingChannel(ia.guild, channel))
+        await ia.response.send_message(
+            ConfigEvent.SetLoggingChannel(ia.guild, channel).human
+        )
 
     @set_verification_channel.error
     @set_verified_role.error
+    @set_logging_channel.error
     async def handle_possible_user_error(self, ia: Interaction, error):
         if isinstance(error, errors.MissingRole):
             logger.warn(

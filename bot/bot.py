@@ -66,7 +66,7 @@ class Bot(commands.Bot):
         for ext in list(self.extensions):
             with suppress(Exception):
                 extension_tasks.append(self.unload_extension(ext))
-                logger.info(BotEvent.ExtensionUnloaded(ext))
+                logger.debug(BotEvent.ExtensionUnloaded(ext))
 
         await asyncio.gather(*extension_tasks)
 
@@ -75,7 +75,7 @@ class Bot(commands.Bot):
         for cog in list(self.cogs):
             with suppress(Exception):
                 cog_tasks.append(self.remove_cog(cog))
-                logger.info(BotEvent.CogRemoved(cog.qualified_name))
+                logger.debug(BotEvent.CogRemoved(cog.qualified_name))
 
         await asyncio.gather(*cog_tasks)
 
