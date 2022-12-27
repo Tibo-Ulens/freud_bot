@@ -304,10 +304,10 @@ class Calendar(Cog):
     @app_commands.describe(code="The course code of the new course")
     @app_commands.describe(name="The full name of the new course")
     async def add_course(self, ia: Interaction, code: str, name: str):
-        course = await Course.find_by_name(name)
+        course = await Course.find_by_code(code)
         if course is not None:
             await ia.response.send_message(
-                f"A course with the name {name} already exists, if you think this is a mistake please contact a server admin"
+                f"A course with the code {code} already exists, if you think this is a mistake please contact a server admin"
             )
             return
 
