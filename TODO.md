@@ -4,7 +4,6 @@
 
 ## Configuration
 
- - [ ] Add a logging channel and logging handler that can write to discord
  - [ ] Add a hierarchical permissions system and better error messages
 
 # Done
@@ -29,4 +28,5 @@
 	   courses to scrape, etc.
  - [x] Add a command to specify an admin/moderator role and a decorator to
        get this role from the database and check if a user has it
+ - [x] Add a logging channel and logging handler that can write to discord
 
