@@ -4,7 +4,9 @@ from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 import logging
 
+from bot import root_logger
 from bot.bot import Bot
+from bot.discord_logger import DiscordHandler
 from bot.events.config import ConfigEvent as ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.models.config import Config as ConfigModel
@@ -94,6 +96,11 @@ class Config(Cog):
 
         guild_config.logging_channel = str(channel.id)
         await guild_config.save()
+
+        discord_handler = DiscordHandler(channel=channel, filter_target="bot")
+        if self.bot.discord_handler:
+            root_logger.removeHandler(self.bot.discord_handler)
+        root_logger.addHandler(discord_handler)
 
         logger.info(ConfigEvent.SetLoggingChannel(ia.guild, channel))
         await ia.response.send_message(

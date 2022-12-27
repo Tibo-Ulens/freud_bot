@@ -117,8 +117,10 @@ class Calendar(Cog):
         Scrape and store the lecture info for a given course
         """
 
-        logger.info(LectureInfoEvent.SearchingInfo(course))
-        await ia.edit_original_response(LectureInfoEvent.SearchingInfo(course).human)
+        logger.debug(LectureInfoEvent.SearchingInfo(course))
+        await ia.edit_original_response(
+            content=LectureInfoEvent.SearchingInfo(course).human
+        )
 
         try:
             csv_urls = [url for url in get_csv_links(course)]
@@ -129,8 +131,10 @@ class Calendar(Cog):
             )
             return
 
-        logger.info(LectureInfoEvent.DownloadingInfo(course))
-        await ia.edit_original_response(LectureInfoEvent.DownloadingInfo(course).human)
+        logger.debug(LectureInfoEvent.DownloadingInfo(course))
+        await ia.edit_original_response(
+            content=LectureInfoEvent.DownloadingInfo(course).human
+        )
 
         create_lecture_futures = []
 
@@ -152,8 +156,10 @@ class Calendar(Cog):
                 for entry in reader:
                     create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
-        logger.info(LectureInfoEvent.StoringInfo(course))
-        await ia.edit_original_response(LectureInfoEvent.StoringInfo(course).human)
+        logger.debug(LectureInfoEvent.StoringInfo(course))
+        await ia.edit_original_response(
+            content=LectureInfoEvent.StoringInfo(course).human
+        )
         await asyncio.gather(*create_lecture_futures)
 
     @app_commands.command(
@@ -364,7 +370,9 @@ class Calendar(Cog):
 
         await self.store_lecture_info(course, ia)
         logger.info(LectureInfoEvent.Refreshed(course))
-        await ia.edit_original_response(LectureInfoEvent.Refreshed(course).human)
+        await ia.edit_original_response(
+            content=LectureInfoEvent.Refreshed(course).human
+        )
 
     @add_course.error
     @remove_course.error
