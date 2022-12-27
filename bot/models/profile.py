@@ -1,10 +1,15 @@
 from typing import Optional
 
+import logging
+from discord import Guild
 from sqlalchemy import Column, Text, BigInteger
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
 from bot.models import Base, Model, session_factory
+
+
+logger = logging.getLogger("bot")
 
 
 class Profile(Base, Model):
@@ -44,3 +49,19 @@ class Profile(Base, Model):
                 return None
             else:
                 return r[0]
+
+    @classmethod
+    async def find_verified_in_guild(cls, guild: Guild) -> list["Profile"]:
+        """Find all profiles in a specific guild that are verified"""
+
+        async with session_factory() as session:
+            result: Query = await session.execute(
+                select(cls).where(cls.confirmation_code == None, cls.email != None)
+            )
+
+            profiles: list["Profile"] = result.scalars().all()
+
+        profiles = filter(
+            lambda p: guild.get_member(p.discord_id) is not None, profiles
+        )
+        return list(profiles)

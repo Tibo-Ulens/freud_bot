@@ -1,4 +1,6 @@
-from discord import app_commands, Interaction, Role, TextChannel
+import asyncio
+import discord
+from discord import app_commands, Interaction, Role, TextChannel, Member
 from discord.app_commands import errors
 from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
@@ -9,6 +11,7 @@ from bot.bot import Bot
 from bot.discord_logger import DiscordHandler
 from bot.events.config import ConfigEvent as ConfigEvent
 from bot.events.moderation import ModerationEvent
+from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
 from bot.util import has_admin_role
 
@@ -58,12 +61,32 @@ class Config(Cog):
     async def set_verified_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
+        old_verified_role = None
+        if guild_config.verified_role is not None:
+            old_verified_role = discord.utils.get(
+                ia.guild.roles, id=guild_config.verified_role
+            )
+
+        verified_profiles = await Profile.find_verified_in_guild(ia.guild)
+
+        member_coroutines = []
+        for profile in verified_profiles:
+            member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
+        members: list[Member] = await asyncio.gather(*member_coroutines)
+
+        role_coroutines = []
+        for member in members:
+            role_coroutines.append(member.add_roles(role))
+            if old_verified_role is not None:
+                role_coroutines.append(member.remove_roles(old_verified_role))
+        await asyncio.gather(*role_coroutines)
+
         guild_config.verified_role = role.id
         await guild_config.save()
 
-        logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role))
+        logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)))
         await ia.response.send_message(
-            ConfigEvent.SetVerifiedRole(ia.guild, role).human
+            ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)).human
         )
 
     @app_commands.guild_only()
