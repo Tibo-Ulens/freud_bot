@@ -1,7 +1,8 @@
 import random
 import logging
 
-from discord import Message, Guild
+import discord
+from discord import Message, Guild, Member
 from discord.ext.commands import Cog
 
 from bot import constants, root_logger
@@ -9,6 +10,7 @@ from bot.bot import Bot
 from bot.events.bot import BotEvent as BotEvent
 from bot.discord_logger import DiscordHandler
 from bot.models.config import Config
+from bot.models.profile import Profile
 
 
 logger = logging.getLogger("bot")
@@ -37,13 +39,26 @@ class Listeners(Cog):
 
     @Cog.listener()
     async def on_message(self, msg: Message):
-        if self.bot.user.mentioned_in(msg):
-            await self.send_random_quote(msg)
+        if self.bot.user in msg.mentions:
+            quote = random.choice(constants.FREUD_QUOTES)
+            await msg.reply(quote)
 
-    @staticmethod
-    async def send_random_quote(msg: Message):
-        quote = random.choice(constants.FREUD_QUOTES)
-        await msg.reply(quote)
+    @Cog.listener()
+    async def on_member_join(self, member: Member):
+        guild = member.guild
+
+        guild_config = await Config.get(member.id)
+        if guild_config is None or guild_config.verified_role is None:
+            return
+
+        profile = await Profile.find_by_discord_id(member.id)
+        if profile is None:
+            return
+
+        if profile.email is not None and profile.confirmation_code is None:
+            await member.add_roles(
+                discord.utils.get(guild.roles, id=guild_config.verified_role)
+            )
 
 
 async def setup(bot: Bot):

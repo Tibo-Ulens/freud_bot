@@ -26,18 +26,16 @@ class Bot(commands.Bot):
 
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True
+        intents.presences = False
+
         intents.bans = False
-
         intents.dm_messages = False
-        intents.reactions = False
-        intents.typing = False
-
         intents.integrations = False
         intents.invites = False
-        intents.members = False
-        intents.presences = False
+        intents.reactions = False
+        intents.typing = False
         intents.voice_states = False
-
         intents.webhooks = False
 
         pg_engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
