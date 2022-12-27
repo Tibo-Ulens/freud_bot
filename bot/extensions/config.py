@@ -42,7 +42,7 @@ class Config(Cog):
     async def set_admin_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
-        guild_config.admin_role = str(role.id)
+        guild_config.admin_role = role.id
         await guild_config.save()
 
         logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
@@ -58,7 +58,7 @@ class Config(Cog):
     async def set_verified_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
-        guild_config.verified_role = str(role.id)
+        guild_config.verified_role = role.id
         await guild_config.save()
 
         logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role))
@@ -76,7 +76,7 @@ class Config(Cog):
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
-        guild_config.verification_channel = str(channel.id)
+        guild_config.verification_channel = channel.id
         await guild_config.save()
 
         logger.info(ConfigEvent.SetVerificationChannel(ia.guild, channel))
@@ -94,11 +94,11 @@ class Config(Cog):
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
-        guild_config.logging_channel = str(channel.id)
+        guild_config.logging_channel = channel.id
         await guild_config.save()
 
         discord_handler = DiscordHandler(channel=channel, filter_target="bot")
-        if self.bot.discord_handler:
+        if hasattr(self.bot, "discord_handler"):
             root_logger.removeHandler(self.bot.discord_handler)
         root_logger.addHandler(discord_handler)
 

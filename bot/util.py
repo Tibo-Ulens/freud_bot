@@ -57,7 +57,7 @@ def has_admin_role() -> bool:
         if guild_config is None:
             return False
 
-        admin_role = discord.utils.get(ia.guild.roles, id=int(guild_config.admin_role))
+        admin_role = discord.utils.get(ia.guild.roles, id=guild_config.admin_role)
 
         if ia.user.get_role(admin_role.id) is None:
             raise MissingRole(admin_role)

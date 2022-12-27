@@ -49,7 +49,7 @@ class Verify(Cog):
         email_logger.info(EmailEvent.Sent())
 
     async def verify_email(self, ia: Interaction, email: str):
-        author_id = str(ia.user.id)
+        author_id = ia.user.id
         verification_code = str(uuid.uuid4().hex)
 
         profile = await Profile.find_by_discord_id(author_id)
@@ -92,7 +92,7 @@ class Verify(Cog):
         await ia.response.send_message(VerifyEvent.CodeRequest(ia.user, email).human)
 
     async def verify_code(self, ia: Interaction, code: str):
-        author_id = str(ia.user.id)
+        author_id = ia.user.id
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
@@ -136,7 +136,7 @@ class Verify(Cog):
             )
             return
 
-        await user.add_roles(discord.utils.get(user.guild.roles, id=int(verified_role)))
+        await user.add_roles(discord.utils.get(user.guild.roles, id=verified_role))
 
         profile.confirmation_code = None
         await profile.save()
@@ -165,9 +165,9 @@ class Verify(Cog):
             )
             return
 
-        if str(ia.channel_id) != verification_channel:
+        if ia.channel_id != verification_channel:
             allowed_channel = discord.utils.get(
-                ia.guild.channels, id=int(verification_channel)
+                ia.guild.channels, id=verification_channel
             )
             logger.warn(
                 ModerationEvent.WrongChannel(

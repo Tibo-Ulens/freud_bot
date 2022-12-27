@@ -19,8 +19,8 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "enrollment",
-        sa.Column("profile_id", sa.Text, primary_key=True),
-        sa.Column("course_id", sa.Text, primary_key=True),
+        sa.Column("profile_discord_id", sa.Text, primary_key=True),
+        sa.Column("course_code", sa.Text, primary_key=True),
     )
 
 

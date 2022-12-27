@@ -31,11 +31,7 @@ class DiscordHandler(Handler):
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()
         embed.colour = self.level_to_colour(record.levelno)
-
-        event_timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
-        event_timestamp = event_timestamp.strftime("%Y-%m-%d %H:%M:%S")
-
-        embed.add_field(name="timestamp", value=event_timestamp, inline=True)
+        embed.timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
 
         if record.levelno == logging.ERROR:
             embed.add_field(name="error", value=record.message, inline=False)

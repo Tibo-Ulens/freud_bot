@@ -30,7 +30,7 @@ class Listeners(Cog):
         if guild_config is None or guild_config.logging_channel is None:
             return
 
-        logging_channel = guild.get_channel(int(guild_config.logging_channel))
+        logging_channel = guild.get_channel(guild_config.logging_channel)
         discord_handler = DiscordHandler(channel=logging_channel, filter_target="bot")
         self.bot.discord_handler = discord_handler
         root_logger.addHandler(discord_handler)

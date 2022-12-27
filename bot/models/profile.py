@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import Column, Text
+from sqlalchemy import Column, Text, BigInteger
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
@@ -10,7 +10,7 @@ from bot.models import Base, Model, session_factory
 class Profile(Base, Model):
     __tablename__ = "profile"
 
-    discord_id = Column(Text, primary_key=True)
+    discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
 
@@ -18,7 +18,7 @@ class Profile(Base, Model):
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
 
     @classmethod
-    async def find_by_discord_id(cls, discord_id: str) -> Optional["Profile"]:
+    async def find_by_discord_id(cls, discord_id: int) -> Optional["Profile"]:
         """Find a profile given its discord_id"""
 
         async with session_factory() as session:

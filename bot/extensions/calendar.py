@@ -177,7 +177,7 @@ class Calendar(Cog):
             return
 
         courses: list[Course] = await asyncio.gather(
-            *[Course.find_by_code(e.course_id) for e in enrollments]
+            *[Course.find_by_code(e.course_code) for e in enrollments]
         )
         course_codes: list[str] = list(map(lambda c: c.code, courses))
 
@@ -292,7 +292,7 @@ class Calendar(Cog):
             return
 
         courses: list[Course] = await asyncio.gather(
-            *[Course.find_by_code(enr.course_id) for enr in enrollments]
+            *[Course.find_by_code(enr.course_code) for enr in enrollments]
         )
         courses = list(map(lambda c: f"[{c.code}] {c.name}", courses))
 
