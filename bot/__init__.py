@@ -3,7 +3,7 @@ from logging import Formatter, StreamHandler
 
 root_logger = logging.getLogger()
 
-format_string = "%(asctime)s | %(name)s | %(levelname)s | %(message)s"
+format_string = "%(asctime)s | %(levelname)7s | %(name)s | %(message)s"
 
 stream_handler = StreamHandler()
 stream_handler.setFormatter(Formatter(format_string))
