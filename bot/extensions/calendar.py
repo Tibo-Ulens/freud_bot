@@ -24,7 +24,6 @@ from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
 from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
-from bot.events.moderation import ModerationEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment

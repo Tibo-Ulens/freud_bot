@@ -4,7 +4,6 @@ from discord.app_commands import Choice
 from bot.bot import Bot
 from bot import constants
 from bot.extensions import ErrorHandledCog
-from bot.util import enable_guild_logging
 
 
 class Drive(ErrorHandledCog):

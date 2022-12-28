@@ -1,14 +1,12 @@
 import asyncio
 import discord
 from discord import app_commands, Interaction, Role, TextChannel, Member
-from discord.app_commands import errors
 from discord.ext import commands
-from discord.ext.commands import Cog, command, Context
+from discord.ext.commands import command, Context
 
 from bot.bot import Bot
 from bot.extensions import ErrorHandledCog
-from bot.events.config import ConfigEvent as ConfigEvent
-from bot.events.moderation import ModerationEvent
+from bot.events.config import ConfigEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
 from bot.util import has_admin_role, enable_guild_logging

@@ -6,7 +6,7 @@ from discord import Message, Guild, Member
 
 from bot import constants, root_logger
 from bot.bot import Bot
-from bot.events.bot import BotEvent as BotEvent
+from bot.events.bot import BotEvent
 from bot.extensions import ErrorHandledCog
 from bot.log.discord_handler import DiscordHandler
 from bot.log.guild_adapter import GuildAdapter
