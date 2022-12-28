@@ -37,13 +37,14 @@ class ConfigEvent(Event):
         )
 
     @classmethod
-    def SetVerifiedRole(cls, guild: Guild, role: Role) -> Event:
-        """Set or updated the verified role"""
+    def SetVerifiedRole(cls, guild: Guild, role: Role, updated: int) -> Event:
+        """Set or updated the verified role and updated verified members' roles"""
 
         return cls._create_named_event(
-            human=f"Set the verified role to {util.render_role(role)}",
+            human=f"Set the verified role to {util.render_role(role)}, {updated} members updated",
             guild=guild.name,
             role=util.render_role(role),
+            updated=updated,
         )
 
     @classmethod

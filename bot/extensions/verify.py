@@ -15,6 +15,7 @@ from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.models.profile import Profile
 from bot.models.config import Config
+from bot.util import enable_guild_logging
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
@@ -23,7 +24,6 @@ CODE_REGEX = re.compile(r"^['|<]?([a-z0-9]{32})[>|']?$")
 EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
 
 
-logger = logging.getLogger("bot")
 email_logger = logging.getLogger("email")
 
 
@@ -48,20 +48,21 @@ class Verify(Cog):
 
         email_logger.info(EmailEvent.Sent())
 
+    @enable_guild_logging
     async def verify_email(self, ia: Interaction, email: str):
-        author_id = str(ia.user.id)
+        author_id = ia.user.id
         verification_code = str(uuid.uuid4().hex)
 
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                logger.warn(VerifyEvent.DoubleVerification(ia.user))
+                self.bot.logger.warn(VerifyEvent.DoubleVerification(ia.user))
                 await ia.response.send_message(
                     VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
                 )
                 return
             else:
-                logger.info(VerifyEvent.CodeResetRequest(ia.user, email))
+                self.bot.logger.info(VerifyEvent.CodeResetRequest(ia.user, email))
 
                 profile.confirmation_code = verification_code
                 await profile.save()
@@ -76,14 +77,14 @@ class Verify(Cog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            logger.warn(VerifyEvent.DuplicateEmail(ia.user))
+            self.bot.logger.warn(VerifyEvent.DuplicateEmail(ia.user))
             await ia.response.send_message(
                 VerifyEvent.DuplicateEmail(ia.user).human,
                 ephemeral=True,
             )
             return
 
-        logger.info(VerifyEvent.CodeRequest(ia.user, email))
+        self.bot.logger.info(VerifyEvent.CodeRequest(ia.user, email))
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
@@ -91,12 +92,13 @@ class Verify(Cog):
         self.send_confirmation_email(email, verification_code)
         await ia.response.send_message(VerifyEvent.CodeRequest(ia.user, email).human)
 
+    @enable_guild_logging
     async def verify_code(self, ia: Interaction, code: str):
-        author_id = str(ia.user.id)
+        author_id = ia.user.id
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            logger.warn(VerifyEvent.MissingCode(ia.user))
+            self.bot.logger.warn(VerifyEvent.MissingCode(ia.user))
             await ia.response.send_message(
                 VerifyEvent.MissingCode(ia.user).human,
                 ephemeral=True,
@@ -105,7 +107,7 @@ class Verify(Cog):
             return
 
         if profile.confirmation_code is None:
-            logger.warn(VerifyEvent.DoubleVerification(ia.user))
+            self.bot.logger.warn(VerifyEvent.DoubleVerification(ia.user))
             await ia.response.send_message(
                 VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
             )
@@ -114,7 +116,7 @@ class Verify(Cog):
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            logger.warn(VerifyEvent.InvalidCode(ia.user))
+            self.bot.logger.warn(VerifyEvent.InvalidCode(ia.user))
             await ia.response.send_message(
                 VerifyEvent.InvalidCode(ia.user).human, ephemeral=True
             )
@@ -124,52 +126,51 @@ class Verify(Cog):
 
         config = await Config.get(ia.guild_id)
         if config is None:
-            logger.error(ConfigEvent.MissingConfig(ia.guild))
+            self.bot.logger.error(ConfigEvent.MissingConfig(ia.guild))
             await ia.response.send_message(ConfigEvent.MissingConfig(ia.guild).human)
             return
 
         verified_role = config.verified_role
         if verified_role is None:
-            logger.error(ConfigEvent.MissingVerifiedRole(ia.guild))
+            self.bot.logger.error(ConfigEvent.MissingVerifiedRole(ia.guild))
             await ia.response.send_message(
                 ConfigEvent.MissingVerifiedRole(ia.guild).human
             )
             return
 
-        await user.add_roles(discord.utils.get(user.guild.roles, id=int(verified_role)))
+        await user.add_roles(discord.utils.get(user.guild.roles, id=verified_role))
 
         profile.confirmation_code = None
         await profile.save()
 
-        logger.info(VerifyEvent.Verified(ia.user))
+        self.bot.logger.info(VerifyEvent.Verified(ia.user))
         await ia.response.send_message(VerifyEvent.Verified(ia.user).human)
 
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
     @app_commands.describe(argument="Your UGent email or verification code")
+    @enable_guild_logging
     async def verify(self, ia: Interaction, argument: str):
-        author_id = ia.user.id
-
         config = await Config.get(ia.guild_id)
         if config is None:
-            logger.error(ConfigEvent.MissingConfig(ia.guild))
+            self.bot.logger.error(ConfigEvent.MissingConfig(ia.guild))
             await ia.response.send_message(ConfigEvent.MissingConfig(ia.guild).human)
             return
 
         verification_channel = config.verification_channel
         if verification_channel is None:
-            logger.error(ConfigEvent.MissingVerificationChannel(ia.guild))
+            self.bot.logger.error(ConfigEvent.MissingVerificationChannel(ia.guild))
             await ia.response.send_message(
                 ConfigEvent.MissingVerificationChannel(ia.guild).human
             )
             return
 
-        if str(ia.channel_id) != verification_channel:
+        if ia.channel_id != verification_channel:
             allowed_channel = discord.utils.get(
-                ia.guild.channels, id=int(verification_channel)
+                ia.guild.channels, id=verification_channel
             )
-            logger.warn(
+            self.bot.logger.warn(
                 ModerationEvent.WrongChannel(
                     ia.user, ia.command, ia.channel, allowed_channel
                 )
@@ -199,7 +200,7 @@ class Verify(Cog):
                 code = match.group(1)
                 await self.verify_code(ia, code)
             else:
-                logger.warn(VerifyEvent.MalformedArgument(ia.user, msg))
+                self.bot.logger.warn(VerifyEvent.MalformedArgument(ia.user, msg))
                 await ia.response.send_message(
                     VerifyEvent.MalformedArgument(ia.user, msg).human,
                     ephemeral=True,
@@ -208,7 +209,7 @@ class Verify(Cog):
             await ia.response.send_message(
                 "Something went wrong, please notify the server admins"
             )
-            logger.error(traceback.format_exc())
+            self.bot.logger.error(traceback.format_exc())
 
 
 async def setup(bot: Bot):

@@ -1,3 +1,8 @@
+from functools import wraps
+import inspect
+import logging
+from typing import Coroutine, Callable
+
 import discord
 from discord import (
     Interaction,
@@ -10,9 +15,13 @@ from discord import (
 )
 from discord.app_commands import Command
 from discord.app_commands.errors import MissingRole
+from discord.ext.commands import Context
 
 from bot.models.course import Course
 from bot.models.config import Config
+
+
+logger = logging.getLogger("bot")
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -51,13 +60,41 @@ async def course_autocomplete(
     return [app_commands.Choice(name=course, value=course) for course in courses]
 
 
+def enable_guild_logging(func: Coroutine) -> Coroutine:
+    """
+    If the wrapped function takes an `Interaction` as an argument, sets a
+    custom `__interaction__` attribute on the function that refers to said
+    `Interaction`
+
+    If the wrapped function takes a `Context` as an argument, sets a
+    custom `__context__` attribute on the function that refers to said
+    `Context`
+
+    This attribute is then extracted in the `GuildAdapter` logging adapter,
+    and used by the `DiscordHandler` logging handler to write to the correct
+    channel
+    """
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, Interaction):
+                setattr(func, "__interaction__", arg)
+            elif isinstance(arg, Context):
+                setattr(func, "__context__", arg)
+
+        return await func(*args, **kwargs)
+
+    return wrapper
+
+
 def has_admin_role() -> bool:
     async def predicate(ia: Interaction) -> bool:
         guild_config = await Config.get(ia.guild_id)
         if guild_config is None:
             return False
 
-        admin_role = discord.utils.get(ia.guild.roles, id=int(guild_config.admin_role))
+        admin_role = discord.utils.get(ia.guild.roles, id=guild_config.admin_role)
 
         if ia.user.get_role(admin_role.id) is None:
             raise MissingRole(admin_role)

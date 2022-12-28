@@ -4,13 +4,16 @@ import json
 import logging
 from logging import Handler, LogRecord, Formatter, Filter
 
-from discord import TextChannel, Embed, Colour
+from discord import Embed, Colour, Interaction
+from discord.ext.commands import Context
+
+from bot.models.config import Config
 
 
 class DiscordHandler(Handler):
     """Log handler that writes log messages to a discord text channel"""
 
-    def __init__(self, channel: TextChannel, filter_target: str):
+    def __init__(self, filter_target: str):
         super().__init__()
         self.setFormatter(
             Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
@@ -18,24 +21,36 @@ class DiscordHandler(Handler):
         self.addFilter(Filter(filter_target))
         self.setLevel(logging.INFO)
 
-        self.channel = channel
         self.loop = asyncio.get_event_loop()
 
     def emit(self, record: LogRecord) -> None:
         self.loop.create_task(self.send_embed(record))
 
     async def send_embed(self, record: LogRecord):
-        embed = self.format_embed(record)
-        await self.channel.send(embed=embed)
+        if hasattr(record, "__interaction__"):
+            record_interaction: Interaction = record.__interaction__
+            record_guild = record_interaction.guild
+        elif hasattr(record, "__context__"):
+            record_context: Context = record.__context__
+            record_guild = record_context.guild
+        else:
+            return
+
+        if record_guild is None:
+            return
+
+        guild_config = await Config.get(record_guild.id)
+
+        if guild_config is not None and guild_config.logging_channel is not None:
+            logging_channel = record_guild.get_channel(guild_config.logging_channel)
+
+            embed = self.format_embed(record)
+            await logging_channel.send(embed=embed)
 
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()
         embed.colour = self.level_to_colour(record.levelno)
-
-        event_timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
-        event_timestamp = event_timestamp.strftime("%Y-%m-%d %H:%M:%S")
-
-        embed.add_field(name="timestamp", value=event_timestamp, inline=True)
+        embed.timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
 
         if record.levelno == logging.ERROR:
             embed.add_field(name="error", value=record.message, inline=False)

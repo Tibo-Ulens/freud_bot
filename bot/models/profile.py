@@ -1,16 +1,21 @@
 from typing import Optional
 
-from sqlalchemy import Column, Text
+import logging
+from discord import Guild
+from sqlalchemy import Column, Text, BigInteger
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
 from bot.models import Base, Model, session_factory
 
 
+logger = logging.getLogger("bot")
+
+
 class Profile(Base, Model):
     __tablename__ = "profile"
 
-    discord_id = Column(Text, primary_key=True)
+    discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
 
@@ -18,7 +23,7 @@ class Profile(Base, Model):
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
 
     @classmethod
-    async def find_by_discord_id(cls, discord_id: str) -> Optional["Profile"]:
+    async def find_by_discord_id(cls, discord_id: int) -> Optional["Profile"]:
         """Find a profile given its discord_id"""
 
         async with session_factory() as session:
@@ -44,3 +49,19 @@ class Profile(Base, Model):
                 return None
             else:
                 return r[0]
+
+    @classmethod
+    async def find_verified_in_guild(cls, guild: Guild) -> list["Profile"]:
+        """Find all profiles in a specific guild that are verified"""
+
+        async with session_factory() as session:
+            result: Query = await session.execute(
+                select(cls).where(cls.confirmation_code == None, cls.email != None)
+            )
+
+            profiles: list["Profile"] = result.scalars().all()
+
+        profiles = filter(
+            lambda p: guild.get_member(p.discord_id) is not None, profiles
+        )
+        return list(profiles)

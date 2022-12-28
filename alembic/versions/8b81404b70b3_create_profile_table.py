@@ -19,9 +19,10 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "profile",
-        sa.Column("discord_id", sa.Text, primary_key=True),
+        sa.Column("discord_id", sa.BigInteger, primary_key=True),
         sa.Column("email", sa.Text, nullable=False),
         sa.Column("confirmation_code", sa.Text),
+        sa.UniqueConstraint("discord_id", name="unique_discord_id"),
         sa.UniqueConstraint("email", name="unique_email"),
         sa.UniqueConstraint("confirmation_code", name="unique_confirmation_code"),
     )

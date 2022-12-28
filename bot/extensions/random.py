@@ -1,11 +1,8 @@
 from discord import app_commands, Interaction
 from discord.ext.commands import Cog
-import logging
 
 from bot.bot import Bot
-
-
-logger = logging.getLogger("bot")
+from bot.util import enable_guild_logging
 
 
 class Random(Cog):
@@ -22,8 +19,9 @@ class Random(Cog):
         )
 
     @mommy.error
+    @enable_guild_logging
     async def handle_error(self, ia: Interaction, error):
-        logger.error(error)
+        self.bot.logger.error(error)
         try:
             await ia.response.send_message(
                 "Unknown error, please contact a server admin"

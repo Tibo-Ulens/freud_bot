@@ -19,11 +19,11 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "config",
-        sa.Column("guild_id", sa.Text, primary_key=True),
-        sa.Column("verified_role", sa.Text, nullable=True),
-        sa.Column("verification_channel", sa.Text, nullable=True),
-        sa.Column("admin_role", sa.Text, nullable=True),
-        sa.Column("logging_channel", sa.Text, nullable=True),
+        sa.Column("guild_id", sa.BigInteger, primary_key=True),
+        sa.Column("verified_role", sa.BigInteger, nullable=True),
+        sa.Column("verification_channel", sa.BigInteger, nullable=True),
+        sa.Column("admin_role", sa.BigInteger, nullable=True),
+        sa.Column("logging_channel", sa.BigInteger, nullable=True),
         sa.UniqueConstraint("guild_id", name="unique_guild_id"),
         sa.UniqueConstraint("verified_role", name="unique_verified_role"),
         sa.UniqueConstraint("verification_channel", name="unique_verification_channel"),

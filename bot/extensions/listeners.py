@@ -1,14 +1,17 @@
 import random
 import logging
 
-from discord import Message, Guild
+import discord
+from discord import Message, Guild, Member
 from discord.ext.commands import Cog
 
 from bot import constants, root_logger
 from bot.bot import Bot
 from bot.events.bot import BotEvent as BotEvent
-from bot.discord_logger import DiscordHandler
+from bot.log.discord_handler import DiscordHandler
+from bot.log.guild_adapter import GuildAdapter
 from bot.models.config import Config
+from bot.models.profile import Profile
 
 
 logger = logging.getLogger("bot")
@@ -20,30 +23,40 @@ class Listeners(Cog):
 
     @Cog.listener()
     async def on_ready(self):
+        bot_logger = root_logger.getChild("bot")
+        bot_logger.addHandler(DiscordHandler(filter_target="bot"))
+
+        logger_ = GuildAdapter(bot_logger)
+        self.bot.logger = logger_
+
         logger.info(BotEvent.Ready())
 
     @Cog.listener()
     async def on_guild_available(self, guild: Guild):
         logger.info(f"guild {guild.name} available")
 
-        guild_config = await Config.get(guild.id)
-        if guild_config is None or guild_config.logging_channel is None:
-            return
-
-        logging_channel = guild.get_channel(int(guild_config.logging_channel))
-        discord_handler = DiscordHandler(channel=logging_channel, filter_target="bot")
-        self.bot.discord_handler = discord_handler
-        root_logger.addHandler(discord_handler)
-
     @Cog.listener()
     async def on_message(self, msg: Message):
-        if self.bot.user.mentioned_in(msg):
-            await self.send_random_quote(msg)
+        if self.bot.user in msg.mentions:
+            quote = random.choice(constants.FREUD_QUOTES)
+            await msg.reply(quote)
 
-    @staticmethod
-    async def send_random_quote(msg: Message):
-        quote = random.choice(constants.FREUD_QUOTES)
-        await msg.reply(quote)
+    @Cog.listener()
+    async def on_member_join(self, member: Member):
+        guild = member.guild
+
+        guild_config = await Config.get(member.id)
+        if guild_config is None or guild_config.verified_role is None:
+            return
+
+        profile = await Profile.find_by_discord_id(member.id)
+        if profile is None:
+            return
+
+        if profile.email is not None and profile.confirmation_code is None:
+            await member.add_roles(
+                discord.utils.get(guild.roles, id=guild_config.verified_role)
+            )
 
 
 async def setup(bot: Bot):
