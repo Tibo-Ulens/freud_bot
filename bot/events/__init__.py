@@ -1,4 +1,5 @@
 import inspect
+import json
 
 
 class Event:
@@ -19,10 +20,9 @@ class Event:
         self.custom_attrs = kwargs
 
     def __str__(self) -> str:
-        formatted_attrs = ", ".join(
-            map(lambda attr: f'"{attr[0]}":"{attr[1]}"', self.custom_attrs.items())
-        )
-        return f"{self.event_name} | {{{formatted_attrs}}}"
+        formatted_attrs = json.dumps(self.custom_attrs, default=str)
+
+        return f"{self.event_name} | {formatted_attrs}"
 
     @staticmethod
     def _create_named_event(human: str | None = None, **kwargs) -> "Event":
