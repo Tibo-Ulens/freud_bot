@@ -35,7 +35,7 @@ class Config(ErrorHandledCog):
     @app_commands.describe(role="The role to be applied")
     @enable_guild_logging
     async def set_admin_role(self, ia: Interaction, role: Role):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.admin_role = role.id
         await guild_config.save()
@@ -52,7 +52,7 @@ class Config(ErrorHandledCog):
     @app_commands.describe(role="The role to be applied")
     @enable_guild_logging
     async def set_verified_role(self, ia: Interaction, role: Role):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         old_verified_role = None
         if guild_config.verified_role is not None:
@@ -91,7 +91,7 @@ class Config(ErrorHandledCog):
     @app_commands.describe(channel="The channel to select")
     @enable_guild_logging
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.verification_channel = channel.id
         await guild_config.save()
@@ -110,7 +110,7 @@ class Config(ErrorHandledCog):
     @app_commands.describe(channel="The channel to select")
     @enable_guild_logging
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.logging_channel = channel.id
         await guild_config.save()
