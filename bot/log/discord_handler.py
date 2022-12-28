@@ -5,6 +5,7 @@ import logging
 from logging import Handler, LogRecord, Formatter, Filter
 
 from discord import Embed, Colour, Interaction
+from discord.ext.commands import Context
 
 from bot.models.config import Config
 
@@ -29,13 +30,22 @@ class DiscordHandler(Handler):
         if hasattr(record, "__interaction__"):
             record_interaction: Interaction = record.__interaction__
             record_guild = record_interaction.guild
-            guild_config = await Config.get(record_guild.id)
+        elif hasattr(record, "__context__"):
+            record_context: Context = record.__context__
+            record_guild = record_context.guild
+        else:
+            return
 
-            if guild_config is not None and guild_config.logging_channel is not None:
-                logging_channel = record_guild.get_channel(guild_config.logging_channel)
+        if record_guild is None:
+            return
 
-                embed = self.format_embed(record)
-                await logging_channel.send(embed=embed)
+        guild_config = await Config.get(record_guild.id)
+
+        if guild_config is not None and guild_config.logging_channel is not None:
+            logging_channel = record_guild.get_channel(guild_config.logging_channel)
+
+            embed = self.format_embed(record)
+            await logging_channel.send(embed=embed)
 
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()

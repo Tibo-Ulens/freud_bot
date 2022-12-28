@@ -4,7 +4,6 @@ from discord import app_commands, Interaction, Role, TextChannel, Member
 from discord.app_commands import errors
 from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
-import logging
 
 from bot.bot import Bot
 from bot.events.config import ConfigEvent as ConfigEvent
@@ -12,9 +11,6 @@ from bot.events.moderation import ModerationEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
 from bot.util import has_admin_role, enable_guild_logging
-
-
-# logger = logging.getLogger("bot")
 
 
 class Config(Cog):
@@ -26,6 +22,7 @@ class Config(Cog):
     @command(name="freudsync")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
+    @enable_guild_logging
     async def sync(self, ctx: Context):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()

@@ -31,5 +31,8 @@ class GuildAdapter(LoggerAdapter):
                 if "__interaction__" in func.__dict__.keys():
                     interaction = func.__dict__["__interaction__"]
                     kwargs["extra"] = {"__interaction__": interaction}
+                elif "__context__" in func.__dict__.keys():
+                    context = func.__dict__["__context__"]
+                    kwargs["extra"] = {"__context__": context}
 
         return (msg, kwargs)
