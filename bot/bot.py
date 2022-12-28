@@ -52,13 +52,13 @@ class Bot(commands.Bot):
 
         for ext in EXTENSIONS:
             await self.load_extension(ext)
-            logger.info(BotEvent.ExtensionLoaded(ext))
+            logger.debug(BotEvent.ExtensionLoaded(ext))
 
     async def add_cog(self, cog: commands.Cog) -> None:
         """Add a cog to the bot"""
 
         await super().add_cog(cog)
-        logger.info(BotEvent.CogAdded(cog.qualified_name))
+        logger.debug(BotEvent.CogAdded(cog.qualified_name))
 
     async def close(self) -> None:
         # Remove all extensions
@@ -85,8 +85,8 @@ class Bot(commands.Bot):
         await self.db.dispose()
         logger.info(BotEvent.DatabaseClosed())
 
-        await self.logout()
         logger.info(BotEvent.Exited())
+        await self.logout()
 
     async def on_error(self, event: str) -> None:
         logger.exception(f"Unhandled exception in {event}")
