@@ -3,13 +3,12 @@ import gc
 from logging import LoggerAdapter
 from typing import Any, MutableMapping
 
-from discord import Interaction
-
 
 class GuildAdapter(LoggerAdapter):
     """
-    Logger adapter which sets an extra keyword argument `ia`, referring to the
-    `Interaction` object that was passed to whatever function called it
+    Logger adapter which, depending on whether the log was created in a command
+    or an app command, adds an extra `__context__`, or `__interaction__` field
+    to the extra arguments of the log record
     """
 
     def process(
