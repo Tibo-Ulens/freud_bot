@@ -4,7 +4,9 @@ import json
 import logging
 from logging import Handler, LogRecord, Formatter, Filter
 
-from discord import TextChannel, Embed, Colour
+from discord import TextChannel, Embed, Colour, Interaction
+
+from bot.models.config import Config
 
 
 class DiscordHandler(Handler):
@@ -25,8 +27,16 @@ class DiscordHandler(Handler):
         self.loop.create_task(self.send_embed(record))
 
     async def send_embed(self, record: LogRecord):
-        embed = self.format_embed(record)
-        await self.channel.send(embed=embed)
+        if hasattr(record, "__interaction__"):
+            record_interaction: Interaction = record.__interaction__
+            record_guild = record_interaction.guild
+            guild_config = await Config.get(record_guild.id)
+
+            if guild_config is not None and guild_config.logging_channel is not None:
+                logging_channel = record_guild.get_channel(guild_config.logging_channel)
+
+                embed = self.format_embed(record)
+                await logging_channel.send(embed=embed)
 
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()

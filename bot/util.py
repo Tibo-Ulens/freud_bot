@@ -1,3 +1,7 @@
+from functools import wraps
+import logging
+from typing import Coroutine
+
 import discord
 from discord import (
     Interaction,
@@ -13,6 +17,9 @@ from discord.app_commands.errors import MissingRole
 
 from bot.models.course import Course
 from bot.models.config import Config
+
+
+logger = logging.getLogger("bot")
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -49,6 +56,28 @@ async def course_autocomplete(
     courses.sort(key=lambda c: levenshtein_distance(c, current))
 
     return [app_commands.Choice(name=course, value=course) for course in courses]
+
+
+def enable_guild_logging(func: Coroutine):
+    """
+    If the wrapped function takes an `Interaction` as an argument, sets a
+    custom `__interaction__` attribute on the function that refers to said
+    `Interaction`
+
+    This attribute is then extracted in the `GuildAdapter` logging adapter,
+    and used by the `DiscordHandler` logging handler to write to the correct
+    channel
+    """
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, Interaction):
+                setattr(func, "__interaction__", arg)
+
+        return await func(*args, **kwargs)
+
+    return wrapper
 
 
 def has_admin_role() -> bool:

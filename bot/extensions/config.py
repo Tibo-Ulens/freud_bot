@@ -8,7 +8,7 @@ import logging
 
 from bot import root_logger
 from bot.bot import Bot
-from bot.discord_logger import DiscordHandler
+from bot.log.discord_handler import DiscordHandler
 from bot.events.config import ConfigEvent as ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.models.profile import Profile

@@ -8,7 +8,7 @@ from discord.ext.commands import Cog
 from bot import constants, root_logger
 from bot.bot import Bot
 from bot.events.bot import BotEvent as BotEvent
-from bot.discord_logger import DiscordHandler
+from bot.log.discord_handler import DiscordHandler
 from bot.models.config import Config
 from bot.models.profile import Profile
 
