@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 
 from bot.bot import Bot
+from bot.extensions import ErrorHandledCog
 from bot.events.config import ConfigEvent as ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.models.profile import Profile
@@ -13,11 +14,8 @@ from bot.models.config import Config as ConfigModel
 from bot.util import has_admin_role, enable_guild_logging
 
 
-class Config(Cog):
+class Config(ErrorHandledCog):
     config_group = app_commands.Group(name="config", description="bot configuration")
-
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
 
     @command(name="freudsync")
     @commands.guild_only()
@@ -123,62 +121,6 @@ class Config(Cog):
         await ia.response.send_message(
             ConfigEvent.SetLoggingChannel(ia.guild, channel).human
         )
-
-    @set_verification_channel.error
-    @set_verified_role.error
-    @set_logging_channel.error
-    @enable_guild_logging
-    async def handle_possible_user_error(self, ia: Interaction, error):
-        if isinstance(error, errors.MissingRole):
-            self.bot.logger.warn(
-                ModerationEvent.MissingRole(ia.user, ia.command, error.missing_role)
-            )
-            await ia.response.send_message(
-                ModerationEvent.MissingRole(
-                    ia.user, ia.command, error.missing_role
-                ).human
-            )
-            return
-
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
-
-    @sync.error
-    @set_admin_role.error
-    @enable_guild_logging
-    async def handle_possible_user_error_two_electric_boogaloo(
-        self, ia: Interaction, error
-    ):
-        if isinstance(error, errors.MissingPermissions):
-
-            self.bot.logger.warn(
-                ModerationEvent.MissingPermissions(
-                    ia.user, ia.command, error.missing_permissions
-                )
-            )
-            await ia.response.send_message(
-                ModerationEvent.MissingPermissions(
-                    ia.user, ia.command, error.missing_permissions
-                ).human
-            )
-            return
-
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
 
 
 async def setup(bot: Bot):
