@@ -11,7 +11,6 @@ from typing import Iterator
 from cairosvg import svg2png
 from discord import app_commands, Interaction, File
 from discord.app_commands import errors
-from discord.ext.commands import Cog
 import requests
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -26,6 +25,7 @@ from bot.bot import Bot
 from bot.constants import day_to_planner
 from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
 from bot.events.moderation import ModerationEvent
+from bot.extensions import ErrorHandledCog
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
 from bot.models.lecture import Lecture
@@ -104,7 +104,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
     driver.quit()
 
 
-class Calendar(Cog):
+class Calendar(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
@@ -382,49 +382,6 @@ class Calendar(Cog):
         await ia.edit_original_response(
             content=LectureInfoEvent.Refreshed(course).human
         )
-
-    @add_course.error
-    @remove_course.error
-    @list_courses.error
-    @course_refresh.error
-    @enable_guild_logging
-    async def handle_possible_user_error(self, ia: Interaction, error):
-        if isinstance(error, errors.MissingRole):
-            self.bot.logger.warn(
-                ModerationEvent.MissingRole(ia.user, ia.command, error.missing_role)
-            )
-            await ia.response.send_message(
-                ModerationEvent.MissingRole(
-                    ia.user, ia.command, error.missing_role
-                ).human
-            )
-            return
-
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
-
-    @calendar.error
-    @enroll_in_course.error
-    @drop_course.error
-    @show_enrolled.error
-    @enable_guild_logging
-    async def handle_error(self, ia: Interaction, error):
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
 
 
 async def setup(bot: Bot):

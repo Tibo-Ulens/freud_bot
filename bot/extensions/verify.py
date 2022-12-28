@@ -6,13 +6,13 @@ import uuid
 
 import discord
 from discord import app_commands, Interaction
-from discord.ext.commands import Cog
 
 from bot import constants
 from bot.bot import Bot
 from bot.events.verify import EmailEvent, VerifyEvent
 from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
+from bot.extensions import ErrorHandledCog
 from bot.models.profile import Profile
 from bot.models.config import Config
 from bot.util import enable_guild_logging
@@ -27,7 +27,7 @@ EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: Psychology Discord Verificati
 email_logger = logging.getLogger("email")
 
 
-class Verify(Cog):
+class Verify(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 

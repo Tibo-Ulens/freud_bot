@@ -1,13 +1,13 @@
 from discord import app_commands, Interaction, Embed
 from discord.app_commands import Choice
-from discord.ext.commands import Cog
 
 from bot.bot import Bot
 from bot import constants
+from bot.extensions import ErrorHandledCog
 from bot.util import enable_guild_logging
 
 
-class Drive(Cog):
+class Drive(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
@@ -37,19 +37,6 @@ class Drive(Cog):
             description=f"[{course.name}]({constants.DRIVE_LINKS[course.name]})",
         )
         await ia.response.send_message(embed=embed)
-
-    @drive.error
-    @enable_guild_logging
-    async def handle_error(self, ia: Interaction, error):
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
 
 
 async def setup(bot: Bot):

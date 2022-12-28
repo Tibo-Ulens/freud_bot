@@ -3,11 +3,11 @@ import logging
 
 import discord
 from discord import Message, Guild, Member
-from discord.ext.commands import Cog
 
 from bot import constants, root_logger
 from bot.bot import Bot
 from bot.events.bot import BotEvent as BotEvent
+from bot.extensions import ErrorHandledCog
 from bot.log.discord_handler import DiscordHandler
 from bot.log.guild_adapter import GuildAdapter
 from bot.models.config import Config
@@ -17,11 +17,11 @@ from bot.models.profile import Profile
 logger = logging.getLogger("bot")
 
 
-class Listeners(Cog):
+class Listeners(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-    @Cog.listener()
+    @ErrorHandledCog.listener()
     async def on_ready(self):
         bot_logger = root_logger.getChild("bot")
         bot_logger.addHandler(DiscordHandler(filter_target="bot"))
@@ -31,17 +31,17 @@ class Listeners(Cog):
 
         logger.info(BotEvent.Ready())
 
-    @Cog.listener()
+    @ErrorHandledCog.listener()
     async def on_guild_available(self, guild: Guild):
         logger.info(f"guild {guild.name} available")
 
-    @Cog.listener()
+    @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):
         if self.bot.user in msg.mentions:
             quote = random.choice(constants.FREUD_QUOTES)
             await msg.reply(quote)
 
-    @Cog.listener()
+    @ErrorHandledCog.listener()
     async def on_member_join(self, member: Member):
         guild = member.guild
 
