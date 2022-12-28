@@ -6,17 +6,15 @@ from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 import logging
 
-from bot import root_logger
 from bot.bot import Bot
-from bot.log.discord_handler import DiscordHandler
 from bot.events.config import ConfigEvent as ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
-from bot.util import has_admin_role
+from bot.util import has_admin_role, enable_guild_logging
 
 
-logger = logging.getLogger("bot")
+# logger = logging.getLogger("bot")
 
 
 class Config(Cog):
@@ -32,7 +30,7 @@ class Config(Cog):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
 
-        logger.info(ConfigEvent.SyncedCommands(ctx.guild, len(synced)))
+        self.bot.logger.info(ConfigEvent.SyncedCommands(ctx.guild, len(synced)))
         await ctx.reply(ConfigEvent.SyncedCommands(ctx.guild, len(synced)).human)
 
     @app_commands.guild_only()
@@ -42,13 +40,14 @@ class Config(Cog):
         description="Set the role that members with admin permissions will have",
     )
     @app_commands.describe(role="The role to be applied")
+    @enable_guild_logging
     async def set_admin_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
         guild_config.admin_role = role.id
         await guild_config.save()
 
-        logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
+        self.bot.logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
         await ia.response.send_message(ConfigEvent.SetAdminRole(ia.guild, role).human)
 
     @app_commands.guild_only()
@@ -58,6 +57,7 @@ class Config(Cog):
         description="Set the role to be applied to members once they have been verified",
     )
     @app_commands.describe(role="The role to be applied")
+    @enable_guild_logging
     async def set_verified_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
@@ -84,7 +84,7 @@ class Config(Cog):
         guild_config.verified_role = role.id
         await guild_config.save()
 
-        logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)))
+        self.bot.logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)))
         await ia.response.send_message(
             ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)).human
         )
@@ -96,13 +96,14 @@ class Config(Cog):
         description="Set the channel in which the /verify command can be used",
     )
     @app_commands.describe(channel="The channel to select")
+    @enable_guild_logging
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
         guild_config.verification_channel = channel.id
         await guild_config.save()
 
-        logger.info(ConfigEvent.SetVerificationChannel(ia.guild, channel))
+        self.bot.logger.info(ConfigEvent.SetVerificationChannel(ia.guild, channel))
         await ia.response.send_message(
             ConfigEvent.SetVerificationChannel(ia.guild, channel).human
         )
@@ -114,18 +115,14 @@ class Config(Cog):
         description="Set the channel to which FreudBot logs will be posted",
     )
     @app_commands.describe(channel="The channel to select")
+    @enable_guild_logging
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild_id)
 
         guild_config.logging_channel = channel.id
         await guild_config.save()
 
-        discord_handler = DiscordHandler(channel=channel, filter_target="bot")
-        if hasattr(self.bot, "discord_handler"):
-            root_logger.removeHandler(self.bot.discord_handler)
-        root_logger.addHandler(discord_handler)
-
-        logger.info(ConfigEvent.SetLoggingChannel(ia.guild, channel))
+        self.bot.logger.info(ConfigEvent.SetLoggingChannel(ia.guild, channel))
         await ia.response.send_message(
             ConfigEvent.SetLoggingChannel(ia.guild, channel).human
         )
@@ -133,9 +130,10 @@ class Config(Cog):
     @set_verification_channel.error
     @set_verified_role.error
     @set_logging_channel.error
+    @enable_guild_logging
     async def handle_possible_user_error(self, ia: Interaction, error):
         if isinstance(error, errors.MissingRole):
-            logger.warn(
+            self.bot.logger.warn(
                 ModerationEvent.MissingRole(ia.user, ia.command, error.missing_role)
             )
             await ia.response.send_message(
@@ -145,7 +143,7 @@ class Config(Cog):
             )
             return
 
-        logger.error(error)
+        self.bot.logger.error(error)
         try:
             await ia.response.send_message(
                 "Unknown error, please contact a server admin"
@@ -157,12 +155,13 @@ class Config(Cog):
 
     @sync.error
     @set_admin_role.error
+    @enable_guild_logging
     async def handle_possible_user_error_two_electric_boogaloo(
         self, ia: Interaction, error
     ):
         if isinstance(error, errors.MissingPermissions):
 
-            logger.warn(
+            self.bot.logger.warn(
                 ModerationEvent.MissingPermissions(
                     ia.user, ia.command, error.missing_permissions
                 )
@@ -174,7 +173,7 @@ class Config(Cog):
             )
             return
 
-        logger.error(error)
+        self.bot.logger.error(error)
         try:
             await ia.response.send_message(
                 "Unknown error, please contact a server admin"

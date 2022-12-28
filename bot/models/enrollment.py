@@ -16,13 +16,15 @@ class Enrollment(Base, Model):
         return f"Enrollment(profile_discord_id={self.profile_discord_id}, course_code={self.course_code})"
 
     @classmethod
-    async def find(cls, profile_id: str, course_code: str) -> Optional["Enrollment"]:
+    async def find(
+        cls, profile_discord_id: str, course_code: str
+    ) -> Optional["Enrollment"]:
         """Find a specific enrollment"""
 
         async with session_factory() as session:
             result: Query = await session.execute(
                 select(cls)
-                .where(cls.profile_discord_id == profile_id)
+                .where(cls.profile_discord_id == profile_discord_id)
                 .where(cls.course_code == course_code)
             )
 

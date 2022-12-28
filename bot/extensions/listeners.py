@@ -9,6 +9,7 @@ from bot import constants, root_logger
 from bot.bot import Bot
 from bot.events.bot import BotEvent as BotEvent
 from bot.log.discord_handler import DiscordHandler
+from bot.log.guild_adapter import GuildAdapter
 from bot.models.config import Config
 from bot.models.profile import Profile
 
@@ -22,20 +23,17 @@ class Listeners(Cog):
 
     @Cog.listener()
     async def on_ready(self):
+        bot_logger = root_logger.getChild("bot")
+        bot_logger.addHandler(DiscordHandler(filter_target="bot"))
+
+        logger_ = GuildAdapter(bot_logger)
+        self.bot.logger = logger_
+
         logger.info(BotEvent.Ready())
 
     @Cog.listener()
     async def on_guild_available(self, guild: Guild):
         logger.info(f"guild {guild.name} available")
-
-        guild_config = await Config.get(guild.id)
-        if guild_config is None or guild_config.logging_channel is None:
-            return
-
-        logging_channel = guild.get_channel(guild_config.logging_channel)
-        discord_handler = DiscordHandler(channel=logging_channel, filter_target="bot")
-        self.bot.discord_handler = discord_handler
-        root_logger.addHandler(discord_handler)
 
     @Cog.listener()
     async def on_message(self, msg: Message):
