@@ -33,7 +33,7 @@ class Listeners(ErrorHandledCog):
 
     @ErrorHandledCog.listener()
     async def on_guild_available(self, guild: Guild):
-        logger.info(f"guild {guild.name} available")
+        logger.info(BotEvent.GuildAvailable(guild))
 
     @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):
