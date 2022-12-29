@@ -41,7 +41,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
 
-    for time_period in range(1, 5):
+    for time_period in range(1, 3):
         driver.get(constants.TIMEEDIT_URL)
         driver.find_element(
             By.CSS_SELECTOR, f".linklist a:nth-of-type({time_period})"
@@ -161,7 +161,7 @@ class Calendar(ErrorHandledCog):
         await asyncio.gather(*create_lecture_futures)
 
     @staticmethod
-    async def build_calendar_png(ia: Interaction, given_week_nr: int) -> File:
+    async def build_calendar_png(ia: Interaction, given_week_nr: int) -> File | None:
         """
         Build a calendar image for the given week and the user that requested
         it
@@ -170,9 +170,8 @@ class Calendar(ErrorHandledCog):
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
         if not enrollments:
-            await ia.response.send_message(
-                "You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
-                ephemeral=True,
+            await ia.edit_original_response(
+                content="You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
             )
             return
 
@@ -250,6 +249,9 @@ class Calendar(ErrorHandledCog):
         week_nr = datetime.date.today().isocalendar()[1]
         png_file = await self.build_calendar_png(ia, week_nr)
 
+        if png_file is None:
+            return
+
         backward_emoji = "◀️"
         forward_emoji = "▶️"
 
@@ -280,6 +282,9 @@ class Calendar(ErrorHandledCog):
 
             new_week_nr = int(operation(week_nr))
             png_file = await self.build_calendar_png(ia, new_week_nr)
+
+            if png_file is None:
+                return
 
             backward_button.custom_id = f"backward {new_week_nr}"
             forward_button.custom_id = f"forward {new_week_nr}"
