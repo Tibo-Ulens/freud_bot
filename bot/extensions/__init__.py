@@ -67,6 +67,9 @@ class ErrorHandledCog(Cog):
         except NotImplementedError:
             logger.error(traceback.format_exc())
 
+            self.bot.logger.error(
+                "Unknown error, please (ask somebody to) check the logs"
+            )
             if ia.response.is_done():
                 await ia.followup.send("Unknown error, please contact a server admin")
             else:
@@ -85,6 +88,9 @@ class ErrorHandledCog(Cog):
         except NotImplementedError:
             logger.error(traceback.format_exc())
 
+            self.bot.logger.error(
+                "Unknown error, please (ask somebody to) check the logs"
+            )
             await ctx.reply("Unknown error, please contact a server admin")
             return
 
