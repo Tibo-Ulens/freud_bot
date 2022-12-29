@@ -10,7 +10,7 @@ from typing import Iterator
 
 from cairosvg import svg2png
 from discord import app_commands, Interaction, File
-from discord.app_commands import errors
+from discord.ui import View, Button
 import requests
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -41,7 +41,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
 
-    for time_period in range(1, 5):
+    for time_period in range(1, 3):
         driver.get(constants.TIMEEDIT_URL)
         driver.find_element(
             By.CSS_SELECTOR, f".linklist a:nth-of-type({time_period})"
@@ -160,18 +160,18 @@ class Calendar(ErrorHandledCog):
         )
         await asyncio.gather(*create_lecture_futures)
 
-    @app_commands.command(
-        name="calendar",
-        description="Show your personal calendar for this week",
-    )
-    @enable_guild_logging
-    async def calendar(self, ia: Interaction):
+    @staticmethod
+    async def build_calendar_png(ia: Interaction, given_week_nr: int) -> File | None:
+        """
+        Build a calendar image for the given week and the user that requested
+        it
+        """
+
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
         if not enrollments:
-            await ia.response.send_message(
-                "You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
-                ephemeral=True,
+            await ia.edit_original_response(
+                content="You are not enrolled in any courses, if you think this is a mistake please contact a server admin",
             )
             return
 
@@ -180,11 +180,19 @@ class Calendar(ErrorHandledCog):
         )
         course_codes: list[str] = list(map(lambda c: c.code, courses))
 
-        await ia.response.send_message("Building calendar overview...", ephemeral=True)
+        await ia.edit_original_response(content="Building calendar overview...")
 
         today = datetime.date.today()
-        week_nr = today.isocalendar()[1]
-        week_start = today - timedelta(days=today.weekday() % 7)
+        year = today.year
+
+        # Normalise year and week number so i can just say "week number 64" and
+        # have it work without causing migraines
+        # (note: likely to cause migraines)
+        # (note x2: has caused migraines)
+        year += (given_week_nr - 1) // 52
+        week_nr = ((given_week_nr - 1) % 52) + 1
+
+        week_start = datetime.datetime.strptime(f"{year}-W{week_nr}-1", "%Y-W%W-%w")
         week_days = [
             (week_start + timedelta(days=n)).strftime("%d-%m-%Y") for n in range(7)
         ]
@@ -222,9 +230,90 @@ class Calendar(ErrorHandledCog):
 
         png_bytes = svg2png(bytestring=bytes(filled_svg, "utf-8"), write_to=None)
         png_virt_file = BytesIO(initial_bytes=png_bytes)
-        png_file = File(png_virt_file, filename="calendar.png")
+        return File(png_virt_file, filename="calendar.png")
 
-        await ia.edit_original_response(content="", attachments=[png_file])
+    @app_commands.command(
+        name="calendar",
+        description="Show your personal calendar for this week",
+    )
+    @enable_guild_logging
+    async def calendar(self, ia: Interaction):
+        # This message is only here so the interaction has a response object
+        #
+        # Using the forward and backward buttons updates the original message,
+        # and doing so requires a response object to exist
+        #
+        # i'd prefer if this could be an empty message, but alas
+        await ia.response.send_message("Getting enrolled courses...", ephemeral=True)
+
+        week_nr = datetime.date.today().isocalendar()[1]
+        png_file = await self.build_calendar_png(ia, week_nr)
+
+        if png_file is None:
+            return
+
+        backward_emoji = "◀️"
+        forward_emoji = "▶️"
+
+        week_menu_view = View(timeout=600)
+
+        backward_button = Button(
+            custom_id=f"backward {week_nr}",
+            emoji=backward_emoji,
+        )
+        forward_button = Button(
+            custom_id=f"forward {week_nr}",
+            emoji=forward_emoji,
+        )
+
+        async def button_callback(button_ia: Interaction):
+            await button_ia.response.send_message(
+                "Reloading calendar...", ephemeral=True
+            )
+
+            operation, week_nr = button_ia.data["custom_id"].split()
+
+            if operation == "forward":
+                operation = lambda x: x + 1
+            elif operation == "backward":
+                operation = lambda x: x - 1
+
+            week_nr = int(week_nr)
+
+            new_week_nr = int(operation(week_nr))
+            png_file = await self.build_calendar_png(ia, new_week_nr)
+
+            if png_file is None:
+                return
+
+            backward_button.custom_id = f"backward {new_week_nr}"
+            forward_button.custom_id = f"forward {new_week_nr}"
+
+            backward_button.callback = button_callback
+            forward_button.callback = button_callback
+
+            week_menu_view.clear_items()
+            week_menu_view.add_item(backward_button)
+            week_menu_view.add_item(forward_button)
+
+            # Edit the *original* interaction that created the first calendar
+            # so we don't spam 20 new calendar images if somebody has to go to
+            # a distant week
+            await ia.edit_original_response(
+                content="", attachments=[png_file], view=week_menu_view
+            )
+            await button_ia.delete_original_response()
+
+        backward_button.callback = button_callback
+        forward_button.callback = button_callback
+
+        week_menu_view.clear_items()
+        week_menu_view.add_item(backward_button)
+        week_menu_view.add_item(forward_button)
+
+        await ia.edit_original_response(
+            content="", attachments=[png_file], view=week_menu_view
+        )
 
     @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")

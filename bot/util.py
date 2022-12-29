@@ -85,6 +85,9 @@ def enable_guild_logging(func: Coroutine) -> Coroutine:
 
 def has_admin_role() -> bool:
     async def predicate(ia: Interaction) -> bool:
+        # TODO: implement another check/decorator to see if the admin_role
+        # config is set or not + add custom error types
+
         guild_config = await Config.get(ia.guild_id)
         if guild_config is None:
             return False
