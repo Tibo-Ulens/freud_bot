@@ -17,6 +17,16 @@ from bot.models.profile import Profile
 logger = logging.getLogger("bot")
 
 
+MSG = """
+This does not seem to be a valid `/verify` command, did you use the autocomplete prompt?
+
+Normally you should get an autocomplete prompt when you start typing `/verify`.
+You can select this prompt by fully typing out `/verify` and then a space, by pressing tab, or by clicking on the prompt.
+
+If you experience further issues, please contact somebody that looks important.
+"""
+
+
 class Listeners(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
@@ -37,6 +47,24 @@ class Listeners(ErrorHandledCog):
 
     @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):
+        if msg.author == self.bot.user:
+            return
+
+        guild_config = await Config.get(msg.guild.id)
+        if (
+            guild_config is not None
+            and guild_config.verification_channel is not None
+            and msg.channel.id == guild_config.verification_channel
+        ):
+            if (
+                guild_config.admin_role is not None
+                and discord.utils.get(msg.guild.roles, id=guild_config.admin_role)
+                in msg.author.roles
+            ):
+                return
+
+            await msg.reply(MSG)
+
         if self.bot.user in msg.mentions:
             quote = random.choice(constants.FREUD_QUOTES)
             await msg.reply(quote)
