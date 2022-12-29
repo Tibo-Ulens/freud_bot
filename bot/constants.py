@@ -1,10 +1,7 @@
 import datetime
-import logging
 import textwrap
 import math
 
-
-logger = logging.getLogger("bot")
 
 DISCORD_TOKEN: str
 with open("/run/secrets/discord_token") as secret:

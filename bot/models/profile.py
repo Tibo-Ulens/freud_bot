@@ -1,15 +1,11 @@
 from typing import Optional
 
-import logging
 from discord import Guild
 from sqlalchemy import Column, Text, BigInteger
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
 from bot.models import Base, Model, session_factory
-
-
-logger = logging.getLogger("bot")
 
 
 class Profile(Base, Model):

@@ -1,23 +1,19 @@
 import asyncio
 import discord
 from discord import app_commands, Interaction, Role, TextChannel, Member
-from discord.app_commands import errors
 from discord.ext import commands
-from discord.ext.commands import Cog, command, Context
+from discord.ext.commands import command, Context
 
 from bot.bot import Bot
-from bot.events.config import ConfigEvent as ConfigEvent
-from bot.events.moderation import ModerationEvent
+from bot.extensions import ErrorHandledCog
+from bot.events.config import ConfigEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
 from bot.util import has_admin_role, enable_guild_logging
 
 
-class Config(Cog):
+class Config(ErrorHandledCog):
     config_group = app_commands.Group(name="config", description="bot configuration")
-
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
 
     @command(name="freudsync")
     @commands.guild_only()
@@ -39,7 +35,7 @@ class Config(Cog):
     @app_commands.describe(role="The role to be applied")
     @enable_guild_logging
     async def set_admin_role(self, ia: Interaction, role: Role):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.admin_role = role.id
         await guild_config.save()
@@ -56,7 +52,7 @@ class Config(Cog):
     @app_commands.describe(role="The role to be applied")
     @enable_guild_logging
     async def set_verified_role(self, ia: Interaction, role: Role):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         old_verified_role = None
         if guild_config.verified_role is not None:
@@ -95,7 +91,7 @@ class Config(Cog):
     @app_commands.describe(channel="The channel to select")
     @enable_guild_logging
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.verification_channel = channel.id
         await guild_config.save()
@@ -114,7 +110,7 @@ class Config(Cog):
     @app_commands.describe(channel="The channel to select")
     @enable_guild_logging
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
-        guild_config = await ConfigModel.get_or_create(ia.guild_id)
+        guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.logging_channel = channel.id
         await guild_config.save()
@@ -123,62 +119,6 @@ class Config(Cog):
         await ia.response.send_message(
             ConfigEvent.SetLoggingChannel(ia.guild, channel).human
         )
-
-    @set_verification_channel.error
-    @set_verified_role.error
-    @set_logging_channel.error
-    @enable_guild_logging
-    async def handle_possible_user_error(self, ia: Interaction, error):
-        if isinstance(error, errors.MissingRole):
-            self.bot.logger.warn(
-                ModerationEvent.MissingRole(ia.user, ia.command, error.missing_role)
-            )
-            await ia.response.send_message(
-                ModerationEvent.MissingRole(
-                    ia.user, ia.command, error.missing_role
-                ).human
-            )
-            return
-
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
-
-    @sync.error
-    @set_admin_role.error
-    @enable_guild_logging
-    async def handle_possible_user_error_two_electric_boogaloo(
-        self, ia: Interaction, error
-    ):
-        if isinstance(error, errors.MissingPermissions):
-
-            self.bot.logger.warn(
-                ModerationEvent.MissingPermissions(
-                    ia.user, ia.command, error.missing_permissions
-                )
-            )
-            await ia.response.send_message(
-                ModerationEvent.MissingPermissions(
-                    ia.user, ia.command, error.missing_permissions
-                ).human
-            )
-            return
-
-        self.bot.logger.error(error)
-        try:
-            await ia.response.send_message(
-                "Unknown error, please contact a server admin"
-            )
-        except:
-            await ia.edit_original_response(
-                content="Unknown error, please contact a server admin"
-            )
 
 
 async def setup(bot: Bot):

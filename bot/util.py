@@ -1,7 +1,5 @@
 from functools import wraps
-import inspect
-import logging
-from typing import Coroutine, Callable
+from typing import Coroutine
 
 import discord
 from discord import (
@@ -19,9 +17,6 @@ from discord.ext.commands import Context
 
 from bot.models.course import Course
 from bot.models.config import Config
-
-
-logger = logging.getLogger("bot")
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:

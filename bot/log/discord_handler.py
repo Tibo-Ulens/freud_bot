@@ -4,10 +4,12 @@ import json
 import logging
 from logging import Handler, LogRecord, Formatter, Filter
 
+import discord
 from discord import Embed, Colour, Interaction
 from discord.ext.commands import Context
 
 from bot.models.config import Config
+from bot import util
 
 
 class DiscordHandler(Handler):
@@ -41,11 +43,22 @@ class DiscordHandler(Handler):
 
         guild_config = await Config.get(record_guild.id)
 
+        tag_msg = ""
+        if (
+            record.levelno == logging.ERROR
+            and guild_config is not None
+            and guild_config.admin_role is not None
+        ):
+            admin_role = discord.utils.get(
+                record_guild.roles, id=guild_config.admin_role
+            )
+            tag_msg = util.render_role(admin_role)
+
         if guild_config is not None and guild_config.logging_channel is not None:
             logging_channel = record_guild.get_channel(guild_config.logging_channel)
 
             embed = self.format_embed(record)
-            await logging_channel.send(embed=embed)
+            await logging_channel.send(content=tag_msg, embed=embed)
 
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()

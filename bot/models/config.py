@@ -4,7 +4,10 @@ from sqlalchemy import Column, BigInteger
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
+from discord import Guild
+
 from bot.models import Base, Model, session_factory
+from bot.events.config import ConfigEvent
 
 
 logger = logging.getLogger("models")
@@ -38,17 +41,17 @@ class Config(Base, Model):
                 return r[0]
 
     @classmethod
-    async def get_or_create(cls, guild_id: int) -> "Config":
+    async def get_or_create(cls, guild: Guild) -> "Config":
         """Find a config given its guild ID, or create an empty config if it does not exist"""
 
         async with session_factory() as session:
             result: Query = await session.execute(
-                select(cls).where(cls.guild_id == guild_id)
+                select(cls).where(cls.guild_id == guild.id)
             )
 
             r = result.first()
             if r is None:
-                logger.info(f"created new config for guild {guild_id}")
-                return await Config.create(guild_id=guild_id, verified_role=None)
+                logger.info(ConfigEvent.ConfigCreated(guild))
+                return await Config.create(guild_id=guild.id, verified_role=None)
             else:
                 return r[0]

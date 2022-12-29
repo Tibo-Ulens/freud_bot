@@ -1,3 +1,5 @@
+from discord import Guild
+
 from bot.events import Event
 
 
@@ -9,6 +11,12 @@ class BotEvent(Event):
         """The bot is ready to accept commands"""
 
         return cls._create_named_event()
+
+    @classmethod
+    def GuildAvailable(cls, guild: Guild) -> Event:
+        """a guild has become available"""
+
+        return cls._create_named_event(guild=guild.name)
 
     @classmethod
     def ClientClosed(cls) -> Event:

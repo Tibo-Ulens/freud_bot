@@ -28,6 +28,12 @@ class ConfigEvent(Event):
         )
 
     @classmethod
+    def ConfigCreated(cls, guild: Guild) -> Event:
+        """A new config was created"""
+
+        return cls._create_named_event(guild=guild.name)
+
+    @classmethod
     def MissingConfig(cls, guild: Guild) -> Event:
         """The guild does not have a config yet"""
 
