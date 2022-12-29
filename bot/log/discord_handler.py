@@ -45,7 +45,7 @@ class DiscordHandler(Handler):
 
         tag_msg = ""
         if (
-            record.levelno == logging.ERROR
+            (record.levelno == logging.ERROR or record.levelno == logging.WARNING)
             and guild_config is not None
             and guild_config.admin_role is not None
         ):
