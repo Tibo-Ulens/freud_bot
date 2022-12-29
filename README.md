@@ -2,6 +2,10 @@
 
 UGent Psychology Discord server bot
 
+## Contributing
+
+See [the contributing guide](CONTRIBUTING.md) for instructions on how to contribute to this project.
+
 ## Features
 
 Unless stated otherwise all commands are slash commands
@@ -10,11 +14,24 @@ Unless stated otherwise all commands are slash commands
 
 #### Configuration
 
- - `$freud_sync` - MESSAGE COMMAND - force-syncs the bot's slash commands to
+ - `$freud_sync` (MESSAGE COMMAND) (OWNER ONLY) - force-syncs the bot's slash commands to
  whatever guild it's connected to
- - `/config verified_role` - Set the role that's given to verified members
- - `/config verification_channel` - Set the channel in which the `/verify`
+ - `/config admin_role` (OWNER ONLY) - Set the role that 'admin' members will have
+ - `/config verified_role` (ADMIN ONLY) - Set the role that's given to verified members
+ - `/config verification_channel` (ADMIN ONLY) - Set the channel in which the `/verify`
  command may be used
+ - `/config logging_channel` (ADMIN ONLY) - Set the channel into which log messages will be
+ posted
+
+#### Calendar
+
+ - `/calendar` - Build an image to show your calendar for this week
+ - `/course enroll` - Set yourself as enrolled in a course
+ - `/course drop` - Unset yourself as enrolled in a course
+ - `/course overview` - Send a list of all courses you are enrolled in
+ - `/course add` (ADMIN ONLY) - Add an available course and scrape its lecture dates
+ - `/course remove` (ADMIN ONLY) - Remove an available course
+ - `/course list` (ADMIN ONLY) - List all available Courses
 
 #### Verification
 
@@ -22,6 +39,14 @@ Unless stated otherwise all commands are slash commands
  code the user can then use in the `/verify <code>` command
  - `/verify <code>` - Checks if the supplied code is valid for a given user
  and gives them the 'Verified' role if it is.
+
+#### Random
+
+- `/mommy` - You can figure this one out for yourself
+
+#### Link Shortcuts (DEPRECATED)
+
+ - `/drive <course>` - Send a link to a google drive for that course
 
 ### Hooks
 
@@ -34,36 +59,3 @@ latest version from https://ghcr.io.
 
 The bot can also be built localy using `make dev`, this will use the provided
 [dockerfile](Dockerfile) to build and run a local image.
-
-## Development
-
-Database interaction and ORM capabilities are handled by SQLAlchemy using its
-async functions. \
-Note that SQLAlchemy itself does not create any tables and/or run migrations,
-these are handled by [Alembic](#migrations). As such if changes to the database
-schema are required they should executed using Alembic, and the SQLAlchemy code
-can be updated accordingly.
-
-The [`models`](bot/models/__init__.py) module defines a global session_factory
-object which can be used to retrive database session instances, these are
-intended to be used in context managers.
-
-### Versioning
-
-Whenever a commit with a version tag of the form v.{major}.{minor}.{patch} is
-pushed a GitHub action will automatically create a new release draft for that
-version.
-
-### Migrations
-
-Migrations are managed using Alembic, then can be created using
-`alembic revision -m <name>`.
-Migrations can be ran using `make migrate` which will spin up the database
-container, run the migrations, and then stop the container again.
-
-### Utilities
-
- - `make setup` will create/download the stuff needed to work on the project
- - `make dbd` will spin up a headless instance of the database container
- - `make psql` will start a psql instance in the database container
- - `make down` will stop all running containers
