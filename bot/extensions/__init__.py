@@ -1,17 +1,23 @@
 import importlib
 import inspect
 import pkgutil
+import traceback
 from typing import Iterator, NoReturn
 
-from discord import Interaction
+import discord
+from discord import Interaction, Guild
 from discord.app_commands import AppCommandError, errors
 from discord.ext.commands import Context, CommandError, Cog
 
-from bot import extensions
+from bot import extensions, root_logger
 from bot.bot import Bot
 from bot.events import Event
 from bot.events.moderation import ModerationEvent
-from bot.util import enable_guild_logging
+from bot.models.config import Config
+from bot.util import enable_guild_logging, render_role
+
+
+logger = root_logger.getChild("bot")
 
 
 class ErrorHandledCog(Cog):
@@ -59,8 +65,14 @@ class ErrorHandledCog(Cog):
         try:
             event = self.app_error_to_event(ia, error)
         except NotImplementedError:
-            self.bot.logger.error(error)
-            await ia.followup.send("Unknown error, please contact a server admin")
+            logger.error(traceback.format_exc())
+
+            if ia.response.is_done():
+                await ia.followup.send("Unknown error, please contact a server admin")
+            else:
+                await ia.response.send_message(
+                    "Unknown error, please contact a server admin"
+                )
             return
 
         self.bot.logger.warning(event)
@@ -71,7 +83,8 @@ class ErrorHandledCog(Cog):
         try:
             event = self.app_error_to_event(ctx, error)
         except NotImplementedError:
-            self.bot.logger.error(error)
+            logger.error(traceback.format_exc())
+
             await ctx.reply("Unknown error, please contact a server admin")
             return
 
