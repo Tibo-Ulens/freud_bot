@@ -6,8 +6,8 @@ from typing import Iterator, NoReturn
 
 import discord
 from discord import Interaction, Guild
-from discord.app_commands import AppCommandError, errors
-from discord.ext.commands import Context, CommandError, Cog
+from discord.app_commands import AppCommandError, errors as app_errors
+from discord.ext.commands import Context, CommandError, Cog, errors as cmd_errors
 
 from bot import extensions, root_logger
 from bot.bot import Bot
@@ -28,12 +28,12 @@ class ErrorHandledCog(Cog):
     def app_error_to_event(ia: Interaction, error: AppCommandError) -> Event:
         """Map an app command error and its interaction to a loggable event"""
 
-        match error:
-            case errors.MissingAnyRole:
+        match type(error):
+            case app_errors.MissingRole:
                 event = ModerationEvent.MissingRole(
                     ia.user, ia.command, error.missing_role
                 )
-            case errors.MissingPermissions:
+            case app_errors.MissingPermissions:
                 event = ModerationEvent.MissingPermissions(
                     ia.user, ia.command, error.missing_permissions
                 )
@@ -46,12 +46,12 @@ class ErrorHandledCog(Cog):
     def error_to_event(ctx: Context, error: CommandError) -> Event:
         """Map a command error and its context to a loggable event"""
 
-        match error:
-            case errors.MissingAnyRole:
+        match type(error):
+            case cmd_errors.MissingRole(error):
                 event = ModerationEvent.MissingRole(
                     ctx.author, ctx.command, error.missing_role
                 )
-            case errors.MissingPermissions:
+            case cmd_errors.MissingPermissions:
                 event = ModerationEvent.MissingPermissions(
                     ctx.author, ctx.command, error.missing_permissions
                 )
