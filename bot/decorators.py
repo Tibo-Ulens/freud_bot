@@ -40,7 +40,7 @@ def store_command_context(func: Coroutine) -> Coroutine:
     return wrapper
 
 
-def has_admin_role() -> bool:
+def check_user_has_admin_role() -> bool:
     """
     Check if the user calling the command has the corresponding admin role in
     their guild

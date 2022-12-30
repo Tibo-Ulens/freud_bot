@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord.ext.commands import command, Context
 
 from bot.bot import Bot
-from bot.decorators import has_admin_role, store_command_context
+from bot.decorators import check_user_has_admin_role, store_command_context
 from bot.extensions import ErrorHandledCog
 from bot.events.config import ConfigEvent
 from bot.models.profile import Profile
@@ -49,7 +49,7 @@ class Config(ErrorHandledCog):
     )
     @app_commands.describe(role="The role to be applied")
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def set_verified_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild)
@@ -88,7 +88,7 @@ class Config(ErrorHandledCog):
     )
     @app_commands.describe(channel="The channel to select")
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild)
@@ -107,7 +107,7 @@ class Config(ErrorHandledCog):
     )
     @app_commands.describe(channel="The channel to select")
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild)

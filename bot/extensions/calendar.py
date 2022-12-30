@@ -23,7 +23,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
-from bot.decorators import has_admin_role, store_command_context
+from bot.decorators import check_user_has_admin_role, store_command_context
 from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.course import Course
@@ -396,7 +396,7 @@ class Calendar(ErrorHandledCog):
     @app_commands.describe(code="The course code of the new course")
     @app_commands.describe(name="The full name of the new course")
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def add_course(self, ia: Interaction, code: str, name: str):
         course = await Course.find_by_code(code)
@@ -420,7 +420,7 @@ class Calendar(ErrorHandledCog):
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def remove_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
@@ -437,7 +437,7 @@ class Calendar(ErrorHandledCog):
 
     @group.command(name="list", description="List all available courses")
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
@@ -451,7 +451,7 @@ class Calendar(ErrorHandledCog):
     @group.command(name="refresh", description="Refresh the lecture info for a course")
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
-    @has_admin_role()
+    @check_user_has_admin_role()
     @store_command_context
     async def course_refresh(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
