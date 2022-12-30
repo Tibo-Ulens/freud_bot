@@ -5,11 +5,11 @@ from discord.ext import commands
 from discord.ext.commands import command, Context
 
 from bot.bot import Bot
+from bot.decorators import has_admin_role, enable_guild_logging
 from bot.extensions import ErrorHandledCog
 from bot.events.config import ConfigEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
-from bot.util import has_admin_role, enable_guild_logging
 
 
 class Config(ErrorHandledCog):

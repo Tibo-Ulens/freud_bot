@@ -9,13 +9,13 @@ from discord import app_commands, Interaction
 
 from bot import constants
 from bot.bot import Bot
+from bot.decorators import enable_guild_logging
 from bot.events.verify import EmailEvent, VerifyEvent
 from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.profile import Profile
 from bot.models.config import Config
-from bot.util import enable_guild_logging
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")

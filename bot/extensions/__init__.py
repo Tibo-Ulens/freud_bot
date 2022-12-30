@@ -4,17 +4,15 @@ import pkgutil
 import traceback
 from typing import Iterator, NoReturn
 
-import discord
-from discord import Interaction, Guild
+from discord import Interaction
 from discord.app_commands import AppCommandError, errors as app_errors
 from discord.ext.commands import Context, CommandError, Cog, errors as cmd_errors
 
 from bot import extensions, root_logger
 from bot.bot import Bot
+from bot.decorators import enable_guild_logging
 from bot.events import Event
 from bot.events.moderation import ModerationEvent
-from bot.models.config import Config
-from bot.util import enable_guild_logging, render_role
 
 
 logger = root_logger.getChild("bot")

@@ -23,12 +23,13 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
+from bot.decorators import has_admin_role, enable_guild_logging
 from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
 from bot.models.lecture import Lecture
-from bot.util import course_autocomplete, has_admin_role, enable_guild_logging
+from bot.util import course_autocomplete
 
 
 web_logger = logging.getLogger("selenium")
