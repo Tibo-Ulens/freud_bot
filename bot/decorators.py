@@ -84,3 +84,22 @@ def check_user_is_verified() -> bool:
         return True
 
     return app_commands.check(predicate)
+
+
+def check_has_config_option(option: str) -> bool:
+    """
+    Check if the guild this command is called in has a given config option set
+    or not
+    """
+
+    async def predicate(ia: Interaction) -> bool:
+        guild_config = await Config.get(ia.guild_id)
+        if guild_config is None:
+            raise MissingConfig(ia.guild)
+
+        if getattr(guild_config, option) is None:
+            raise MissingConfigOption(ia.guild, option)
+
+        return True
+
+    return app_commands.check(predicate)

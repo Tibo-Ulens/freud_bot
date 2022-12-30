@@ -1,7 +1,6 @@
 import logging
 import re
 import smtplib
-import traceback
 import uuid
 
 import discord
@@ -9,9 +8,8 @@ from discord import app_commands, Interaction
 
 from bot import constants
 from bot.bot import Bot
-from bot.decorators import store_command_context
+from bot.decorators import store_command_context, check_has_config_option
 from bot.events.verify import EmailEvent, VerifyEvent
-from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.profile import Profile
@@ -125,18 +123,7 @@ class Verify(ErrorHandledCog):
         user = ia.user
 
         config = await Config.get(ia.guild_id)
-        if config is None:
-            self.bot.logger.error(ConfigEvent.MissingConfig(ia.guild))
-            await ia.response.send_message(ConfigEvent.MissingConfig(ia.guild).human)
-            return
-
         verified_role = config.verified_role
-        if verified_role is None:
-            self.bot.logger.error(ConfigEvent.MissingVerifiedRole(ia.guild))
-            await ia.response.send_message(
-                ConfigEvent.MissingVerifiedRole(ia.guild).human
-            )
-            return
 
         await user.add_roles(discord.utils.get(user.guild.roles, id=verified_role))
 
@@ -150,21 +137,12 @@ class Verify(ErrorHandledCog):
         name="verify", description="Verify that you are a true UGentStudent"
     )
     @app_commands.describe(argument="Your UGent email or verification code")
+    @check_has_config_option("verification_channel")
+    @check_has_config_option("verified_role")
     @store_command_context
     async def verify(self, ia: Interaction, argument: str):
         config = await Config.get(ia.guild_id)
-        if config is None:
-            self.bot.logger.error(ConfigEvent.MissingConfig(ia.guild))
-            await ia.response.send_message(ConfigEvent.MissingConfig(ia.guild).human)
-            return
-
         verification_channel = config.verification_channel
-        if verification_channel is None:
-            self.bot.logger.error(ConfigEvent.MissingVerificationChannel(ia.guild))
-            await ia.response.send_message(
-                ConfigEvent.MissingVerificationChannel(ia.guild).human
-            )
-            return
 
         if ia.channel_id != verification_channel:
             allowed_channel = discord.utils.get(
@@ -193,23 +171,17 @@ class Verify(ErrorHandledCog):
 
             return
 
-        try:
-            if EMAIL_REGEX.match(msg):
-                await self.verify_email(ia, msg)
-            elif match := CODE_REGEX.search(msg):
-                code = match.group(1)
-                await self.verify_code(ia, code)
-            else:
-                self.bot.logger.warn(VerifyEvent.MalformedArgument(ia.user, msg))
-                await ia.response.send_message(
-                    VerifyEvent.MalformedArgument(ia.user, msg).human,
-                    ephemeral=True,
-                )
-        except Exception:
+        if EMAIL_REGEX.match(msg):
+            await self.verify_email(ia, msg)
+        elif match := CODE_REGEX.search(msg):
+            code = match.group(1)
+            await self.verify_code(ia, code)
+        else:
+            self.bot.logger.warn(VerifyEvent.MalformedArgument(ia.user, msg))
             await ia.response.send_message(
-                "Something went wrong, please notify the server admins"
+                VerifyEvent.MalformedArgument(ia.user, msg).human,
+                ephemeral=True,
             )
-            self.bot.logger.error(traceback.format_exc())
 
 
 async def setup(bot: Bot):
