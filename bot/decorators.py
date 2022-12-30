@@ -9,6 +9,7 @@ from discord import (
 from discord.app_commands.errors import MissingRole
 from discord.ext.commands import Context
 
+from bot.exceptions import MissingConfig, MissingConfigOption
 from bot.models.config import Config
 
 
@@ -47,12 +48,12 @@ def check_user_has_admin_role() -> bool:
     """
 
     async def predicate(ia: Interaction) -> bool:
-        # TODO: implement another check/decorator to see if the admin_role
-        # config is set or not + add custom error types
-
         guild_config = await Config.get(ia.guild_id)
         if guild_config is None:
-            return False
+            raise MissingConfig(ia.guild)
+
+        if guild_config.admin_role is None:
+            raise MissingConfigOption(ia.guild, "admin_role")
 
         admin_role = discord.utils.get(ia.guild.roles, id=guild_config.admin_role)
 
@@ -70,7 +71,10 @@ def check_user_is_verified() -> bool:
     async def predicate(ia: Interaction) -> bool:
         guild_config = await Config.get(ia.guild_id)
         if guild_config is None:
-            return False
+            raise MissingConfig(ia.guild)
+
+        if guild_config.verified_role is None:
+            raise MissingConfigOption(ia.guild, "verified_role")
 
         verified_role = discord.utils.get(ia.guild.roles, id=guild_config.verified_role)
 

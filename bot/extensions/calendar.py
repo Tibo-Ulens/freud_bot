@@ -241,7 +241,7 @@ class Calendar(ErrorHandledCog):
         name="calendar",
         description="Show your personal calendar for this week",
     )
-    @check_user_is_verified
+    @check_user_is_verified()
     @store_command_context
     async def calendar(self, ia: Interaction):
         # This message is only here so the interaction has a response object
@@ -325,7 +325,7 @@ class Calendar(ErrorHandledCog):
     @app_commands.describe(name="The name of the course to enroll in")
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
-    @check_user_is_verified
+    @check_user_is_verified()
     @store_command_context
     async def enroll_in_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
@@ -358,7 +358,7 @@ class Calendar(ErrorHandledCog):
     @app_commands.describe(name="The name of the course to drop")
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
-    @check_user_is_verified
+    @check_user_is_verified()
     @store_command_context
     async def drop_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
@@ -381,7 +381,7 @@ class Calendar(ErrorHandledCog):
 
     @group.command(name="overview", description="Show all courses you are enrolled in")
     @app_commands.guild_only()
-    @check_user_is_verified
+    @check_user_is_verified()
     @store_command_context
     async def show_enrolled(self, ia: Interaction):
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))

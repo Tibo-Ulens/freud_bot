@@ -8,10 +8,11 @@ from discord import Interaction
 from discord.app_commands import AppCommandError, errors as app_errors
 from discord.ext.commands import Context, CommandError, Cog, errors as cmd_errors
 
-from bot import extensions, root_logger
+from bot import extensions, root_logger, exceptions as bot_errors
 from bot.bot import Bot
 from bot.decorators import store_command_context
 from bot.events import Event
+from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
 
 
@@ -35,6 +36,10 @@ class ErrorHandledCog(Cog):
                 event = ModerationEvent.MissingPermissions(
                     ia.user, ia.command, error.missing_permissions
                 )
+            case bot_errors.MissingConfig:
+                event = ConfigEvent.MissingConfig(ia.guild)
+            case bot_errors.MissingConfigOption:
+                event = ConfigEvent.MissingConfigOption(ia.guild, error.option)
             case _:
                 raise NotImplementedError
 
@@ -45,10 +50,6 @@ class ErrorHandledCog(Cog):
         """Map a command error and its context to a loggable event"""
 
         match type(error):
-            case cmd_errors.MissingRole(error):
-                event = ModerationEvent.MissingRole(
-                    ctx.author, ctx.command, error.missing_role
-                )
             case cmd_errors.MissingPermissions:
                 event = ModerationEvent.MissingPermissions(
                     ctx.author, ctx.command, error.missing_permissions
@@ -76,7 +77,11 @@ class ErrorHandledCog(Cog):
                 )
             return
 
-        self.bot.logger.warning(event)
+        if event.error:
+            self.bot.logger.error(event)
+        else:
+            self.bot.logger.warning(event)
+
         await ia.response.send_message(event.human)
 
     @store_command_context

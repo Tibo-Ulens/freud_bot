@@ -31,7 +31,7 @@ class Drive(ErrorHandledCog):
             Choice(name="Maatschappelijke Structuren", value="11"),
         ]
     )
-    @check_user_is_verified
+    @check_user_is_verified()
     async def drive(self, ia: Interaction, course: Choice[str]):
         embed = Embed(
             title="",
