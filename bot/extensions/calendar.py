@@ -252,18 +252,18 @@ class Calendar(ErrorHandledCog):
         if png_file is None:
             return
 
-        backward_emoji = "◀️"
-        forward_emoji = "▶️"
+        backward_symbol = "❮"
+        forward_symbol = "❯"
 
         week_menu_view = View(timeout=600)
 
         backward_button = Button(
             custom_id=f"backward {week_nr}",
-            emoji=backward_emoji,
+            label=backward_symbol,
         )
         forward_button = Button(
             custom_id=f"forward {week_nr}",
-            emoji=forward_emoji,
+            label=forward_symbol,
         )
 
         async def button_callback(button_ia: Interaction):
