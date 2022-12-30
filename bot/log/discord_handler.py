@@ -65,18 +65,15 @@ class DiscordHandler(Handler):
         embed.colour = self.level_to_colour(record.levelno)
         embed.timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
 
-        if record.levelno == logging.ERROR:
-            embed.add_field(name="error", value=record.message, inline=False)
-        else:
-            [event, args] = record.message.split(" | ")
-            scope = event.split(".")[0]
-            event = event.split(".")[1]
-            args: dict[str, str] = json.loads(args)
+        [event, args] = record.message.split(" | ")
+        scope = event.split(".")[0]
+        event = event.split(".")[1]
+        args: dict[str, str] = json.loads(args)
 
-            embed.add_field(name="scope", value=scope, inline=True)
-            embed.add_field(name="event", value=event, inline=True)
-            for k, v in args.items():
-                embed.add_field(name=k, value=v, inline=False)
+        embed.add_field(name="scope", value=scope, inline=True)
+        embed.add_field(name="event", value=event, inline=True)
+        for k, v in args.items():
+            embed.add_field(name=k, value=v, inline=False)
 
         return embed
 

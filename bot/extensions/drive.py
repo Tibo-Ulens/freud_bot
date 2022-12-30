@@ -2,6 +2,7 @@ from discord import app_commands, Interaction, Embed
 from discord.app_commands import Choice
 
 from bot.bot import Bot
+from bot.decorators import check_user_is_verified
 from bot import constants
 from bot.extensions import ErrorHandledCog
 
@@ -30,6 +31,7 @@ class Drive(ErrorHandledCog):
             Choice(name="Maatschappelijke Structuren", value="11"),
         ]
     )
+    @check_user_is_verified()
     async def drive(self, ia: Interaction, course: Choice[str]):
         embed = Embed(
             title="",

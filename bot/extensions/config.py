@@ -5,11 +5,11 @@ from discord.ext import commands
 from discord.ext.commands import command, Context
 
 from bot.bot import Bot
+from bot.decorators import check_user_has_admin_role, store_command_context
 from bot.extensions import ErrorHandledCog
 from bot.events.config import ConfigEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
-from bot.util import has_admin_role, enable_guild_logging
 
 
 class Config(ErrorHandledCog):
@@ -18,7 +18,7 @@ class Config(ErrorHandledCog):
     @command(name="freudsync")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    @enable_guild_logging
+    @store_command_context
     async def sync(self, ctx: Context):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
@@ -27,13 +27,13 @@ class Config(ErrorHandledCog):
         await ctx.reply(ConfigEvent.SyncedCommands(ctx.guild, len(synced)).human)
 
     @app_commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
     @config_group.command(
         name="admin_role",
         description="Set the role that members with admin permissions will have",
     )
     @app_commands.describe(role="The role to be applied")
-    @enable_guild_logging
+    @commands.has_guild_permissions(manage_guild=True)
+    @store_command_context
     async def set_admin_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
@@ -43,14 +43,14 @@ class Config(ErrorHandledCog):
         self.bot.logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
         await ia.response.send_message(ConfigEvent.SetAdminRole(ia.guild, role).human)
 
-    @app_commands.guild_only()
-    @has_admin_role()
     @config_group.command(
         name="verified_role",
         description="Set the role to be applied to members once they have been verified",
     )
     @app_commands.describe(role="The role to be applied")
-    @enable_guild_logging
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    @store_command_context
     async def set_verified_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
@@ -82,14 +82,14 @@ class Config(ErrorHandledCog):
             ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)).human
         )
 
-    @app_commands.guild_only()
-    @has_admin_role()
     @config_group.command(
         name="verification_channel",
         description="Set the channel in which the /verify command can be used",
     )
     @app_commands.describe(channel="The channel to select")
-    @enable_guild_logging
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    @store_command_context
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
@@ -101,14 +101,14 @@ class Config(ErrorHandledCog):
             ConfigEvent.SetVerificationChannel(ia.guild, channel).human
         )
 
-    @app_commands.guild_only()
-    @has_admin_role()
     @config_group.command(
         name="logging_channel",
         description="Set the channel to which FreudBot logs will be posted",
     )
     @app_commands.describe(channel="The channel to select")
-    @enable_guild_logging
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    @store_command_context
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 

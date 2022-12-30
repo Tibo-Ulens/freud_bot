@@ -39,7 +39,19 @@ class ConfigEvent(Event):
 
         return cls._create_named_event(
             human="The bot has not been set up properly yet, please notify a server admin",
+            error=True,
             guild=guild.name,
+        )
+
+    @classmethod
+    def MissingConfigOption(cls, guild: Guild, option: str) -> Event:
+        """The guild is missing a config option"""
+
+        return cls._create_named_event(
+            human="The bot has not been set up properly yet, please notify a server admin",
+            error=True,
+            guild=guild.name,
+            option=option,
         )
 
     @classmethod

@@ -4,17 +4,16 @@ import pkgutil
 import traceback
 from typing import Iterator, NoReturn
 
-import discord
-from discord import Interaction, Guild
+from discord import Interaction
 from discord.app_commands import AppCommandError, errors as app_errors
 from discord.ext.commands import Context, CommandError, Cog, errors as cmd_errors
 
-from bot import extensions, root_logger
+from bot import extensions, root_logger, exceptions as bot_errors
 from bot.bot import Bot
+from bot.decorators import store_command_context
 from bot.events import Event
+from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
-from bot.models.config import Config
-from bot.util import enable_guild_logging, render_role
 
 
 logger = root_logger.getChild("bot")
@@ -37,8 +36,12 @@ class ErrorHandledCog(Cog):
                 event = ModerationEvent.MissingPermissions(
                     ia.user, ia.command, error.missing_permissions
                 )
+            case bot_errors.MissingConfig:
+                event = ConfigEvent.MissingConfig(ia.guild)
+            case bot_errors.MissingConfigOption:
+                event = ConfigEvent.MissingConfigOption(ia.guild, error.option)
             case _:
-                raise NotImplementedError
+                event = Event.UnknownError()
 
         return event
 
@@ -47,52 +50,30 @@ class ErrorHandledCog(Cog):
         """Map a command error and its context to a loggable event"""
 
         match type(error):
-            case cmd_errors.MissingRole(error):
-                event = ModerationEvent.MissingRole(
-                    ctx.author, ctx.command, error.missing_role
-                )
             case cmd_errors.MissingPermissions:
                 event = ModerationEvent.MissingPermissions(
                     ctx.author, ctx.command, error.missing_permissions
                 )
             case _:
-                raise NotImplementedError
+                event = Event.UnknownError()
 
         return event
 
-    @enable_guild_logging
+    @store_command_context
     async def cog_app_command_error(self, ia: Interaction, error: AppCommandError):
-        try:
-            event = self.app_error_to_event(ia, error)
-        except NotImplementedError:
+        event = self.app_error_to_event(ia, error)
+
+        if event.error:
             logger.error(traceback.format_exc())
+            self.bot.logger.error(event)
+        else:
+            self.bot.logger.warning(event)
 
-            self.bot.logger.error(
-                "Unknown error, please (ask somebody to) check the logs"
-            )
-            if ia.response.is_done():
-                await ia.followup.send("Unknown error, please contact a server admin")
-            else:
-                await ia.response.send_message(
-                    "Unknown error, please contact a server admin"
-                )
-            return
-
-        self.bot.logger.warning(event)
         await ia.response.send_message(event.human)
 
-    @enable_guild_logging
+    @store_command_context
     async def cog_command_error(self, ctx: Context, error: CommandError):
-        try:
-            event = self.app_error_to_event(ctx, error)
-        except NotImplementedError:
-            logger.error(traceback.format_exc())
-
-            self.bot.logger.error(
-                "Unknown error, please (ask somebody to) check the logs"
-            )
-            await ctx.reply("Unknown error, please contact a server admin")
-            return
+        event = self.app_error_to_event(ctx, error)
 
         self.bot.logger.warning(event)
         await ctx.response.send_message(event.human)
