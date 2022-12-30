@@ -41,6 +41,11 @@ def store_command_context(func: Coroutine) -> Coroutine:
 
 
 def has_admin_role() -> bool:
+    """
+    Check if the user calling the command has the corresponding admin role in
+    their guild
+    """
+
     async def predicate(ia: Interaction) -> bool:
         # TODO: implement another check/decorator to see if the admin_role
         # config is set or not + add custom error types
