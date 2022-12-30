@@ -316,10 +316,10 @@ class Calendar(ErrorHandledCog):
             content="", attachments=[png_file], view=week_menu_view
         )
 
-    @app_commands.guild_only()
     @group.command(name="enroll", description="Enroll in a specific course")
     @app_commands.describe(name="The name of the course to enroll in")
     @app_commands.autocomplete(name=course_autocomplete)
+    @app_commands.guild_only()
     @store_command_context
     async def enroll_in_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
@@ -348,10 +348,10 @@ class Calendar(ErrorHandledCog):
             ephemeral=True,
         )
 
-    @app_commands.guild_only()
     @group.command(name="drop", description="Drop a specific course")
     @app_commands.describe(name="The name of the course to drop")
     @app_commands.autocomplete(name=course_autocomplete)
+    @app_commands.guild_only()
     @store_command_context
     async def drop_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
@@ -372,8 +372,8 @@ class Calendar(ErrorHandledCog):
             CourseEvent.Dropped(ia.user, course).human, ephemeral=True
         )
 
-    @app_commands.guild_only()
     @group.command(name="overview", description="Show all courses you are enrolled in")
+    @app_commands.guild_only()
     @store_command_context
     async def show_enrolled(self, ia: Interaction):
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))
@@ -392,11 +392,11 @@ class Calendar(ErrorHandledCog):
 
         await ia.response.send_message("\n".join(courses), ephemeral=True)
 
-    @app_commands.guild_only()
-    @has_admin_role()
     @group.command(name="add", description="Add a new course to the list of courses")
     @app_commands.describe(code="The course code of the new course")
     @app_commands.describe(name="The full name of the new course")
+    @app_commands.guild_only()
+    @has_admin_role()
     @store_command_context
     async def add_course(self, ia: Interaction, code: str, name: str):
         course = await Course.find_by_code(code)
@@ -416,11 +416,11 @@ class Calendar(ErrorHandledCog):
         self.bot.logger.info(CourseEvent.Added(course))
         await ia.edit_original_response(content=CourseEvent.Added(course).human)
 
-    @app_commands.guild_only()
-    @has_admin_role()
     @group.command(name="remove", description="Remove an available course")
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
+    @app_commands.guild_only()
+    @has_admin_role()
     @store_command_context
     async def remove_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
@@ -435,9 +435,9 @@ class Calendar(ErrorHandledCog):
         self.bot.logger.info(CourseEvent.Removed(course))
         await ia.response.send_message(CourseEvent.Removed(course).human)
 
+    @group.command(name="list", description="List all available courses")
     @app_commands.guild_only()
     @has_admin_role()
-    @group.command(name="list", description="List all available courses")
     @store_command_context
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
@@ -448,10 +448,10 @@ class Calendar(ErrorHandledCog):
         else:
             await ia.response.send_message("No courses found")
 
-    @app_commands.guild_only()
-    @has_admin_role()
     @group.command(name="refresh", description="Refresh the lecture info for a course")
     @app_commands.autocomplete(name=course_autocomplete)
+    @app_commands.guild_only()
+    @has_admin_role()
     @store_command_context
     async def course_refresh(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
