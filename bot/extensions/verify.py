@@ -9,7 +9,7 @@ from discord import app_commands, Interaction
 
 from bot import constants
 from bot.bot import Bot
-from bot.decorators import enable_guild_logging
+from bot.decorators import store_command_context
 from bot.events.verify import EmailEvent, VerifyEvent
 from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
@@ -48,7 +48,7 @@ class Verify(ErrorHandledCog):
 
         email_logger.info(EmailEvent.Sent())
 
-    @enable_guild_logging
+    @store_command_context
     async def verify_email(self, ia: Interaction, email: str):
         author_id = ia.user.id
         verification_code = str(uuid.uuid4().hex)
@@ -92,7 +92,7 @@ class Verify(ErrorHandledCog):
         self.send_confirmation_email(email, verification_code)
         await ia.response.send_message(VerifyEvent.CodeRequest(ia.user, email).human)
 
-    @enable_guild_logging
+    @store_command_context
     async def verify_code(self, ia: Interaction, code: str):
         author_id = ia.user.id
         profile = await Profile.find_by_discord_id(author_id)
@@ -150,7 +150,7 @@ class Verify(ErrorHandledCog):
         name="verify", description="Verify that you are a true UGentStudent"
     )
     @app_commands.describe(argument="Your UGent email or verification code")
-    @enable_guild_logging
+    @store_command_context
     async def verify(self, ia: Interaction, argument: str):
         config = await Config.get(ia.guild_id)
         if config is None:

@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord.ext.commands import command, Context
 
 from bot.bot import Bot
-from bot.decorators import has_admin_role, enable_guild_logging
+from bot.decorators import has_admin_role, store_command_context
 from bot.extensions import ErrorHandledCog
 from bot.events.config import ConfigEvent
 from bot.models.profile import Profile
@@ -18,7 +18,7 @@ class Config(ErrorHandledCog):
     @command(name="freudsync")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    @enable_guild_logging
+    @store_command_context
     async def sync(self, ctx: Context):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
@@ -33,7 +33,7 @@ class Config(ErrorHandledCog):
         description="Set the role that members with admin permissions will have",
     )
     @app_commands.describe(role="The role to be applied")
-    @enable_guild_logging
+    @store_command_context
     async def set_admin_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
@@ -50,7 +50,7 @@ class Config(ErrorHandledCog):
         description="Set the role to be applied to members once they have been verified",
     )
     @app_commands.describe(role="The role to be applied")
-    @enable_guild_logging
+    @store_command_context
     async def set_verified_role(self, ia: Interaction, role: Role):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
@@ -89,7 +89,7 @@ class Config(ErrorHandledCog):
         description="Set the channel in which the /verify command can be used",
     )
     @app_commands.describe(channel="The channel to select")
-    @enable_guild_logging
+    @store_command_context
     async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
@@ -108,7 +108,7 @@ class Config(ErrorHandledCog):
         description="Set the channel to which FreudBot logs will be posted",
     )
     @app_commands.describe(channel="The channel to select")
-    @enable_guild_logging
+    @store_command_context
     async def set_logging_channel(self, ia: Interaction, channel: TextChannel):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 

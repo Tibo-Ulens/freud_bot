@@ -12,7 +12,7 @@ from discord.ext.commands import Context
 from bot.models.config import Config
 
 
-def enable_guild_logging(func: Coroutine) -> Coroutine:
+def store_command_context(func: Coroutine) -> Coroutine:
     """
     If the wrapped function takes an `Interaction` as an argument, sets a
     custom `__interaction__` attribute on the function that refers to said
@@ -22,7 +22,7 @@ def enable_guild_logging(func: Coroutine) -> Coroutine:
     custom `__context__` attribute on the function that refers to said
     `Context`
 
-    This attribute is then extracted in the `GuildAdapter` logging adapter,
+    This attribute can then be extracted in the `GuildAdapter` logging adapter,
     and used by the `DiscordHandler` logging handler to write to the correct
     channel
     """

@@ -23,7 +23,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
-from bot.decorators import has_admin_role, enable_guild_logging
+from bot.decorators import has_admin_role, store_command_context
 from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.course import Course
@@ -110,7 +110,7 @@ class Calendar(ErrorHandledCog):
 
     group = app_commands.Group(name="course", description="course management")
 
-    @enable_guild_logging
+    @store_command_context
     async def store_lecture_info(self, course: Course, ia: Interaction):
         """
         Scrape and store the lecture info for a given course
@@ -237,7 +237,7 @@ class Calendar(ErrorHandledCog):
         name="calendar",
         description="Show your personal calendar for this week",
     )
-    @enable_guild_logging
+    @store_command_context
     async def calendar(self, ia: Interaction):
         # This message is only here so the interaction has a response object
         #
@@ -320,7 +320,7 @@ class Calendar(ErrorHandledCog):
     @group.command(name="enroll", description="Enroll in a specific course")
     @app_commands.describe(name="The name of the course to enroll in")
     @app_commands.autocomplete(name=course_autocomplete)
-    @enable_guild_logging
+    @store_command_context
     async def enroll_in_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
@@ -352,7 +352,7 @@ class Calendar(ErrorHandledCog):
     @group.command(name="drop", description="Drop a specific course")
     @app_commands.describe(name="The name of the course to drop")
     @app_commands.autocomplete(name=course_autocomplete)
-    @enable_guild_logging
+    @store_command_context
     async def drop_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
@@ -374,7 +374,7 @@ class Calendar(ErrorHandledCog):
 
     @app_commands.guild_only()
     @group.command(name="overview", description="Show all courses you are enrolled in")
-    @enable_guild_logging
+    @store_command_context
     async def show_enrolled(self, ia: Interaction):
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
@@ -397,7 +397,7 @@ class Calendar(ErrorHandledCog):
     @group.command(name="add", description="Add a new course to the list of courses")
     @app_commands.describe(code="The course code of the new course")
     @app_commands.describe(name="The full name of the new course")
-    @enable_guild_logging
+    @store_command_context
     async def add_course(self, ia: Interaction, code: str, name: str):
         course = await Course.find_by_code(code)
         if course is not None:
@@ -421,7 +421,7 @@ class Calendar(ErrorHandledCog):
     @group.command(name="remove", description="Remove an available course")
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
-    @enable_guild_logging
+    @store_command_context
     async def remove_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
@@ -438,7 +438,7 @@ class Calendar(ErrorHandledCog):
     @app_commands.guild_only()
     @has_admin_role()
     @group.command(name="list", description="List all available courses")
-    @enable_guild_logging
+    @store_command_context
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
         courses = list(map(lambda c: str(c), courses))
@@ -452,7 +452,7 @@ class Calendar(ErrorHandledCog):
     @has_admin_role()
     @group.command(name="refresh", description="Refresh the lecture info for a course")
     @app_commands.autocomplete(name=course_autocomplete)
-    @enable_guild_logging
+    @store_command_context
     async def course_refresh(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
