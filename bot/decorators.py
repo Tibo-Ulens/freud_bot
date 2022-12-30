@@ -62,3 +62,21 @@ def check_user_has_admin_role() -> bool:
         return True
 
     return app_commands.check(predicate)
+
+
+def check_user_is_verified() -> bool:
+    """Check if the user calling the command is verified or not"""
+
+    async def predicate(ia: Interaction) -> bool:
+        guild_config = await Config.get(ia.guild_id)
+        if guild_config is None:
+            return False
+
+        verified_role = discord.utils.get(ia.guild.roles, id=guild_config.verified_role)
+
+        if ia.user.get_role(verified_role.id) is None:
+            raise MissingRole(verified_role)
+
+        return True
+
+    return app_commands.check(predicate)
