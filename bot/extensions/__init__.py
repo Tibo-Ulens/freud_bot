@@ -41,7 +41,7 @@ class ErrorHandledCog(Cog):
             case bot_errors.MissingConfigOption:
                 event = ConfigEvent.MissingConfigOption(ia.guild, error.option)
             case _:
-                raise NotImplementedError
+                event = Event.UnknownError()
 
         return event
 
@@ -55,29 +55,16 @@ class ErrorHandledCog(Cog):
                     ctx.author, ctx.command, error.missing_permissions
                 )
             case _:
-                raise NotImplementedError
+                event = Event.UnknownError()
 
         return event
 
     @store_command_context
     async def cog_app_command_error(self, ia: Interaction, error: AppCommandError):
-        try:
-            event = self.app_error_to_event(ia, error)
-        except NotImplementedError:
-            logger.error(traceback.format_exc())
-
-            self.bot.logger.error(
-                "Unknown error, please (ask somebody to) check the logs"
-            )
-            if ia.response.is_done():
-                await ia.followup.send("Unknown error, please contact a server admin")
-            else:
-                await ia.response.send_message(
-                    "Unknown error, please contact a server admin"
-                )
-            return
+        event = self.app_error_to_event(ia, error)
 
         if event.error:
+            logger.error(traceback.format_exc())
             self.bot.logger.error(event)
         else:
             self.bot.logger.warning(event)
@@ -86,16 +73,7 @@ class ErrorHandledCog(Cog):
 
     @store_command_context
     async def cog_command_error(self, ctx: Context, error: CommandError):
-        try:
-            event = self.app_error_to_event(ctx, error)
-        except NotImplementedError:
-            logger.error(traceback.format_exc())
-
-            self.bot.logger.error(
-                "Unknown error, please (ask somebody to) check the logs"
-            )
-            await ctx.reply("Unknown error, please contact a server admin")
-            return
+        event = self.app_error_to_event(ctx, error)
 
         self.bot.logger.warning(event)
         await ctx.response.send_message(event.human)

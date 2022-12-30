@@ -41,3 +41,13 @@ class Event:
         return Event(
             human=human, error=error, event_name=f"{class_name}.{event_name}", **kwargs
         )
+
+    @classmethod
+    def UnknownError(cls) -> "Event":
+        """An unknown error occured"""
+
+        return cls._create_named_event(
+            human="Unknown error, please contact a server admin",
+            error=True,
+            msg="(ask somebody to) check the logs",
+        )
