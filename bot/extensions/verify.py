@@ -63,6 +63,8 @@ class Verify(ErrorHandledCog):
                 self.bot.logger.info(VerifyEvent.CodeResetRequest(ia.user, email))
 
                 profile.confirmation_code = verification_code
+                # Users might have mistyped their email, update it just in case
+                profile.email = email
                 await profile.save()
 
                 self.send_confirmation_email(email, verification_code)
