@@ -24,11 +24,17 @@ def upgrade() -> None:
         sa.Column("verification_channel", sa.BigInteger, nullable=True),
         sa.Column("admin_role", sa.BigInteger, nullable=True),
         sa.Column("logging_channel", sa.BigInteger, nullable=True),
+        sa.Column("confession_approval_channel", sa.BigInteger, nullable=True),
+        sa.Column("confession_channel", sa.BigInteger, nullable=True),
         sa.UniqueConstraint("guild_id", name="unique_guild_id"),
         sa.UniqueConstraint("verified_role", name="unique_verified_role"),
         sa.UniqueConstraint("verification_channel", name="unique_verification_channel"),
         sa.UniqueConstraint("admin_role", name="unique_admin_role"),
         sa.UniqueConstraint("logging_channel", name="unique_logging_channel"),
+        sa.UniqueConstraint(
+            "confession_approval_channel", name="unique_confession_approval_channel"
+        ),
+        sa.UniqueConstraint("confession_channel", name="unique_confession_channel"),
     )
 
 

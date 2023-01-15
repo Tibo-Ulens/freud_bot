@@ -125,6 +125,48 @@ class Config(ErrorHandledCog):
             ConfigEvent.set_logging_channel(ia.guild, channel).user_msg
         )
 
+    @config_group.command(
+        name="confession_approval_channel",
+        description="Set the channel in which FreudBot will post confessions pending approval",
+    )
+    @app_commands.describe(channel="The channel to select")
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    @store_command_context
+    async def set_confession_approval_channel(
+        self, ia: Interaction, channel: TextChannel
+    ):
+        guild_config = await ConfigModel.get_or_create(ia.guild)
+
+        guild_config.confession_approval_channel = channel.id
+        await guild_config.save()
+
+        self.bot.logger.info(
+            ConfigEvent.set_confession_approval_channel(ia.guild, channel)
+        )
+        await ia.response.send_message(
+            ConfigEvent.set_confession_approval_channel(ia.guild, channel).user_msg
+        )
+
+    @config_group.command(
+        name="confession_channel",
+        description="Set the channel to which FreudBot will post approved confessions",
+    )
+    @app_commands.describe(channel="The channel to select")
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    @store_command_context
+    async def set_confession_channel(self, ia: Interaction, channel: TextChannel):
+        guild_config = await ConfigModel.get_or_create(ia.guild)
+
+        guild_config.confession_channel = channel.id
+        await guild_config.save()
+
+        self.bot.logger.info(ConfigEvent.set_confession_channel(ia.guild, channel))
+        await ia.response.send_message(
+            ConfigEvent.set_confession_channel(ia.guild, channel).user_msg
+        )
+
 
 async def setup(bot: Bot):
     await bot.add_cog(Config(bot))
