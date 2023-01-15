@@ -94,3 +94,25 @@ class ConfigEvent(Event):
             guild=guild.name,
             channel=util.render_channel(channel),
         )
+
+    @classmethod
+    def set_confession_approval_channel(
+        cls, guild: Guild, channel: TextChannel
+    ) -> Event:
+        """Set or updated the confession approval channel"""
+
+        return cls._create_named_event(
+            user_msg=f"Set the confession approval channel to {util.render_channel(channel)}",
+            guild=guild.name,
+            channel=util.render_channel(channel),
+        )
+
+    @classmethod
+    def set_confession_channel(cls, guild: Guild, channel: TextChannel) -> Event:
+        """Set or updated the confession channel"""
+
+        return cls._create_named_event(
+            user_msg=f"Set the confession channel to {util.render_channel(channel)}",
+            guild=guild.name,
+            channel=util.render_channel(channel),
+        )
