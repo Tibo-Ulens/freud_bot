@@ -29,19 +29,19 @@ class ErrorHandledCog(Cog):
 
         match type(error):
             case app_errors.MissingRole:
-                event = ModerationEvent.MissingRole(
+                event = ModerationEvent.missing_role(
                     ia.user, ia.command, error.missing_role
                 )
             case app_errors.MissingPermissions:
-                event = ModerationEvent.MissingPermissions(
+                event = ModerationEvent.missing_permissions(
                     ia.user, ia.command, error.missing_permissions
                 )
             case bot_errors.MissingConfig:
-                event = ConfigEvent.MissingConfig(ia.guild)
+                event = ConfigEvent.missing_config(ia.guild)
             case bot_errors.MissingConfigOption:
-                event = ConfigEvent.MissingConfigOption(ia.guild, error.option)
+                event = ConfigEvent.missing_config_option(ia.guild, error.option)
             case _:
-                event = Event.UnknownError()
+                event = Event.unknown_error()
 
         return event
 
@@ -51,11 +51,11 @@ class ErrorHandledCog(Cog):
 
         match type(error):
             case cmd_errors.MissingPermissions:
-                event = ModerationEvent.MissingPermissions(
+                event = ModerationEvent.missing_permissions(
                     ctx.author, ctx.command, error.missing_permissions
                 )
             case _:
-                event = Event.UnknownError()
+                event = Event.unknown_error()
 
         return event
 
@@ -69,14 +69,14 @@ class ErrorHandledCog(Cog):
         else:
             self.bot.logger.warning(event)
 
-        await ia.response.send_message(event.human)
+        await ia.response.send_message(event.user_msg)
 
     @store_command_context
     async def cog_command_error(self, ctx: Context, error: CommandError):
         event = self.app_error_to_event(ctx, error)
 
         self.bot.logger.warning(event)
-        await ctx.response.send_message(event.human)
+        await ctx.response.send_message(event.user_msg)
 
 
 def walk_extensions() -> Iterator[str]:

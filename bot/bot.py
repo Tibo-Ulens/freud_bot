@@ -41,7 +41,7 @@ class Bot(commands.Bot):
         intents.webhooks = False
 
         pg_engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
-        logger.info(BotEvent.DatabaseConnected())
+        logger.info(BotEvent.database_connected())
 
         return cls(db=pg_engine, command_prefix="$", intents=intents)
 
@@ -52,13 +52,13 @@ class Bot(commands.Bot):
 
         for ext in EXTENSIONS:
             await self.load_extension(ext)
-            logger.debug(BotEvent.ExtensionLoaded(ext))
+            logger.debug(BotEvent.extension_loaded(ext))
 
     async def add_cog(self, cog: commands.Cog) -> None:
         """Add a cog to the bot"""
 
         await super().add_cog(cog)
-        logger.debug(BotEvent.CogAdded(cog.qualified_name))
+        logger.debug(BotEvent.cog_added(cog.qualified_name))
 
     async def close(self) -> None:
         # Remove all extensions
@@ -66,7 +66,7 @@ class Bot(commands.Bot):
         for ext in list(self.extensions):
             with suppress(Exception):
                 extension_tasks.append(self.unload_extension(ext))
-                logger.debug(BotEvent.ExtensionUnloaded(ext))
+                logger.debug(BotEvent.extension_unloaded(ext))
 
         await asyncio.gather(*extension_tasks)
 
@@ -75,17 +75,17 @@ class Bot(commands.Bot):
         for cog in list(self.cogs):
             with suppress(Exception):
                 cog_tasks.append(self.remove_cog(cog))
-                logger.debug(BotEvent.CogRemoved(cog.qualified_name))
+                logger.debug(BotEvent.cog_removed(cog.qualified_name))
 
         await asyncio.gather(*cog_tasks)
 
         await super().close()
-        logger.info(BotEvent.ClientClosed())
+        logger.info(BotEvent.client_closed())
 
         await self.db.dispose()
         logger.info(BotEvent.DatabaseClosed())
 
-        logger.info(BotEvent.Exited())
+        logger.info(BotEvent.bot_exited())
         await self.logout()
 
     async def on_error(self, event: str) -> None:

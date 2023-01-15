@@ -14,40 +14,58 @@ class Event:
     alongside the passed values.
     """
 
+    scope = "unknown"
+
     def __init__(
-        self, human: str | None, error: bool, event_name: str, **kwargs
+        self,
+        error: bool,
+        event_scope: str,
+        event_name: str,
+        user_msg: str,
+        log_msg: str,
+        **kwargs,
     ) -> None:
-        self.human = human or ""
         self.error = error
+        self.event_scope = event_scope
         self.event_name = event_name
+        self.user_msg = user_msg
+        self.log_msg = log_msg
         self.custom_attrs = kwargs
 
     def __str__(self) -> str:
         formatted_attrs = json.dumps(self.custom_attrs, default=str)
 
-        return f"{self.event_name} | {formatted_attrs}"
+        return f"{self.event_scope} | {self.event_name} | {formatted_attrs}"
 
     @staticmethod
     def _create_named_event(
-        human: str | None = None, error: bool = False, **kwargs
+        error: bool = False, user_msg: str = "", log_msg: str = "", **kwargs
     ) -> "Event":
         """
         Create a new event with the given kwargs and a name based on the
         called methods name and parent class
         """
 
-        class_name = inspect.currentframe().f_back.f_locals["cls"].__name__
+        event_scope = inspect.currentframe().f_back.f_locals["cls"].scope
+
         event_name = inspect.currentframe().f_back.f_code.co_name
+        event_name = event_name.replace("_", " ")
+
         return Event(
-            human=human, error=error, event_name=f"{class_name}.{event_name}", **kwargs
+            error=error,
+            event_scope=event_scope,
+            event_name=event_name,
+            user_msg=user_msg,
+            log_msg=log_msg,
+            **kwargs,
         )
 
     @classmethod
-    def UnknownError(cls) -> "Event":
+    def unknown_error(cls) -> "Event":
         """An unknown error occured"""
 
         return cls._create_named_event(
-            human="Unknown error, please contact a server admin",
             error=True,
-            msg="(ask somebody to) check the logs",
+            user_msg="Unknown error, please contact a server admin",
+            log_msg="(ask somebody to) check the logs",
         )

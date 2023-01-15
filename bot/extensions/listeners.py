@@ -39,11 +39,11 @@ class Listeners(ErrorHandledCog):
         logger_ = GuildAdapter(bot_logger)
         self.bot.logger = logger_
 
-        logger.info(BotEvent.Ready())
+        logger.info(BotEvent.bot_ready())
 
     @ErrorHandledCog.listener()
     async def on_guild_available(self, guild: Guild):
-        logger.info(BotEvent.GuildAvailable(guild))
+        logger.info(BotEvent.guild_available(guild))
 
     @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):

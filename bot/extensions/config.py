@@ -8,6 +8,7 @@ from bot.bot import Bot
 from bot.decorators import check_user_has_admin_role, store_command_context
 from bot.extensions import ErrorHandledCog
 from bot.events.config import ConfigEvent
+from bot.events.bot import BotEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
 
@@ -23,8 +24,8 @@ class Config(ErrorHandledCog):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
 
-        self.bot.logger.info(ConfigEvent.SyncedCommands(ctx.guild, len(synced)))
-        await ctx.reply(ConfigEvent.SyncedCommands(ctx.guild, len(synced)).human)
+        self.bot.logger.info(BotEvent.synced_commands(ctx.guild, len(synced)))
+        await ctx.reply(BotEvent.synced_commands(ctx.guild, len(synced)).user_msg)
 
     @app_commands.guild_only()
     @config_group.command(
@@ -40,8 +41,10 @@ class Config(ErrorHandledCog):
         guild_config.admin_role = role.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.SetAdminRole(ia.guild, role))
-        await ia.response.send_message(ConfigEvent.SetAdminRole(ia.guild, role).human)
+        self.bot.logger.info(ConfigEvent.set_admin_role(ia.guild, role))
+        await ia.response.send_message(
+            ConfigEvent.set_admin_role(ia.guild, role).user_msg
+        )
 
     @config_group.command(
         name="verified_role",
@@ -77,9 +80,11 @@ class Config(ErrorHandledCog):
         guild_config.verified_role = role.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)))
+        self.bot.logger.info(
+            ConfigEvent.set_verified_role(ia.guild, role, len(members))
+        )
         await ia.response.send_message(
-            ConfigEvent.SetVerifiedRole(ia.guild, role, len(members)).human
+            ConfigEvent.set_verified_role(ia.guild, role, len(members)).user_msg
         )
 
     @config_group.command(
@@ -96,9 +101,9 @@ class Config(ErrorHandledCog):
         guild_config.verification_channel = channel.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.SetVerificationChannel(ia.guild, channel))
+        self.bot.logger.info(ConfigEvent.set_verification_channel(ia.guild, channel))
         await ia.response.send_message(
-            ConfigEvent.SetVerificationChannel(ia.guild, channel).human
+            ConfigEvent.set_verification_channel(ia.guild, channel).user_msg
         )
 
     @config_group.command(
@@ -115,9 +120,9 @@ class Config(ErrorHandledCog):
         guild_config.logging_channel = channel.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.SetLoggingChannel(ia.guild, channel))
+        self.bot.logger.info(ConfigEvent.set_logging_channel(ia.guild, channel))
         await ia.response.send_message(
-            ConfigEvent.SetLoggingChannel(ia.guild, channel).human
+            ConfigEvent.set_logging_channel(ia.guild, channel).user_msg
         )
 
 

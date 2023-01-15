@@ -51,7 +51,7 @@ class Config(Base, Model):
 
             r = result.first()
             if r is None:
-                logger.info(ConfigEvent.ConfigCreated(guild))
+                logger.info(ConfigEvent.new_config_created(guild))
                 return await Config.create(guild_id=guild.id, verified_role=None)
             else:
                 return r[0]
