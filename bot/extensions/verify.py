@@ -33,7 +33,7 @@ class Verify(ErrorHandledCog):
     def send_confirmation_email(to: str, code: str):
         message = EMAIL_MESSAGE.format(from_=constants.SMTP_USER, to=to, code=code)
 
-        email_logger.info(EmailEvent.Creating(to))
+        email_logger.info(EmailEvent.creating(to))
         server = smtplib.SMTP("smtp.gmail.com", 587)
 
         server.ehlo()
@@ -44,7 +44,7 @@ class Verify(ErrorHandledCog):
 
         server.close()
 
-        email_logger.info(EmailEvent.Sent())
+        email_logger.info(EmailEvent.sent())
 
     @store_command_context
     async def verify_email(self, ia: Interaction, email: str):
@@ -54,13 +54,13 @@ class Verify(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                self.bot.logger.warn(VerifyEvent.DoubleVerification(ia.user))
+                self.bot.logger.warn(VerifyEvent.double_verification(ia.user))
                 await ia.response.send_message(
-                    VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
+                    VerifyEvent.double_verification(ia.user).user_msg, ephemeral=True
                 )
                 return
             else:
-                self.bot.logger.info(VerifyEvent.CodeResetRequest(ia.user, email))
+                self.bot.logger.info(VerifyEvent.code_reset_request(ia.user, email))
 
                 profile.confirmation_code = verification_code
                 # Users might have mistyped their email, update it just in case
@@ -69,7 +69,7 @@ class Verify(ErrorHandledCog):
 
                 self.send_confirmation_email(email, verification_code)
                 await ia.response.send_message(
-                    VerifyEvent.CodeResetRequest(ia.user, email).human,
+                    VerifyEvent.code_reset_request(ia.user, email).user_msg,
                     ephemeral=True,
                 )
 
@@ -77,20 +77,22 @@ class Verify(ErrorHandledCog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            self.bot.logger.warn(VerifyEvent.DuplicateEmail(ia.user))
+            self.bot.logger.warn(VerifyEvent.duplicate_email(ia.user))
             await ia.response.send_message(
-                VerifyEvent.DuplicateEmail(ia.user).human,
+                VerifyEvent.duplicate_email(ia.user).user_msg,
                 ephemeral=True,
             )
             return
 
-        self.bot.logger.info(VerifyEvent.CodeRequest(ia.user, email))
+        self.bot.logger.info(VerifyEvent.code_request(ia.user, email))
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
 
         self.send_confirmation_email(email, verification_code)
-        await ia.response.send_message(VerifyEvent.CodeRequest(ia.user, email).human)
+        await ia.response.send_message(
+            VerifyEvent.code_request(ia.user, email).user_msg
+        )
 
     @store_command_context
     async def verify_code(self, ia: Interaction, code: str):
@@ -98,27 +100,27 @@ class Verify(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            self.bot.logger.warn(VerifyEvent.MissingCode(ia.user))
+            self.bot.logger.warn(VerifyEvent.missing_code(ia.user))
             await ia.response.send_message(
-                VerifyEvent.MissingCode(ia.user).human,
+                VerifyEvent.missing_code(ia.user).user_msg,
                 ephemeral=True,
             )
 
             return
 
         if profile.confirmation_code is None:
-            self.bot.logger.warn(VerifyEvent.DoubleVerification(ia.user))
+            self.bot.logger.warn(VerifyEvent.double_verification(ia.user))
             await ia.response.send_message(
-                VerifyEvent.DoubleVerification(ia.user).human, ephemeral=True
+                VerifyEvent.double_verification(ia.user).user_msg, ephemeral=True
             )
             return
 
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            self.bot.logger.warn(VerifyEvent.InvalidCode(ia.user))
+            self.bot.logger.warn(VerifyEvent.invalid_code(ia.user))
             await ia.response.send_message(
-                VerifyEvent.InvalidCode(ia.user).human, ephemeral=True
+                VerifyEvent.invalid_code(ia.user).user_msg, ephemeral=True
             )
             return
 
@@ -132,8 +134,8 @@ class Verify(ErrorHandledCog):
         profile.confirmation_code = None
         await profile.save()
 
-        self.bot.logger.info(VerifyEvent.Verified(ia.user))
-        await ia.response.send_message(VerifyEvent.Verified(ia.user).human)
+        self.bot.logger.info(VerifyEvent.verified(ia.user))
+        await ia.response.send_message(VerifyEvent.verified(ia.user).user_msg)
 
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
@@ -151,14 +153,14 @@ class Verify(ErrorHandledCog):
                 ia.guild.channels, id=verification_channel
             )
             self.bot.logger.warn(
-                ModerationEvent.WrongChannel(
+                ModerationEvent.wrong_channel(
                     ia.user, ia.command, ia.channel, allowed_channel
                 )
             )
             await ia.response.send_message(
-                ModerationEvent.WrongChannel(
+                ModerationEvent.wrong_channel(
                     ia.user, ia.command, ia.channel, allowed_channel
-                ).human,
+                ).user_msg,
                 ephemeral=True,
             )
             return
@@ -179,9 +181,9 @@ class Verify(ErrorHandledCog):
             code = match.group(1)
             await self.verify_code(ia, code)
         else:
-            self.bot.logger.warn(VerifyEvent.MalformedArgument(ia.user, msg))
+            self.bot.logger.warn(VerifyEvent.malformed_argument(ia.user, msg))
             await ia.response.send_message(
-                VerifyEvent.MalformedArgument(ia.user, msg).human,
+                VerifyEvent.malformed_argument(ia.user, msg).user_msg,
                 ephemeral=True,
             )
 

@@ -73,7 +73,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
         search.send_keys(course.code)
         search.send_keys(Keys.ENTER)
 
-        web_logger.info(TimeEditEvent.CourseSearch(time_period, course))
+        web_logger.info(TimeEditEvent.searching_course(time_period, course))
         sleep(0.5)
         try:
             add_btn = WebDriverWait(driver, 2).until(
@@ -82,12 +82,12 @@ def get_csv_links(course: Course) -> Iterator[str]:
                 )
             )
         except TimeoutException:
-            web_logger.info(TimeEditEvent.CourseNotfound(time_period, course))
+            web_logger.info(TimeEditEvent.course_not_found(time_period, course))
             continue
 
         add_btn.click()
 
-        web_logger.info(TimeEditEvent.CourseAdded(time_period, course))
+        web_logger.info(TimeEditEvent.added_course(time_period, course))
 
         # Show the calendar
         show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
@@ -100,7 +100,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
         )
         href = csv_btn.get_attribute("href")
 
-        web_logger.info(TimeEditEvent.Done(time_period, course))
+        web_logger.info(TimeEditEvent.done(time_period, course))
 
         yield href
 
@@ -120,9 +120,9 @@ class Calendar(ErrorHandledCog):
         Scrape and store the lecture info for a given course
         """
 
-        self.bot.logger.debug(LectureInfoEvent.SearchingInfo(course))
+        self.bot.logger.debug(LectureInfoEvent.searching_lecture_info(course))
         await ia.edit_original_response(
-            content=LectureInfoEvent.SearchingInfo(course).human
+            content=LectureInfoEvent.searching_lecture_info(course).user_msg
         )
 
         try:
@@ -134,9 +134,9 @@ class Calendar(ErrorHandledCog):
             )
             return
 
-        self.bot.logger.debug(LectureInfoEvent.DownloadingInfo(course))
+        self.bot.logger.debug(LectureInfoEvent.downloading_lecture_info(course))
         await ia.edit_original_response(
-            content=LectureInfoEvent.DownloadingInfo(course).human
+            content=LectureInfoEvent.downloading_lecture_info(course).user_msg
         )
 
         create_lecture_futures = []
@@ -159,9 +159,9 @@ class Calendar(ErrorHandledCog):
                 for entry in reader:
                     create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
-        self.bot.logger.debug(LectureInfoEvent.StoringInfo(course))
+        self.bot.logger.debug(LectureInfoEvent.storing_lecture_info(course))
         await ia.edit_original_response(
-            content=LectureInfoEvent.StoringInfo(course).human
+            content=LectureInfoEvent.storing_lecture_info(course).user_msg
         )
         await asyncio.gather(*create_lecture_futures)
 
@@ -348,9 +348,9 @@ class Calendar(ErrorHandledCog):
             profile_discord_id=str(ia.user.id), course_code=str(course.code)
         )
 
-        self.bot.logger.info(CourseEvent.Enrolled(ia.user, course))
+        self.bot.logger.info(CourseEvent.course_enrolled(ia.user, course))
         await ia.response.send_message(
-            CourseEvent.Enrolled(ia.user, course).human,
+            CourseEvent.course_enrolled(ia.user, course).user_msg,
             ephemeral=True,
         )
 
@@ -374,9 +374,9 @@ class Calendar(ErrorHandledCog):
 
         await enrollment.delete()
 
-        self.bot.logger.info(CourseEvent.Dropped(ia.user, course))
+        self.bot.logger.info(CourseEvent.course_dropped(ia.user, course))
         await ia.response.send_message(
-            CourseEvent.Dropped(ia.user, course).human, ephemeral=True
+            CourseEvent.course_dropped(ia.user, course).user_msg, ephemeral=True
         )
 
     @group.command(name="overview", description="Show all courses you are enrolled in")
@@ -422,7 +422,7 @@ class Calendar(ErrorHandledCog):
         await self.store_lecture_info(course, ia)
 
         self.bot.logger.info(CourseEvent.Added(course))
-        await ia.edit_original_response(content=CourseEvent.Added(course).human)
+        await ia.edit_original_response(content=CourseEvent.Added(course).user_msg)
 
     @group.command(name="remove", description="Remove an available course")
     @app_commands.describe(name="The name of the course to remove")
@@ -440,8 +440,8 @@ class Calendar(ErrorHandledCog):
 
         await course.delete()
 
-        self.bot.logger.info(CourseEvent.Removed(course))
-        await ia.response.send_message(CourseEvent.Removed(course).human)
+        self.bot.logger.info(CourseEvent.course_removed(course))
+        await ia.response.send_message(CourseEvent.course_removed(course).user_msg)
 
     @group.command(name="list", description="List all available courses")
     @app_commands.guild_only()
@@ -469,15 +469,17 @@ class Calendar(ErrorHandledCog):
             )
             return
 
-        self.bot.logger.info(LectureInfoEvent.DeletingOldInfo(course))
-        await ia.response.send_message(LectureInfoEvent.DeletingOldInfo(course).human)
+        self.bot.logger.info(LectureInfoEvent.deleting_old_lecture_info(course))
+        await ia.response.send_message(
+            LectureInfoEvent.deleting_old_lecture_info(course).user_msg
+        )
         lectures = await Lecture.find_for_course(course.code)
         await asyncio.gather(*[l.delete() for l in lectures])
 
         await self.store_lecture_info(course, ia)
-        self.bot.logger.info(LectureInfoEvent.Refreshed(course))
+        self.bot.logger.info(LectureInfoEvent.refreshed_lecture_info(course))
         await ia.edit_original_response(
-            content=LectureInfoEvent.Refreshed(course).human
+            content=LectureInfoEvent.refreshed_lecture_info(course).user_msg
         )
 
 

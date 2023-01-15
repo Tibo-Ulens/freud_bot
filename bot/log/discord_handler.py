@@ -65,9 +65,7 @@ class DiscordHandler(Handler):
         embed.colour = self.level_to_colour(record.levelno)
         embed.timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
 
-        [event, args] = record.message.split(" | ")
-        scope = event.split(".")[0]
-        event = event.split(".")[1]
+        [scope, event, args] = record.message.split(" | ")
         args: dict[str, str] = json.loads(args)
 
         embed.add_field(name="scope", value=scope, inline=True)
