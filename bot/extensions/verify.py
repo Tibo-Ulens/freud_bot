@@ -13,7 +13,6 @@ from bot.decorators import (
     check_has_config_option,
     only_in_channel,
 )
-from bot.events.moderation import ModerationEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.profile import Profile
 from bot.models.config import Config

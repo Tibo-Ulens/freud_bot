@@ -42,7 +42,7 @@ class Listeners(ErrorHandledCog):
 
     @ErrorHandledCog.listener()
     async def on_guild_available(self, guild: Guild):
-        logger.info(f"guild '{util.render_guild(guild)}' available")
+        logger.info(f"guild {util.render_guild(guild)} available")
 
     @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):

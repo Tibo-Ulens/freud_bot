@@ -8,7 +8,6 @@ from bot import util
 from bot.bot import Bot
 from bot.decorators import check_user_has_admin_role, store_command_context
 from bot.extensions import ErrorHandledCog
-from bot.events.bot import BotEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
 
@@ -24,9 +23,10 @@ class Config(ErrorHandledCog):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
 
-        event = BotEvent.synced_commands(ctx.guild, len(synced))
-        self.bot.logger.info(event)
-        await ctx.reply(event.user_msg)
+        self.bot.logger.info(
+            f"synced {len(synced)} commmands to {util.render_guild(ctx.guild)}"
+        )
+        await ctx.reply(f"Synced {len(synced)} commmands to the current guild")
 
     @app_commands.guild_only()
     @config_group.command(
