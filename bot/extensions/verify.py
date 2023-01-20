@@ -56,7 +56,7 @@ class Verify(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                self.bot.discord_logger.warn(
+                self.bot.discord_logger.warning(
                     f"user {util.render_user(ia.user)} attempted to verify despite already being verified"
                 )
                 await ia.response.send_message(
@@ -80,7 +80,7 @@ class Verify(ErrorHandledCog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            self.bot.discord_logger.warn(
+            self.bot.discord_logger.warning(
                 f"user {util.render_user(ia.user)} attempted to verify with duplicate email {email}"
             )
             await ia.response.send_message(
@@ -107,7 +107,7 @@ class Verify(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            self.bot.discord_logger.warn(
+            self.bot.discord_logger.warning(
                 f"user {util.render_user(ia.user)} attempted to verify without requesting a code"
             )
             await ia.response.send_message(
@@ -118,7 +118,7 @@ class Verify(ErrorHandledCog):
             return
 
         if profile.confirmation_code is None:
-            self.bot.discord_logger.warn(
+            self.bot.discord_logger.warning(
                 f"user {util.render_user(ia.user)} attempted to verify despite already being verified"
             )
             await ia.response.send_message(
@@ -130,7 +130,7 @@ class Verify(ErrorHandledCog):
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            self.bot.discord_logger.warn(
+            self.bot.discord_logger.warning(
                 f"user {util.render_user(ia.user)} attempted to verify with an invalid code"
             )
             await ia.response.send_message(
@@ -179,7 +179,7 @@ class Verify(ErrorHandledCog):
             code = match.group(1)
             await self.verify_code(ia, code)
         else:
-            self.bot.discord_logger.warn(
+            self.bot.discord_logger.warning(
                 f"user {util.render_user(ia.user)} attempted to verify with malformed argument '{msg}'"
             )
             await ia.response.send_message(
