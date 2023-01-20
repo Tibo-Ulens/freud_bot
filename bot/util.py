@@ -6,6 +6,7 @@ from discord import (
     Role,
     TextChannel,
     VoiceChannel,
+    Guild,
 )
 from discord.app_commands import Command
 
@@ -69,5 +70,19 @@ def render_channel(channel: TextChannel | VoiceChannel) -> str:
 def render_command(cmd: Command) -> str:
     """Render a command nicely based on its name and group"""
 
-    group = f"{cmd.parent.name} " if cmd.parent else ""
-    return f"/{group}{cmd.name}"
+    prefix = ""
+    curr_level = cmd
+    while True:
+        if curr_level.parent is not None and curr_level.parent.name is not None:
+            prefix += f"{curr_level.parent.name} "
+            curr_level = curr_level.parent
+        else:
+            break
+
+    return f"/{prefix}{cmd.name}"
+
+
+def render_guild(guild: Guild) -> str:
+    """Render a guild as its name and id"""
+
+    return f"{guild.name} [{guild.id}]"

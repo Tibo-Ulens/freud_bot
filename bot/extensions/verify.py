@@ -6,11 +6,13 @@ import uuid
 import discord
 from discord import app_commands, Interaction
 
-from bot import constants
+from bot import constants, util
 from bot.bot import Bot
-from bot.decorators import store_command_context, check_has_config_option
-from bot.events.verify import EmailEvent, VerifyEvent
-from bot.events.moderation import ModerationEvent
+from bot.decorators import (
+    store_command_context,
+    check_has_config_option,
+    only_in_channel,
+)
 from bot.extensions import ErrorHandledCog
 from bot.models.profile import Profile
 from bot.models.config import Config
@@ -33,7 +35,7 @@ class Verify(ErrorHandledCog):
     def send_confirmation_email(to: str, code: str):
         message = EMAIL_MESSAGE.format(from_=constants.SMTP_USER, to=to, code=code)
 
-        email_logger.info(EmailEvent.creating(to))
+        email_logger.info(f"creating email to {to}")
         server = smtplib.SMTP("smtp.gmail.com", 587)
 
         server.ehlo()
@@ -44,7 +46,7 @@ class Verify(ErrorHandledCog):
 
         server.close()
 
-        email_logger.info(EmailEvent.sent())
+        email_logger.info(f"sent email to {to}")
 
     @store_command_context
     async def verify_email(self, ia: Interaction, email: str):
@@ -54,14 +56,15 @@ class Verify(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                self.bot.logger.warn(VerifyEvent.double_verification(ia.user))
+                self.bot.discord_logger.warning(
+                    f"user {util.render_user(ia.user)} attempted to verify despite already being verified"
+                )
                 await ia.response.send_message(
-                    VerifyEvent.double_verification(ia.user).user_msg, ephemeral=True
+                    "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
+                    ephemeral=True,
                 )
                 return
             else:
-                self.bot.logger.info(VerifyEvent.code_reset_request(ia.user, email))
-
                 profile.confirmation_code = verification_code
                 # Users might have mistyped their email, update it just in case
                 profile.email = email
@@ -69,7 +72,7 @@ class Verify(ErrorHandledCog):
 
                 self.send_confirmation_email(email, verification_code)
                 await ia.response.send_message(
-                    VerifyEvent.code_reset_request(ia.user, email).user_msg,
+                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification",
                     ephemeral=True,
                 )
 
@@ -77,21 +80,25 @@ class Verify(ErrorHandledCog):
 
         other = await Profile.find_by_email(email)
         if other is not None:
-            self.bot.logger.warn(VerifyEvent.duplicate_email(ia.user))
+            self.bot.discord_logger.warning(
+                f"user {util.render_user(ia.user)} attempted to verify with duplicate email {email}"
+            )
             await ia.response.send_message(
-                VerifyEvent.duplicate_email(ia.user).user_msg,
+                "A different profile with this email already exists\nIf you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
             return
 
-        self.bot.logger.info(VerifyEvent.code_request(ia.user, email))
+        self.bot.logger.info(
+            f"user {util.render_user(ia.user)} requested verification code for {email}"
+        )
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
 
         self.send_confirmation_email(email, verification_code)
         await ia.response.send_message(
-            VerifyEvent.code_request(ia.user, email).user_msg
+            f"A confirmation code has been sent to '{email}'\nPlease use `/verify <code>` now to complete verification"
         )
 
     @store_command_context
@@ -100,27 +107,35 @@ class Verify(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(author_id)
 
         if profile is None:
-            self.bot.logger.warn(VerifyEvent.missing_code(ia.user))
+            self.bot.discord_logger.warning(
+                f"user {util.render_user(ia.user)} attempted to verify without requesting a code"
+            )
             await ia.response.send_message(
-                VerifyEvent.missing_code(ia.user).user_msg,
+                "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
                 ephemeral=True,
             )
 
             return
 
         if profile.confirmation_code is None:
-            self.bot.logger.warn(VerifyEvent.double_verification(ia.user))
+            self.bot.discord_logger.warning(
+                f"user {util.render_user(ia.user)} attempted to verify despite already being verified"
+            )
             await ia.response.send_message(
-                VerifyEvent.double_verification(ia.user).user_msg, ephemeral=True
+                "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
+                ephemeral=True,
             )
             return
 
         stored_code: str = profile.confirmation_code
 
         if code != stored_code:
-            self.bot.logger.warn(VerifyEvent.invalid_code(ia.user))
+            self.bot.discord_logger.warning(
+                f"user {util.render_user(ia.user)} attempted to verify with an invalid code"
+            )
             await ia.response.send_message(
-                VerifyEvent.invalid_code(ia.user).user_msg, ephemeral=True
+                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
+                ephemeral=True,
             )
             return
 
@@ -134,37 +149,20 @@ class Verify(ErrorHandledCog):
         profile.confirmation_code = None
         await profile.save()
 
-        self.bot.logger.info(VerifyEvent.verified(ia.user))
-        await ia.response.send_message(VerifyEvent.verified(ia.user).user_msg)
+        self.bot.logger.info(f"user {util.render_user(ia.user)} verified succesfully")
+        await ia.response.send_message(
+            "You have verified succesfully! Welcome to the server"
+        )
 
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
     @app_commands.describe(argument="Your UGent email or verification code")
+    @only_in_channel("verification_channel")
     @check_has_config_option("verification_channel")
     @check_has_config_option("verified_role")
     @store_command_context
     async def verify(self, ia: Interaction, argument: str):
-        config = await Config.get(ia.guild_id)
-        verification_channel = config.verification_channel
-
-        if ia.channel_id != verification_channel:
-            allowed_channel = discord.utils.get(
-                ia.guild.channels, id=verification_channel
-            )
-            self.bot.logger.warn(
-                ModerationEvent.wrong_channel(
-                    ia.user, ia.command, ia.channel, allowed_channel
-                )
-            )
-            await ia.response.send_message(
-                ModerationEvent.wrong_channel(
-                    ia.user, ia.command, ia.channel, allowed_channel
-                ).user_msg,
-                ephemeral=True,
-            )
-            return
-
         msg = argument.strip().lower()
 
         if len(msg.split(" ")) != 1:
@@ -181,9 +179,11 @@ class Verify(ErrorHandledCog):
             code = match.group(1)
             await self.verify_code(ia, code)
         else:
-            self.bot.logger.warn(VerifyEvent.malformed_argument(ia.user, msg))
+            self.bot.discord_logger.warning(
+                f"user {util.render_user(ia.user)} attempted to verify with malformed argument '{msg}'"
+            )
             await ia.response.send_message(
-                VerifyEvent.malformed_argument(ia.user, msg).user_msg,
+                "This doesn't look like a valid UGent email or a valid verification code\nIf you think this is a mistake please contact a server admin",
                 ephemeral=True,
             )
 

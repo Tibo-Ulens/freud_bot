@@ -9,7 +9,7 @@ from discord import (
 from discord.app_commands.errors import MissingRole
 from discord.ext.commands import Context
 
-from bot.exceptions import MissingConfig, MissingConfigOption
+from bot.exceptions import MissingConfig, MissingConfigOption, WrongChannel
 from bot.models.config import Config
 
 
@@ -99,6 +99,35 @@ def check_has_config_option(option: str) -> bool:
 
         if getattr(guild_config, option) is None:
             raise MissingConfigOption(ia.guild, option)
+
+        return True
+
+    return app_commands.check(predicate)
+
+
+def only_in_channel(channel_option: str) -> bool:
+    """
+    Ensure the command can only be used in the specified channel
+
+    The argument must be the name of a config option
+    """
+
+    async def predicate(ia: Interaction) -> bool:
+        guild_config = await Config.get(ia.guild_id)
+        if guild_config is None:
+            raise MissingConfig(ia.guild)
+
+        if getattr(guild_config, channel_option) is None:
+            raise MissingConfigOption(ia.guild, channel_option)
+
+        allowed_channel = discord.utils.get(
+            ia.guild.text_channels, id=getattr(guild_config, channel_option)
+        )
+
+        if ia.channel_id != allowed_channel.id:
+            raise WrongChannel(
+                ia.guild, ia.user, ia.command, ia.channel, allowed_channel
+            )
 
         return True
 

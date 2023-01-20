@@ -7,7 +7,6 @@ from sqlalchemy.orm import Query
 from discord import Guild
 
 from bot.models import Base, Model, session_factory
-from bot.events.config import ConfigEvent
 
 
 logger = logging.getLogger("models")
@@ -53,7 +52,6 @@ class Config(Base, Model):
 
             r = result.first()
             if r is None:
-                logger.info(ConfigEvent.new_config_created(guild))
                 return await Config.create(guild_id=guild.id, verified_role=None)
             else:
                 return r[0]

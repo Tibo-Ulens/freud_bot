@@ -4,7 +4,6 @@ from discord.ui import View, Button
 
 from bot.bot import Bot
 from bot.decorators import (
-    store_command_context,
     check_has_config_option,
     check_user_is_verified,
 )
@@ -50,7 +49,6 @@ class Confess(ErrorHandledCog):
     @check_has_config_option("confession_approval_channel")
     @check_has_config_option("confession_channel")
     @check_user_is_verified()
-    @store_command_context
     async def confess(self, ia: Interaction, confession: str):
         config = await Config.get(ia.guild_id)
         approval_channel = discord.utils.get(

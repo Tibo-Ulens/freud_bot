@@ -25,10 +25,8 @@ from bot.bot import Bot
 from bot.constants import day_to_planner
 from bot.decorators import (
     check_user_has_admin_role,
-    store_command_context,
     check_user_is_verified,
 )
-from bot.events.calendar import TimeEditEvent, LectureInfoEvent, CourseEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.course import Course
 from bot.models.enrollment import Enrollment
@@ -73,7 +71,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
         search.send_keys(course.code)
         search.send_keys(Keys.ENTER)
 
-        web_logger.info(TimeEditEvent.searching_course(time_period, course))
+        web_logger.info(f"searching for course {course} [{time_period}]")
         sleep(0.5)
         try:
             add_btn = WebDriverWait(driver, 2).until(
@@ -82,12 +80,12 @@ def get_csv_links(course: Course) -> Iterator[str]:
                 )
             )
         except TimeoutException:
-            web_logger.info(TimeEditEvent.course_not_found(time_period, course))
+            web_logger.info(f"could not find course {course} [{time_period}]")
             continue
 
         add_btn.click()
 
-        web_logger.info(TimeEditEvent.added_course(time_period, course))
+        web_logger.info(f"added course {course} [{time_period}]")
 
         # Show the calendar
         show_btn = driver.find_element(By.CSS_SELECTOR, "input#objectbasketgo")
@@ -100,7 +98,7 @@ def get_csv_links(course: Course) -> Iterator[str]:
         )
         href = csv_btn.get_attribute("href")
 
-        web_logger.info(TimeEditEvent.done(time_period, course))
+        web_logger.info(f"finished scraping course {course} [{time_period}]")
 
         yield href
 
@@ -114,15 +112,14 @@ class Calendar(ErrorHandledCog):
 
     group = app_commands.Group(name="course", description="course management")
 
-    @store_command_context
     async def store_lecture_info(self, course: Course, ia: Interaction):
         """
         Scrape and store the lecture info for a given course
         """
 
-        self.bot.logger.debug(LectureInfoEvent.searching_lecture_info(course))
+        self.bot.logger.debug(f"searching lecture info for course {course}")
         await ia.edit_original_response(
-            content=LectureInfoEvent.searching_lecture_info(course).user_msg
+            content=f"Searching lecture info for course {course} (this may take a while)"
         )
 
         try:
@@ -134,9 +131,9 @@ class Calendar(ErrorHandledCog):
             )
             return
 
-        self.bot.logger.debug(LectureInfoEvent.downloading_lecture_info(course))
+        self.bot.logger.debug(f"downloading lecture info for course {course}")
         await ia.edit_original_response(
-            content=LectureInfoEvent.downloading_lecture_info(course).user_msg
+            content=f"Downloading lecture info for course {course}"
         )
 
         create_lecture_futures = []
@@ -159,9 +156,9 @@ class Calendar(ErrorHandledCog):
                 for entry in reader:
                     create_lecture_futures.append(Lecture.from_csv_entry(entry))
 
-        self.bot.logger.debug(LectureInfoEvent.storing_lecture_info(course))
+        self.bot.logger.debug(f"storing lecture info for course {course}")
         await ia.edit_original_response(
-            content=LectureInfoEvent.storing_lecture_info(course).user_msg
+            content=f"Storing lecture info for course {course}"
         )
         await asyncio.gather(*create_lecture_futures)
 
@@ -242,7 +239,6 @@ class Calendar(ErrorHandledCog):
         description="Show your personal calendar for this week",
     )
     @check_user_is_verified()
-    @store_command_context
     async def calendar(self, ia: Interaction):
         # This message is only here so the interaction has a response object
         #
@@ -326,7 +322,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_is_verified()
-    @store_command_context
     async def enroll_in_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
@@ -348,9 +343,8 @@ class Calendar(ErrorHandledCog):
             profile_discord_id=str(ia.user.id), course_code=str(course.code)
         )
 
-        self.bot.logger.info(CourseEvent.course_enrolled(ia.user, course))
         await ia.response.send_message(
-            CourseEvent.course_enrolled(ia.user, course).user_msg,
+            f"You have enrolled in the course {course}",
             ephemeral=True,
         )
 
@@ -359,7 +353,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_is_verified()
-    @store_command_context
     async def drop_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
@@ -374,15 +367,13 @@ class Calendar(ErrorHandledCog):
 
         await enrollment.delete()
 
-        self.bot.logger.info(CourseEvent.course_dropped(ia.user, course))
         await ia.response.send_message(
-            CourseEvent.course_dropped(ia.user, course).user_msg, ephemeral=True
+            f"You have dropped the course {course}", ephemeral=True
         )
 
     @group.command(name="overview", description="Show all courses you are enrolled in")
     @app_commands.guild_only()
     @check_user_is_verified()
-    @store_command_context
     async def show_enrolled(self, ia: Interaction):
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
@@ -405,7 +396,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.describe(name="The full name of the new course")
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def add_course(self, ia: Interaction, code: str, name: str):
         course = await Course.find_by_code(code)
         if course is not None:
@@ -421,15 +411,14 @@ class Calendar(ErrorHandledCog):
         await ia.response.send_message(f"scraping lectures for course {course}")
         await self.store_lecture_info(course, ia)
 
-        self.bot.logger.info(CourseEvent.Added(course))
-        await ia.edit_original_response(content=CourseEvent.Added(course).user_msg)
+        self.bot.logger.info(f"added course {course}")
+        await ia.edit_original_response(content=f"Added course {course}")
 
     @group.command(name="remove", description="Remove an available course")
     @app_commands.describe(name="The name of the course to remove")
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def remove_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
@@ -440,13 +429,12 @@ class Calendar(ErrorHandledCog):
 
         await course.delete()
 
-        self.bot.logger.info(CourseEvent.course_removed(course))
-        await ia.response.send_message(CourseEvent.course_removed(course).user_msg)
+        self.bot.logger.info(f"removed course {course}")
+        await ia.response.send_message(f"Removed course {course}")
 
     @group.command(name="list", description="List all available courses")
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
         courses = list(map(lambda c: str(c), courses))
@@ -460,7 +448,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def course_refresh(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
@@ -469,17 +456,15 @@ class Calendar(ErrorHandledCog):
             )
             return
 
-        self.bot.logger.info(LectureInfoEvent.deleting_old_lecture_info(course))
-        await ia.response.send_message(
-            LectureInfoEvent.deleting_old_lecture_info(course).user_msg
-        )
+        self.bot.logger.info(f"deleting old lecture info for course {course}")
+        await ia.response.send_message(f"Deleting old lecture info for course {course}")
         lectures = await Lecture.find_for_course(course.code)
         await asyncio.gather(*[l.delete() for l in lectures])
 
         await self.store_lecture_info(course, ia)
-        self.bot.logger.info(LectureInfoEvent.refreshed_lecture_info(course))
+        self.bot.logger.info(f"refreshed lecture info for course {course}")
         await ia.edit_original_response(
-            content=LectureInfoEvent.refreshed_lecture_info(course).user_msg
+            content=f"Refreshed lecture info for course {course}"
         )
 
 

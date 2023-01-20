@@ -40,6 +40,10 @@ class ErrorHandledCog(Cog):
                 event = ConfigEvent.missing_config(ia.guild)
             case bot_errors.MissingConfigOption:
                 event = ConfigEvent.missing_config_option(ia.guild, error.option)
+            case bot_errors.WrongChannel:
+                event = ModerationEvent.wrong_channel(
+                    error.user, error.cmd, error.used_channel, error.allowed_channel
+                )
             case _:
                 event = Event.unknown_error()
 
@@ -66,8 +70,9 @@ class ErrorHandledCog(Cog):
         if event.error:
             logger.error(traceback.format_exc())
             self.bot.logger.error(event)
+            self.bot.discord_logger.error(event)
         else:
-            self.bot.logger.warning(event)
+            self.bot.discord_logger.warning(event)
 
         await ia.response.send_message(event.user_msg)
 
@@ -75,7 +80,7 @@ class ErrorHandledCog(Cog):
     async def cog_command_error(self, ctx: Context, error: CommandError):
         event = self.app_error_to_event(ctx, error)
 
-        self.bot.logger.warning(event)
+        self.bot.discord_logger.warning(event)
         await ctx.response.send_message(event.user_msg)
 
 
