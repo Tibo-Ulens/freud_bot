@@ -40,6 +40,10 @@ class ErrorHandledCog(Cog):
                 event = ConfigEvent.missing_config(ia.guild)
             case bot_errors.MissingConfigOption:
                 event = ConfigEvent.missing_config_option(ia.guild, error.option)
+            case bot_errors.WrongChannel:
+                event = ModerationEvent.wrong_channel(
+                    error.user, error.cmd, error.used_channel, error.allowed_channel
+                )
             case _:
                 event = Event.unknown_error()
 

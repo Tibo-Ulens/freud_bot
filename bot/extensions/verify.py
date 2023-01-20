@@ -8,7 +8,11 @@ from discord import app_commands, Interaction
 
 from bot import constants, util
 from bot.bot import Bot
-from bot.decorators import store_command_context, check_has_config_option
+from bot.decorators import (
+    store_command_context,
+    check_has_config_option,
+    only_in_channel,
+)
 from bot.events.moderation import ModerationEvent
 from bot.extensions import ErrorHandledCog
 from bot.models.profile import Profile
@@ -155,30 +159,11 @@ class Verify(ErrorHandledCog):
         name="verify", description="Verify that you are a true UGentStudent"
     )
     @app_commands.describe(argument="Your UGent email or verification code")
+    @only_in_channel("verification_channel")
     @check_has_config_option("verification_channel")
     @check_has_config_option("verified_role")
     @store_command_context
     async def verify(self, ia: Interaction, argument: str):
-        config = await Config.get(ia.guild_id)
-        verification_channel = config.verification_channel
-
-        if ia.channel_id != verification_channel:
-            allowed_channel = discord.utils.get(
-                ia.guild.channels, id=verification_channel
-            )
-            self.bot.logger.warn(
-                ModerationEvent.wrong_channel(
-                    ia.user, ia.command, ia.channel, allowed_channel
-                )
-            )
-            await ia.response.send_message(
-                ModerationEvent.wrong_channel(
-                    ia.user, ia.command, ia.channel, allowed_channel
-                ).user_msg,
-                ephemeral=True,
-            )
-            return
-
         msg = argument.strip().lower()
 
         if len(msg.split(" ")) != 1:
