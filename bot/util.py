@@ -75,6 +75,7 @@ def render_command(cmd: Command) -> str:
     while True:
         if curr_level.parent is not None and curr_level.parent.name is not None:
             prefix += f"{curr_level.parent.name} "
+            curr_level = curr_level.parent
         else:
             break
 
