@@ -1,5 +1,6 @@
 import random
 import logging
+from logging import Filter
 
 import discord
 from discord import Message, Guild, Member
@@ -32,10 +33,13 @@ class Listeners(ErrorHandledCog):
 
     @ErrorHandledCog.listener()
     async def on_ready(self):
-        bot_logger = root_logger.getChild("bot")
-        bot_logger.addHandler(DiscordHandler(filter_target="bot"))
+        discord_logger = logging.getLogger("discord")
+        discord_logger.addHandler(DiscordHandler(filter_target="discord"))
 
-        logger_ = GuildAdapter(bot_logger)
+        discord_logger_ = GuildAdapter(discord_logger)
+        self.bot.discord_logger = discord_logger_
+
+        logger_ = root_logger.getChild("bot")
         self.bot.logger = logger_
 
         logger.info("ready")

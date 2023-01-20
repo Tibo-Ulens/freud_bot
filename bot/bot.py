@@ -3,6 +3,7 @@ import os
 from contextlib import suppress
 
 import logging
+from logging import Logger
 import discord
 from discord.ext import commands
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -18,7 +19,8 @@ class Bot(commands.Bot):
     """Custom discord bot class"""
 
     def __init__(self, db: AsyncEngine, *args, **kwargs):
-        self.logger: GuildAdapter = None
+        self.logger: Logger = None
+        self.discord_logger: GuildAdapter = None
         self.db = db
         super().__init__(*args, **kwargs)
 

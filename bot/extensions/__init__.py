@@ -70,8 +70,9 @@ class ErrorHandledCog(Cog):
         if event.error:
             logger.error(traceback.format_exc())
             self.bot.logger.error(event)
+            self.bot.discord_logger.error(event)
         else:
-            self.bot.logger.warning(event)
+            self.bot.discord_logger.warning(event)
 
         await ia.response.send_message(event.user_msg)
 
@@ -79,7 +80,7 @@ class ErrorHandledCog(Cog):
     async def cog_command_error(self, ctx: Context, error: CommandError):
         event = self.app_error_to_event(ctx, error)
 
-        self.bot.logger.warning(event)
+        self.bot.discord_logger.warning(event)
         await ctx.response.send_message(event.user_msg)
 
 

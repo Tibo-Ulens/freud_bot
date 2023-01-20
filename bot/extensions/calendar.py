@@ -25,7 +25,6 @@ from bot.bot import Bot
 from bot.constants import day_to_planner
 from bot.decorators import (
     check_user_has_admin_role,
-    store_command_context,
     check_user_is_verified,
 )
 from bot.extensions import ErrorHandledCog
@@ -113,7 +112,6 @@ class Calendar(ErrorHandledCog):
 
     group = app_commands.Group(name="course", description="course management")
 
-    @store_command_context
     async def store_lecture_info(self, course: Course, ia: Interaction):
         """
         Scrape and store the lecture info for a given course
@@ -241,7 +239,6 @@ class Calendar(ErrorHandledCog):
         description="Show your personal calendar for this week",
     )
     @check_user_is_verified()
-    @store_command_context
     async def calendar(self, ia: Interaction):
         # This message is only here so the interaction has a response object
         #
@@ -325,7 +322,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_is_verified()
-    @store_command_context
     async def enroll_in_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
@@ -357,7 +353,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_is_verified()
-    @store_command_context
     async def drop_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
 
@@ -379,7 +374,6 @@ class Calendar(ErrorHandledCog):
     @group.command(name="overview", description="Show all courses you are enrolled in")
     @app_commands.guild_only()
     @check_user_is_verified()
-    @store_command_context
     async def show_enrolled(self, ia: Interaction):
         enrollments = await Enrollment.find_for_profile(str(ia.user.id))
 
@@ -402,7 +396,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.describe(name="The full name of the new course")
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def add_course(self, ia: Interaction, code: str, name: str):
         course = await Course.find_by_code(code)
         if course is not None:
@@ -426,7 +419,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def remove_course(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
@@ -443,7 +435,6 @@ class Calendar(ErrorHandledCog):
     @group.command(name="list", description="List all available courses")
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
         courses = list(map(lambda c: str(c), courses))
@@ -457,7 +448,6 @@ class Calendar(ErrorHandledCog):
     @app_commands.autocomplete(name=course_autocomplete)
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    @store_command_context
     async def course_refresh(self, ia: Interaction, name: str):
         course = await Course.find_by_name(name)
         if course is None:
