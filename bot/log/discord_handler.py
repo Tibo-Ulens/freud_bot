@@ -21,7 +21,7 @@ class DiscordHandler(Handler):
             Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
         )
         self.addFilter(Filter(filter_target))
-        self.setLevel(logging.INFO)
+        self.setLevel(logging.WARNING)
 
         self.loop = asyncio.get_event_loop()
 
@@ -65,13 +65,8 @@ class DiscordHandler(Handler):
         embed.colour = self.level_to_colour(record.levelno)
         embed.timestamp = datetime.strptime(record.asctime, "%Y-%m-%d %H:%M:%S,%f")
 
-        [scope, event, args] = record.message.split(" | ")
-        args: dict[str, str] = json.loads(args)
-
-        embed.add_field(name="scope", value=scope, inline=True)
-        embed.add_field(name="event", value=event, inline=True)
-        for k, v in args.items():
-            embed.add_field(name=k, value=v, inline=False)
+        embed.title = record.levelname
+        embed.description = record.message
 
         return embed
 
