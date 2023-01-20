@@ -4,10 +4,10 @@ from discord import app_commands, Interaction, Role, TextChannel, Member
 from discord.ext import commands
 from discord.ext.commands import command, Context
 
+from bot import util
 from bot.bot import Bot
 from bot.decorators import check_user_has_admin_role, store_command_context
 from bot.extensions import ErrorHandledCog
-from bot.events.config import ConfigEvent
 from bot.events.bot import BotEvent
 from bot.models.profile import Profile
 from bot.models.config import Config as ConfigModel
@@ -42,9 +42,11 @@ class Config(ErrorHandledCog):
         guild_config.admin_role = role.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.set_admin_role(ia.guild, role))
+        self.bot.logger.info(
+            f"set admin role for {util.render_guild(ia.guild)} to {util.render_role(role)}"
+        )
         await ia.response.send_message(
-            ConfigEvent.set_admin_role(ia.guild, role).user_msg
+            f"Set the admin role to {util.render_role(role)}"
         )
 
     @config_group.command(
@@ -82,10 +84,10 @@ class Config(ErrorHandledCog):
         await guild_config.save()
 
         self.bot.logger.info(
-            ConfigEvent.set_verified_role(ia.guild, role, len(members))
+            f"set verified role for {util.render_guild(ia.guild)} to {util.render_role(role)}, {len(members)} members updated"
         )
         await ia.response.send_message(
-            ConfigEvent.set_verified_role(ia.guild, role, len(members)).user_msg
+            f"Set the verified role to {util.render_role(role)}, {len(members)} members updated"
         )
 
     @config_group.command(
@@ -102,9 +104,11 @@ class Config(ErrorHandledCog):
         guild_config.verification_channel = channel.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.set_verification_channel(ia.guild, channel))
+        self.bot.logger.info(
+            f"set verification channel for {util.render_guild(ia.guild)} to {util.render_channel(channel)}"
+        )
         await ia.response.send_message(
-            ConfigEvent.set_verification_channel(ia.guild, channel).user_msg
+            f"Set the verification channel to {util.render_channel(channel)}"
         )
 
     @config_group.command(
@@ -121,9 +125,11 @@ class Config(ErrorHandledCog):
         guild_config.logging_channel = channel.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.set_logging_channel(ia.guild, channel))
+        self.bot.logger.info(
+            f"set logging channel for {util.render_guild(ia.guild)} to {util.render_channel(channel)}"
+        )
         await ia.response.send_message(
-            ConfigEvent.set_logging_channel(ia.guild, channel).user_msg
+            f"Set the logging channel to {util.render_channel(channel)}"
         )
 
     @config_group.command(
@@ -143,10 +149,10 @@ class Config(ErrorHandledCog):
         await guild_config.save()
 
         self.bot.logger.info(
-            ConfigEvent.set_confession_approval_channel(ia.guild, channel)
+            f"set confession approval channel for {util.render_guild(ia.guild)} to {util.render_channel(channel)}"
         )
         await ia.response.send_message(
-            ConfigEvent.set_confession_approval_channel(ia.guild, channel).user_msg
+            f"Set the confession approval channel to {util.render_channel(channel)}"
         )
 
     @config_group.command(
@@ -163,9 +169,11 @@ class Config(ErrorHandledCog):
         guild_config.confession_channel = channel.id
         await guild_config.save()
 
-        self.bot.logger.info(ConfigEvent.set_confession_channel(ia.guild, channel))
+        self.bot.logger.info(
+            f"set confession channel for {util.render_guild(ia.guild)} to {util.render_channel(channel)}"
+        )
         await ia.response.send_message(
-            ConfigEvent.set_confession_channel(ia.guild, channel).user_msg
+            f"Set the confession channel to {util.render_channel(channel)}"
         )
 
 

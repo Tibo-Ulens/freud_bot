@@ -1,7 +1,3 @@
-import inspect
-import json
-
-
 class Event:
     """
     Parent class for logged events
