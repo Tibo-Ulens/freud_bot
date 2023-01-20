@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from bot.events.bot import BotEvent as BotEvent
+# from bot.events.bot import BotEvent as BotEvent
 from bot.log.guild_adapter import GuildAdapter
 
 
@@ -41,7 +41,7 @@ class Bot(commands.Bot):
         intents.webhooks = False
 
         pg_engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
-        logger.info(BotEvent.database_connected())
+        logger.info("database connected")
 
         return cls(db=pg_engine, command_prefix="$", intents=intents)
 
@@ -52,13 +52,13 @@ class Bot(commands.Bot):
 
         for ext in EXTENSIONS:
             await self.load_extension(ext)
-            logger.debug(BotEvent.extension_loaded(ext))
+            logger.debug(f"loaded extension '{ext}'")
 
     async def add_cog(self, cog: commands.Cog) -> None:
         """Add a cog to the bot"""
 
         await super().add_cog(cog)
-        logger.debug(BotEvent.cog_added(cog.qualified_name))
+        logger.debug(f"added cog '{cog.qualified_name}'")
 
     async def close(self) -> None:
         # Remove all extensions
@@ -66,7 +66,7 @@ class Bot(commands.Bot):
         for ext in list(self.extensions):
             with suppress(Exception):
                 extension_tasks.append(self.unload_extension(ext))
-                logger.debug(BotEvent.extension_unloaded(ext))
+                logger.debug(f"unloaded extension '{ext}'")
 
         await asyncio.gather(*extension_tasks)
 
@@ -75,17 +75,17 @@ class Bot(commands.Bot):
         for cog in list(self.cogs):
             with suppress(Exception):
                 cog_tasks.append(self.remove_cog(cog))
-                logger.debug(BotEvent.cog_removed(cog.qualified_name))
+                logger.debug(f"removed cog '{cog.qualified_name}'")
 
         await asyncio.gather(*cog_tasks)
 
         await super().close()
-        logger.info(BotEvent.client_closed())
+        logger.info("client closed")
 
         await self.db.dispose()
-        logger.info(BotEvent.DatabaseClosed())
+        logger.info("database closed")
 
-        logger.info(BotEvent.bot_exited())
+        logger.info("bot exited")
         await self.logout()
 
     async def on_error(self, event: str) -> None:

@@ -4,9 +4,8 @@ import logging
 import discord
 from discord import Message, Guild, Member
 
-from bot import constants, root_logger
+from bot import constants, root_logger, util
 from bot.bot import Bot
-from bot.events.bot import BotEvent
 from bot.extensions import ErrorHandledCog
 from bot.log.discord_handler import DiscordHandler
 from bot.log.guild_adapter import GuildAdapter
@@ -39,11 +38,11 @@ class Listeners(ErrorHandledCog):
         logger_ = GuildAdapter(bot_logger)
         self.bot.logger = logger_
 
-        logger.info(BotEvent.bot_ready())
+        logger.info("ready")
 
     @ErrorHandledCog.listener()
     async def on_guild_available(self, guild: Guild):
-        logger.info(BotEvent.guild_available(guild))
+        logger.info(f"guild '{util.render_guild(guild)}' available")
 
     @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):

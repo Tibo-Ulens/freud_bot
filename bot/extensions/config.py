@@ -24,8 +24,9 @@ class Config(ErrorHandledCog):
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         synced = await ctx.bot.tree.sync()
 
-        self.bot.logger.info(BotEvent.synced_commands(ctx.guild, len(synced)))
-        await ctx.reply(BotEvent.synced_commands(ctx.guild, len(synced)).user_msg)
+        event = BotEvent.synced_commands(ctx.guild, len(synced))
+        self.bot.logger.info(event)
+        await ctx.reply(event.user_msg)
 
     @app_commands.guild_only()
     @config_group.command(
