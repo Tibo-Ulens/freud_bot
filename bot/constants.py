@@ -77,6 +77,7 @@ FREUD_QUOTES = [
     "I am going to the USA to catch sight of a wild porcupine and to give some lectures.",
     "Who lacks sex speaks about sex, hungry talks about food, a person who has no money - about money, and our oligarchs and bankers talk about morality",
     "Mathematics enjoys the greatest reputation as a diversion from sexuality. This had been the very advice to which Jean-Jacques Rousseau was obliged to listen from a lady who was dissatisfied with him: 'Lascia le donne e studia la matematica!' So too our fugitive threw himself with special eagerness into the mathematics and geometry which he was taught at school, till suddenly one day his powers of comprehension were paralysed in the face of some apparently innocent problems. It was possible to establish two of these problems; 'Two bodies come together, one with a speed of ... etc' and 'On a cylinder, the diameter of whose surface is m, describe a cone ... etc' Other people would certainly not have regarded these as very striking allusions to sexual events; but he felt that he had been betrayed by mathematics as well, and took flight from it too.",
+    "*snorts a line of coke*",
 ]
 
 TIMEEDIT_URL = "https://cloud.timeedit.net/ugent/web/guest/"
