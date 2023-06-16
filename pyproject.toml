@@ -5,7 +5,7 @@ description = "UGent discord bot"
 authors = ["Tibo Ulens <ulens.tibo@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "=3.10.12"
 "discord.py" = "^2.0.1"
 SQLAlchemy = {extras = ["asyncio"], version = "^1.4.40"}
 alembic = "^1.8.1"

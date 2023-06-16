@@ -1,4 +1,4 @@
-FROM python:slim
+FROM python:3.10.12-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update \
