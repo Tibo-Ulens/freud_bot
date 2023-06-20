@@ -1,7 +1,6 @@
 import random
 import string
 
-import aiohttp
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -11,6 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from web_config.config import Config
 from web_config.routes.auth import router as auth_router
+from web_config.session import http_session
 
 
 app = FastAPI()
@@ -32,14 +32,13 @@ async def check_authorized(request: Request, call_next):
 
     auth_header = {"Authorization": f"Bearer {token}"}
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            "https://discord.com/api/oauth2/@me", headers=auth_header
-        ) as res:
-            if res.status == 401:
-                return RedirectResponse("/login")
+    async with http_session.get(
+        "https://discord.com/api/oauth2/@me", headers=auth_header
+    ) as res:
+        if res.status == 401:
+            return RedirectResponse("/login")
 
-            return await call_next(request)
+        return await call_next(request)
 
 
 session_key = "".join([random.choice(string.printable) for _ in range(64)])
