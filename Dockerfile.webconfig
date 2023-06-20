@@ -18,8 +18,9 @@ WORKDIR /web_config
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main,webconfig
 
-COPY ./web_config ./web_config
-COPY ./views ./views
 COPY ./static ./static
+COPY ./views ./views
+COPY ./models ./models
+COPY ./web_config ./web_config
 
 CMD [ "uvicorn", "web_config.main:app", "--host", "0.0.0.0", "--port", "80" ]
