@@ -43,6 +43,9 @@ services:
           - BASE_URL=http://localhost:3000
           - SESSION_COOKIE_DOMAIN=.localhost
           - SESSION_COOKIE_NAME=freud_bot_webconfig_session
+
+          - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
+          - PGPASSWORD=postgres_password
         logging:
             options:
                 max-size: "4096m"
@@ -63,6 +66,9 @@ services:
           - BASE_URL=http://localhost:3000
           - SESSION_COOKIE_DOMAIN=.localhost
           - SESSION_COOKIE_NAME=freud_bot_webconfig_session
+
+          - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
+          - PGPASSWORD=postgres_password
         logging:
             options:
                 max-size: "4096m"
