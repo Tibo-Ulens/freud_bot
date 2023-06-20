@@ -2,7 +2,6 @@ import aiohttp
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
-from web_config.models.discord import AccessTokenResponse
 from web_config.config import Config
 
 
@@ -33,6 +32,15 @@ async def callback(request: Request, code: str):
     request.session["token"] = token
 
     return RedirectResponse("/", status_code=302)
+
+
+class AccessTokenResponse:
+    def __init__(self, dict):
+        self.access_token = dict["access_token"]
+        self.token_type = dict["token_type"]
+        self.expires_in = dict["expires_in"]
+        self.refresh_token = dict["refresh_token"]
+        self.scope = dict["scope"]
 
 
 async def get_access_token(auth_code: str) -> AccessTokenResponse:
