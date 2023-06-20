@@ -15,9 +15,11 @@ services:
           - smtp_credentials
         depends_on:
           - freud_bot_db
+
     freud_bot_dev:
         build:
             context: .
+            dockerfile: Dockerfile.bot
         container_name: freud_bot_dev
         restart: "no"
         environment:
@@ -31,6 +33,43 @@ services:
           - smtp_credentials
         depends_on:
           - freud_bot_db
+
+    freud_bot_webconfig:
+        image: ghcr.io/tibo-ulens/freud_bot_webconfig:latest
+        container_name: freud_bot_webconfig
+        ports:
+          - "3000:80"
+        environment:
+          - BASE_URL=http://localhost:4000
+          - SESSION_COOKIE_DOMAIN=.localhost
+          - SESSION_COOKIE_NAME=freud_bot_webconfig_session
+        logging:
+            options:
+                max-size: "4096m"
+        secrets:
+          - discord_oauth_credentials
+        depends_on:
+          - freud_bot_dev
+
+    freud_bot_webconfig_dev:
+        build:
+            context: .
+            dockerfile: Dockerfile.webconfig
+        container_name: freud_bot_webconfig_dev
+        restart: "no"
+        ports:
+          - "3000:80"
+        environment:
+          - BASE_URL=http://localhost:4000
+          - SESSION_COOKIE_DOMAIN=.localhost
+          - SESSION_COOKIE_NAME=freud_bot_webconfig_session
+        logging:
+            options:
+                max-size: "4096m"
+        secrets:
+          - discord_oauth_credentials
+        depends_on:
+          - freud_bot_dev
 
     freud_bot_db:
         image: postgres:alpine
@@ -62,3 +101,5 @@ secrets:
         file: ./secrets/discord_token.txt
     smtp_credentials:
         file: ./secrets/smtp_credentials.txt
+    discord_oauth_credentials:
+        file: ./secrets/discord_oauth_credentials.txt
