@@ -4,9 +4,9 @@ from sqlalchemy import Column, Text
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
-from bot.models import Base, Model, session_factory
-from bot.models.enrollment import Enrollment
-from bot.models.lecture import Lecture
+from models import Base, Model, session_factory
+from models.enrollment import Enrollment
+from models.lecture import Lecture
 
 
 class Course(Base, Model):

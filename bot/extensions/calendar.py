@@ -20,6 +20,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait, Select
 
+from models.course import Course
+from models.enrollment import Enrollment
+from models.lecture import Lecture
+
 from bot import constants
 from bot.bot import Bot
 from bot.constants import day_to_planner
@@ -28,9 +32,6 @@ from bot.decorators import (
     check_user_is_verified,
 )
 from bot.extensions import ErrorHandledCog
-from bot.models.course import Course
-from bot.models.enrollment import Enrollment
-from bot.models.lecture import Lecture
 from bot.util import course_autocomplete
 
 

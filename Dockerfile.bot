@@ -25,6 +25,7 @@ WORKDIR /freud_bot
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main,bot
 
+COPY ./models ./models
 COPY ./bot ./bot
 
 CMD [ "python3", "-m", "bot" ]

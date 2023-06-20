@@ -8,7 +8,8 @@ import discord
 from discord import Embed, Colour, Interaction
 from discord.ext.commands import Context
 
-from bot.models.config import Config
+from models.config import Config
+
 from bot import util
 
 

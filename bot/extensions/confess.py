@@ -2,13 +2,14 @@ import discord
 from discord import app_commands, Interaction, ButtonStyle, TextChannel, Embed, Colour
 from discord.ui import View, Button
 
+from models.config import Config
+
 from bot.bot import Bot
 from bot.decorators import (
     check_has_config_option,
     check_user_is_verified,
 )
 from bot.extensions import ErrorHandledCog
-from bot.models.config import Config
 
 
 class PendingApprovalView(View):

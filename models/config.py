@@ -6,7 +6,7 @@ from sqlalchemy.orm import Query
 
 from discord import Guild
 
-from bot.models import Base, Model, session_factory
+from models import Base, Model, session_factory
 
 
 logger = logging.getLogger("models")

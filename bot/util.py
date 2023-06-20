@@ -10,7 +10,7 @@ from discord import (
 )
 from discord.app_commands import Command
 
-from bot.models.course import Course
+from models.course import Course
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:

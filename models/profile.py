@@ -5,7 +5,7 @@ from sqlalchemy import Column, Text, BigInteger
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
-from bot.models import Base, Model, session_factory
+from models import Base, Model, session_factory
 
 
 class Profile(Base, Model):

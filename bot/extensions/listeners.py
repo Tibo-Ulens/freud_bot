@@ -1,17 +1,17 @@
 import random
 import logging
-from logging import Filter
 
 import discord
 from discord import Message, Guild, Member
+
+from models.config import Config
+from models.profile import Profile
 
 from bot import constants, root_logger, util
 from bot.bot import Bot
 from bot.extensions import ErrorHandledCog
 from bot.log.discord_handler import DiscordHandler
 from bot.log.guild_adapter import GuildAdapter
-from bot.models.config import Config
-from bot.models.profile import Profile
 
 
 logger = logging.getLogger("bot")
