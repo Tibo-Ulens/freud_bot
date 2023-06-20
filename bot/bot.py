@@ -88,7 +88,6 @@ class Bot(commands.Bot):
         logger.info("database closed")
 
         logger.info("bot exited")
-        await self.logout()
 
     async def on_error(self, event: str) -> None:
         logger.exception(f"Unhandled exception in {event}")
