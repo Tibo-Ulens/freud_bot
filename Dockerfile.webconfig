@@ -23,4 +23,4 @@ COPY ./views ./views
 COPY ./models ./models
 COPY ./web_config ./web_config
 
-CMD [ "uvicorn", "web_config.main:app", "--host", "0.0.0.0", "--port", "80" ]
+CMD [ "uvicorn", "web_config.main:app", "--host", "0.0.0.0", "--port", "80", "--log-config", "web_config/logging.conf" ]

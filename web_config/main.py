@@ -1,23 +1,26 @@
 import random
 import string
+import logging
+import logging.config
+from os import path
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from web_config.config import Config
 from web_config.routes.auth import router as auth_router
+from web_config.routes.config import router as config_router
 from web_config.session import http_session
+
+log_file_path = path.join(path.dirname(path.abspath(__file__)), "logging.conf")
+logging.config.fileConfig(log_file_path, disable_existing_loggers=False)
 
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-templates = Jinja2Templates(directory="views")
 
 
 @app.middleware("http")
@@ -54,8 +57,4 @@ app.add_middleware(GZipMiddleware)
 
 
 app.include_router(auth_router)
-
-
-@app.get("/")
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+app.include_router(config_router)
