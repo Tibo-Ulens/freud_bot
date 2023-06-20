@@ -785,6 +785,23 @@ files = [
 ]
 
 [[package]]
+name = "jinja2"
+version = "3.1.2"
+description = "A very fast and expressive template engine."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "Jinja2-3.1.2-py3-none-any.whl", hash = "sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61"},
+    {file = "Jinja2-3.1.2.tar.gz", hash = "sha256:31351a702a408a9e7595a8fc6150fc3f43bb6bf7e319770cbc0db9df9437e852"},
+]
+
+[package.dependencies]
+MarkupSafe = ">=2.0"
+
+[package.extras]
+i18n = ["Babel (>=2.7)"]
+
+[[package]]
 name = "mako"
 version = "1.2.4"
 description = "A super-fast templating language that borrows the best ideas from the existing templating languages."
@@ -1531,4 +1548,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "=3.10.12"
-content-hash = "0bf3d893196f79e561b0d55ce9c3d0ed6472d554a7a726de7d274349581adc82"
+content-hash = "718e3ba87197fb867e1bec330521e37fe30aee09a2f9154043054d0dbd712519"

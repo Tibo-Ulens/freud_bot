@@ -1,5 +1,5 @@
 import aiohttp
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from web_config.models.discord import AccessTokenResponse
@@ -16,18 +16,23 @@ async def login():
     params = {
         "client_id": Config.DISCORD_OAUTH_CLIENT_ID,
         "response_type": "code",
-        "scope": "identify guilds guilds.members.read",
+        "scope": "identify%20guilds%20guilds.members.read",
         "redirect_uri": f"{Config.BASE_URL}/callback",
     }
 
-    authorize_url += "&" + "".join([f"{k}={v}" for k, v in params.items()])
+    authorize_url += "?" + "&".join([f"{k}={v}" for k, v in params.items()])
 
-    return RedirectResponse(authorize_url)
+    return RedirectResponse(authorize_url, status_code=302)
 
 
 @router.get("/callback")
-async def callback():
-    pass
+async def callback(request: Request, code: str):
+    token_response = await get_access_token(code)
+    token = token_response.access_token
+
+    request.session["token"] = token
+
+    return RedirectResponse("/", status_code=302)
 
 
 async def get_access_token(auth_code: str) -> AccessTokenResponse:
