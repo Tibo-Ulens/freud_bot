@@ -49,6 +49,12 @@ class Listeners(ErrorHandledCog):
         logger.info(f"guild {util.render_guild(guild)} available")
 
     @ErrorHandledCog.listener()
+    async def on_guild_join(self, guild: Guild):
+        logger.info(f"joined guild {util.render_guild(guild)}")
+        await Config.create(guild_id=guild.id)
+        logger.info(f"created config for guild {util.render_guild(guild)}")
+
+    @ErrorHandledCog.listener()
     async def on_message(self, msg: Message):
         if msg.author == self.bot.user:
             return
