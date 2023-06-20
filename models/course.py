@@ -48,15 +48,6 @@ class Course(Base, Model):
                 return r[0]
 
     @classmethod
-    async def get_all(cls) -> list["Course"]:
-        """Get all available courses"""
-
-        async with session_factory() as session:
-            result: Query = await session.execute(select(cls))
-
-            return result.scalars().all()
-
-    @classmethod
     async def get_all_names(cls) -> list[str]:
         """Get the names of all available courses"""
 
