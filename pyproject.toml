@@ -6,12 +6,12 @@ authors = ["Tibo Ulens <ulens.tibo@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "=3.10.12"
-
-[tool.poetry.group.bot.dependencies]
-"discord.py" = "^2.0.1"
 SQLAlchemy = {extras = ["asyncio"], version = "^1.4.40"}
 alembic = "^1.8.1"
 asyncpg = "^0.26.0"
+"discord.py" = "^2.0.1"
+
+[tool.poetry.group.bot.dependencies]
 selenium = "^4.4.3"
 requests = "^2.28.1"
 CairoSVG = "^2.5.2"
