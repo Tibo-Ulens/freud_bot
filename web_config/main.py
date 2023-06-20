@@ -1,10 +1,11 @@
-import logging
 import random
 import string
 
 import aiohttp
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -12,10 +13,11 @@ from web_config.config import Config
 from web_config.routes.auth import router as auth_router
 
 
-logger = logging.getLogger("webconfig")
-
-
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+templates = Jinja2Templates(directory="views")
 
 
 @app.middleware("http")
@@ -34,8 +36,6 @@ async def check_authorized(request: Request, call_next):
         async with session.get(
             "https://discord.com/api/oauth2/@me", headers=auth_header
         ) as res:
-            logger.info(res.status)
-
             if res.status == 401:
                 return RedirectResponse("/login")
 
@@ -58,5 +58,5 @@ app.include_router(auth_router)
 
 
 @app.get("/")
-async def index():
-    return "hello"
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
