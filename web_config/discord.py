@@ -91,7 +91,12 @@ async def get_user_guilds(access_token: str) -> list[any]:
         return data
 
 
-async def user_is_admin(guild_id: str, access_token: str) -> bool:
+async def user_is_authorized(guild_id: str, access_token: str) -> bool:
+    """
+    Check if the current user meets the authorization requirements to
+    configure the guild
+    """
+
     guild_config = await GuildConfig.get(int(guild_id))
     if guild_config is None:
         return False
@@ -107,4 +112,10 @@ async def user_is_admin(guild_id: str, access_token: str) -> bool:
         member_obj = await res.json()
         roles = member_obj["roles"]
 
-        return guild_admin_role in roles
+        perms = member_obj.get("permissions")
+        if perms is None:
+            return guild_admin_role in roles
+
+        manage_guild_flag = (perms >> 3) & 0x1
+
+        return manage_guild_flag == 1 or guild_admin_role in roles

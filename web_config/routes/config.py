@@ -1,12 +1,9 @@
-import asyncio
-from itertools import compress
-
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from models.config import Config as GuildConfig
 
-from web_config.discord import get_user_guilds, user_is_admin, guild_icon_cdn_url
+from web_config.discord import get_user_guilds, guild_icon_cdn_url, user_is_authorized
 from web_config.templates import templates
 
 
@@ -22,10 +19,6 @@ async def index(request: Request):
 
     available_guilds = list(filter(lambda g: g["id"] in stored_guild_ids, user_guilds))
 
-    filter_list = await asyncio.gather(
-        *[user_is_admin(g["id"], token) for g in available_guilds]
-    )
-
     available_guilds = list(
         map(
             lambda g: {
@@ -33,7 +26,7 @@ async def index(request: Request):
                 "name": g["name"],
                 "icon": guild_icon_cdn_url(g["id"], g.get("icon")),
             },
-            compress(available_guilds, filter_list),
+            available_guilds,
         )
     )
 
@@ -43,9 +36,16 @@ async def index(request: Request):
         g = available_guilds[0]
         return RedirectResponse(f"/config/{g['id']}")
     else:
-        return templates.TemplateResponse("select_guild.html", {"request": request})
+        return templates.TemplateResponse(
+            "select_guild.html", {"request": request, "guilds": available_guilds}
+        )
 
 
 @router.get("/config/{id}")
 async def config(request: Request, id: str):
+    token = request.session["token"]
+
+    if not await user_is_authorized(id, token):
+        return templates.TemplateResponse("forbidden.html", {"request", request})
+
     return templates.TemplateResponse("config_guild.html", {"request": request})
