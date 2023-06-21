@@ -1,0 +1,43 @@
+main {
+	width: 100%;
+	height: 100%;
+	padding: 1rem;
+
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+#card {
+	background-color: #202020FF;
+	border-radius: 8px;
+	padding: 1rem;
+	margin-top: 4rem;
+
+	display: flex;
+	flex-flow: column nowrap;
+	justify-content: flex-start;
+	align-items: center;
+}
+
+@media only screen and (max-width: 500px) {
+	#card {
+		margin-top: 0;
+	}
+}
+
+#card-title {
+	font-weight: bolder;
+	font-size: 1.125rem;
+	text-transform: uppercase;
+	letter-spacing: 2px;
+	line-height: 1rem;
+	text-align: center;
+	white-space: pre-wrap;
+}
+
+#card-body {
+	width: 100%;
+	height: 100%;
+}

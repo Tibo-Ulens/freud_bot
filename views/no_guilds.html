@@ -1,7 +1,24 @@
 {% extends "base.html" %}
 
+{% block head %}
+	<link rel="stylesheet" href="{{ url_for('static', path='/styles/no_guilds.css') }}">
+{% endblock head %}
+
 {% block title %}FreudBot Config{% endblock title %}
 
 {% block body %}
-	<p>No servers available to configure</p>
+	<main>
+		<div id="card">
+			<h2 id="card-title">no configurable servers found</h2>
+
+			<div id="card-body">
+				If you think this is a mistake, please ensure:
+				<ul>
+					<li>FreudBot is actually a member of the server you wish to configure</li>
+					<li>You are either an administrator of the server you are trying to configure, or you have 'Manage Server' permissions</li>
+					<li>There are configuration settings for your server, this can be confirmed using the /config command</li>
+				</ul>
+			</div>
+		</div>
+	</main>
 {% endblock body %}
