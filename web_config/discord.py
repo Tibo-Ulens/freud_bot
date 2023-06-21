@@ -1,7 +1,9 @@
-from models.config import Config as GuildConfig
-
 from web_config.config import Config
 from web_config.session import http_session
+
+
+ADMINISTRATOR_FLAG = 0b1000
+MANAGE_GUILD_FLAG = 0b10_0000
 
 
 class AccessTokenResponse:
@@ -38,6 +40,14 @@ class DiscordUser:
 
     def __repr__(self) -> str:
         return f"{vars(self)}"
+
+
+def can_manage(guild: dict) -> bool:
+    """Check if the ADMINISTRATOR and/or MANAGE_GUILD flags are set"""
+
+    perms = guild["permissions"]
+
+    return (perms & ADMINISTRATOR_FLAG) != 0 or (perms & MANAGE_GUILD_FLAG) != 0
 
 
 async def get_access_token(auth_code: str) -> AccessTokenResponse:
@@ -89,33 +99,3 @@ async def get_user_guilds(access_token: str) -> list[any]:
     ) as res:
         data = await res.json()
         return data
-
-
-async def user_is_authorized(guild_id: str, access_token: str) -> bool:
-    """
-    Check if the current user meets the authorization requirements to
-    configure the guild
-    """
-
-    guild_config = await GuildConfig.get(int(guild_id))
-    if guild_config is None:
-        return False
-
-    guild_admin_role = str(guild_config.admin_role)
-
-    auth_header = {"Authorization": f"Bearer {access_token}"}
-
-    async with http_session.get(
-        f"https://discord.com/api//users/@me/guilds/{guild_id}/member",
-        headers=auth_header,
-    ) as res:
-        member_obj = await res.json()
-        roles = member_obj["roles"]
-
-        perms = member_obj.get("permissions")
-        if perms is None:
-            return guild_admin_role in roles
-
-        manage_guild_flag = (perms >> 3) & 0x1
-
-        return manage_guild_flag == 1 or guild_admin_role in roles

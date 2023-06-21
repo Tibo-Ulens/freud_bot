@@ -15,7 +15,7 @@ async def login():
     params = {
         "client_id": Config.DISCORD_OAUTH_CLIENT_ID,
         "response_type": "code",
-        "scope": "identify%20guilds%20guilds.members.read",
+        "scope": "identify%20guilds",
         "redirect_uri": f"{Config.BASE_URL}/callback",
     }
 

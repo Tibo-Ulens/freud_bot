@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 
 from models.config import Config as GuildConfig
 
-from web_config.discord import get_user_guilds, guild_icon_cdn_url, user_is_authorized
+from web_config.discord import can_manage, get_user_guilds, guild_icon_cdn_url
 from web_config.templates import templates
 
 
@@ -13,11 +13,11 @@ router = APIRouter()
 @router.get("/")
 async def index(request: Request):
     token = request.session["token"]
+
     user_guilds = await get_user_guilds(token)
+    manageable_guilds = list(filter(lambda g: can_manage(g), user_guilds))
 
     stored_guild_ids = list(map(lambda c: str(c.guild_id), await GuildConfig.get_all()))
-
-    available_guilds = list(filter(lambda g: g["id"] in stored_guild_ids, user_guilds))
 
     available_guilds = list(
         map(
@@ -26,7 +26,7 @@ async def index(request: Request):
                 "name": g["name"],
                 "icon": guild_icon_cdn_url(g["id"], g.get("icon")),
             },
-            available_guilds,
+            filter(lambda g: g["id"] in stored_guild_ids, manageable_guilds),
         )
     )
 
@@ -43,9 +43,4 @@ async def index(request: Request):
 
 @router.get("/config/{id}")
 async def config(request: Request, id: str):
-    token = request.session["token"]
-
-    if not await user_is_authorized(id, token):
-        return templates.TemplateResponse("forbidden.html", {"request", request})
-
     return templates.TemplateResponse("config_guild.html", {"request": request})
