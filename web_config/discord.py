@@ -99,3 +99,27 @@ async def get_user_guilds(access_token: str) -> list[any]:
     ) as res:
         data = await res.json()
         return data
+
+
+async def get_guild(guild_id: str) -> dict:
+    """Get a guild by ID"""
+
+    auth_header = {"Authorization": f"Bot {Config.DISCORD_BOT_TOKEN}"}
+
+    async with http_session.get(
+        f"https://discord.com/api/guilds/{guild_id}", headers=auth_header
+    ) as res:
+        data = await res.json()
+        return data
+
+
+async def get_guild_channels(guild_id: str) -> list[dict]:
+    """Get a guilds channels given its ID"""
+
+    auth_header = {"Authorization": f"Bot {Config.DISCORD_BOT_TOKEN}"}
+
+    async with http_session.get(
+        f"https://discord.com/api/guilds/{guild_id}/channels", headers=auth_header
+    ) as res:
+        data = await res.json()
+        return data

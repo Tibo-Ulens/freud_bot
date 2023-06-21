@@ -1,9 +1,17 @@
+import asyncio
+
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from models.config import Config as GuildConfig
 
-from web_config.discord import can_manage, get_user_guilds, guild_icon_cdn_url
+from web_config.discord import (
+    can_manage,
+    get_user_guilds,
+    guild_icon_cdn_url,
+    get_guild,
+    get_guild_channels,
+)
 from web_config.templates import templates
 
 
@@ -41,6 +49,60 @@ async def index(request: Request):
         )
 
 
-@router.get("/config/{id}")
-async def config(request: Request, id: str):
-    return templates.TemplateResponse("config_guild.html", {"request": request})
+@router.get("/config/{guild_id}")
+async def config(request: Request, guild_id: str):
+    [config, guild, channels] = await asyncio.gather(
+        *[
+            GuildConfig.get(int(guild_id)),
+            get_guild(guild_id),
+            get_guild_channels(guild_id),
+        ]
+    )
+    roles = guild["roles"]
+
+    guild = {
+        "id": guild["id"],
+        "name": guild["name"],
+        "icon": guild_icon_cdn_url(guild["id"], guild.get("icon")),
+    }
+
+    roles = list(map(lambda r: {"id": r["id"], "name": r["name"]}, roles))
+
+    channels = list(
+        map(
+            lambda c: {"id": c["id"], "name": c["name"]},
+            filter(lambda c: c["type"] == 0, channels),
+        )
+    )
+
+    admin_role = str(config.admin_role)
+    logging_channel = str(config.logging_channel)
+
+    verified_role = str(config.verified_role)
+    verification_channel = str(config.verification_channel)
+
+    confession_approval_channel = str(config.confession_approval_channel)
+    confession_channel = str(config.confession_channel)
+
+    import sys
+
+    print(
+        f"guild: {guild}\nroles: {roles}\nchannels: {channels}\nadminrole: {admin_role}",
+        file=sys.stderr,
+    )
+
+    return templates.TemplateResponse(
+        "config_guild.html",
+        {
+            "request": request,
+            "guild": guild,
+            "roles": roles,
+            "channels": channels,
+            "admin_role": admin_role,
+            "logging_channel": logging_channel,
+            "verified_role": verified_role,
+            "verification_channel": verification_channel,
+            "confession_approval_channel": confession_approval_channel,
+            "confession_channel": confession_channel,
+        },
+    )

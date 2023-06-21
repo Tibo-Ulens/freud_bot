@@ -1,8 +1,102 @@
 {% extends "base.html" %}
 
+{% block head %}
+	<link rel="stylesheet" href="{{ url_for('static', path='/styles/config_guild.css') }}">
+{% endblock head %}
+
 {% block title %}FreudBot Config{% endblock title %}
 
 {% block body %}
 	<main>
+		<div id="card">
+			<div id="card-title">
+				{% if guild.icon %}
+					<img id="card-icon" src="{{ guild.icon }}" alt="server icon">
+				{% endif %}
+				<h2>Configuring {{guild.name}}</h2>
+			</div>
+
+			<form action="/update_config?guild_id={{guild.id}}" method="post">
+				<fieldset>
+					<legend>General</legend>
+
+					<label for="admin_role">Admin Role</label>
+					<select name="admin_role" id="admin_role">
+						{% for role in roles %}
+							{% if admin_role == role.id %}
+								<option value="{{role.id}}" selected>{{role.name}}</option>
+							{% else %}
+								<option value="{{role.id}}">{{role.name}}</option>
+							{% endif %}
+						{% endfor %}
+					</select>
+
+					<label for="logging_channel">Logging Channel</label>
+					<select name="logging_channel" id="logging_channel">
+						{% for channel in channels %}
+							{% if logging_channel == channel.id %}
+								<option value="{{channel.id}}" selected>{{channel.name}}</option>
+							{% else %}
+								<option value="{{channel.id}}">{{channel.name}}</option>
+							{% endif %}
+						{% endfor %}
+					</select>
+				</fieldset>
+
+				<fieldset>
+					<legend>Verification</legend>
+
+					<label for="verified_role">Verified Role</label>
+					<select name="verified_role" id="verified_role">
+						{% for role in roles %}
+							{% if verified_role == role.id %}
+								<option value="{{role.id}}" selected>{{role.name}}</option>
+							{% else %}
+								<option value="{{role.id}}">{{role.name}}</option>
+							{% endif %}
+						{% endfor %}
+					</select>
+
+					<label for="verification_channel">Verification Channel</label>
+					<select name="verification_channel" id="verification_channel">
+						{% for channel in channels %}
+							{% if verification_channel == channel.id %}
+								<option value="{{channel.id}}" selected>{{channel.name}}</option>
+							{% else %}
+								<option value="{{channel.id}}">{{channel.name}}</option>
+							{% endif %}
+						{% endfor %}
+					</select>
+				</fieldset>
+
+				<fieldset>
+					<legend>Confessions</legend>
+
+					<label for="confession_approval_channel">Confession Approval Channel</label>
+					<select name="confession_approval_channel" id="confession_approval_channel">
+						{% for channel in channels %}
+							{% if confession_approval_channel == channel.id %}
+								<option value="{{channel.id}}" selected>{{channel.name}}</option>
+							{% else %}
+								<option value="{{channel.id}}">{{channel.name}}</option>
+							{% endif %}
+						{% endfor %}
+					</select>
+
+					<label for="confession_channel">Confession Channel</label>
+					<select name="confession_channel" id="confession_channel">
+						{% for channel in channels %}
+							{% if confession_channel == channel.id %}
+								<option value="{{channel.id}}" selected>{{channel.name}}</option>
+							{% else %}
+								<option value="{{channel.id}}">{{channel.name}}</option>
+							{% endif %}
+						{% endfor %}
+					</select>
+				</fieldset>
+
+				<input type="submit" value="Save">
+			</form>
+		</div>
 	</main>
 {% endblock body %}
