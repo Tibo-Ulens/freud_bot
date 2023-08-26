@@ -35,6 +35,13 @@
 		<title>{% block title %}{% endblock title %}</title>
 	</head>
 	<body>
+		<div id="header">
+			<a id="header-link" href="{{base_url}}">
+				<img id="header-image" src="{{ url_for('static', path='/images/android-chrome-512x512.png') }}" alt="freudbot logo">
+				<h1 id="header-link-text">FreudBot</h1>
+			</a>
+		</div>
+
 		{% block body %}
 		{% endblock body %}
 	</body>

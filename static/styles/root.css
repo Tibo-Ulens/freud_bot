@@ -42,3 +42,32 @@ h6 {
 	font-weight: 400;
 	text-align: center;
 }
+
+#header {
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: center;
+	align-items: center;
+	padding: 1rem 0;
+}
+
+#header-link {
+	text-decoration: none;
+	text-align: left;
+	color: inherit;
+	transition: background-color 0.25s;
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: flex-start;
+	align-items: center;
+}
+
+#header-image {
+	width: 4rem;
+	height: 4rem;
+}
+
+#header-link-text {
+	font-size: 1.5rem;
+	padding-left: 1rem;
+}

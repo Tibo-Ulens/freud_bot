@@ -1,18 +1,28 @@
 main {
 	width: 100%;
 	height: 100%;
-	padding: 1rem;
 
 	display: flex;
-	flex-flow: row nowrap;
-	justify-content: center;
-	align-items: flex-start;
+	flex-flow: column nowrap;
+	justify-content: flex-start;
+	align-items: center;
 }
 
 #card {
+	flex: 1 0 auto;
 	background-color: #202020FF;
 	border-radius: 8px;
 	padding: 1rem;
+	width: 100%;
+
+	display: flex;
+	flex-flow: column nowrap;
+	justify-content: flex-start;
+	align-items: center;
+}
+
+#card-inner {
+	max-width: 64rem;
 
 	display: flex;
 	flex-flow: column nowrap;
@@ -30,7 +40,6 @@ main {
 	font-size: 1.125rem;
 	text-transform: uppercase;
 	letter-spacing: 2px;
-	line-height: 1rem;
 	text-align: center;
 	white-space: pre-wrap;
 }
@@ -39,6 +48,10 @@ main {
 	width: 4rem;
 	height: 4rem;
 	margin: 0 1rem 0 0;
+}
+
+#guild-name {
+	color: hsl(32, 83%, 57%);
 }
 
 form {
@@ -71,7 +84,7 @@ select {
 	padding: 0.5rem;
 	background-color: transparent;
 	color: white;
-	border: 1px solid #555555;
+	border: 1px solid #AAAAAA;
 }
 
 input[type="submit"] {
