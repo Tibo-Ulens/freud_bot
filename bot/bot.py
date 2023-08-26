@@ -6,7 +6,6 @@ import logging
 from logging import Logger
 import discord
 from discord.ext import commands
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 # from bot.events.bot import BotEvent as BotEvent
 from bot.log.guild_adapter import GuildAdapter
@@ -18,10 +17,9 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, db: AsyncEngine, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.logger: Logger = None
         self.discord_logger: GuildAdapter = None
-        self.db = db
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -42,10 +40,7 @@ class Bot(commands.Bot):
         intents.voice_states = False
         intents.webhooks = False
 
-        pg_engine = create_async_engine(os.environ.get("DB_URL"), echo=False)
-        logger.info("database connected")
-
-        return cls(db=pg_engine, command_prefix="$", intents=intents)
+        return cls(command_prefix="$", intents=intents)
 
     async def load_extensions(self) -> None:
         """Load all enabled extensions"""
@@ -88,7 +83,6 @@ class Bot(commands.Bot):
         logger.info("database closed")
 
         logger.info("bot exited")
-        await self.logout()
 
     async def on_error(self, event: str) -> None:
         logger.exception(f"Unhandled exception in {event}")

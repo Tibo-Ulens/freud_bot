@@ -1,10 +1,10 @@
 .PHONY: all fmt migrate down dbd setup
 
 all:
-	docker compose up --build freud_bot
+	docker compose up --build freud_bot freud_bot_webconfig
 
 dev: fmt
-	docker compose up --build freud_bot_dev
+	docker compose up --build freud_bot_dev freud_bot_webconfig_dev
 
 fmt:
 	black .

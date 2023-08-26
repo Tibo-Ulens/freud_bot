@@ -9,11 +9,14 @@ jobs:
     release:
         runs-on: ubuntu-latest
         steps:
-          - uses: actions/checkout@v3
-          - name: parse tag
+          - name: "Checkout repository"
+            uses: actions/checkout@v3
+
+          - name: Parse tag
             id: parse_tag
             run: "echo \"version=$(echo ${{ github.ref }} | sed 's#^refs/tags/v##')\" >> $GITHUB_OUTPUT"
-          - name: create release
+
+          - name: Create release draft
             id: create_release
             uses: release-drafter/release-drafter@v5
             with:
@@ -22,11 +25,21 @@ jobs:
                 version: v${{ steps.parse_tag.outputs.version }}
             env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          - name: build new image
-            run: docker build . -t ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }}
-          - name: log in to ghcr
+
+          - name: Build new images
+            run: |
+                docker build Dockerfile.bot -t ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }}
+                docker build Dockerfile.webconfig -t ghcr.io/tibo-ulens/freud_bot_webconfig:${{ steps.parse_tag.outputs.version }}
+
+          - name: Log in to ghcr
             run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-          - name: tag new image as latest
-            run: docker tag ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }} ghcr.io/tibo-ulens/freud_bot:latest
-          - name: push the new image
-            run: docker push --all-tags ghcr.io/tibo-ulens/freud_bot
+
+          - name: Tag new images as latest
+            run: |
+                docker tag ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }} ghcr.io/tibo-ulens/freud_bot:latest
+                docker tag ghcr.io/tibo-ulens/freud_bot_webconfig:${{ steps.parse_tag.outputs.version }} ghcr.io/tibo-ulens/freud_bot_webconfig:latest
+
+          - name: Push new images
+            run: |
+                docker push --all-tags ghcr.io/tibo-ulens/freud_bot
+                docker push --all-tags ghcr.io/tibo-ulens/freud_bot_webconfig

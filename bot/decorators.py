@@ -9,8 +9,9 @@ from discord import (
 from discord.app_commands.errors import MissingRole
 from discord.ext.commands import Context
 
+from models.config import Config
+
 from bot.exceptions import MissingConfig, MissingConfigOption, WrongChannel
-from bot.models.config import Config
 
 
 def store_command_context(func: Coroutine) -> Coroutine:

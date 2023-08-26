@@ -6,7 +6,7 @@ from sqlalchemy.orm import Query
 
 from discord import Guild
 
-from bot.models import Base, Model, session_factory
+from models import Base, Model, session_factory
 
 
 logger = logging.getLogger("models")
@@ -16,12 +16,12 @@ class Config(Base, Model):
     __tablename__ = "config"
 
     guild_id = Column(BigInteger, primary_key=True)
-    verified_role = Column(BigInteger, unique=True, nullable=False)
-    verification_channel = Column(BigInteger, unique=True, nullable=False)
-    admin_role = Column(BigInteger, unique=True, nullable=False)
-    logging_channel = Column(BigInteger, unique=True, nullable=False)
-    confession_approval_channel = Column(BigInteger, unique=True, nullable=False)
-    confession_channel = Column(BigInteger, unique=True, nullable=False)
+    verified_role = Column(BigInteger, unique=True, nullable=True)
+    verification_channel = Column(BigInteger, unique=True, nullable=True)
+    admin_role = Column(BigInteger, unique=True, nullable=True)
+    logging_channel = Column(BigInteger, unique=True, nullable=True)
+    confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
+    confession_channel = Column(BigInteger, unique=True, nullable=True)
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, verification_channel={self.verification_channel}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"
@@ -52,6 +52,15 @@ class Config(Base, Model):
 
             r = result.first()
             if r is None:
-                return await Config.create(guild_id=guild.id, verified_role=None)
+                return await Config.create(guild_id=guild.id)
             else:
                 return r[0]
+
+    def update(self, changes: dict[str, any]) -> "Config":
+        """Update a config given a dict of changes"""
+
+        for col in self.cols():
+            if col.name in changes:
+                setattr(self, col.name, int(changes[col.name]))
+
+        return self

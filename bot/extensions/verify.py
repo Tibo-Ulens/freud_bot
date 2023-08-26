@@ -6,6 +6,9 @@ import uuid
 import discord
 from discord import app_commands, Interaction
 
+from models.profile import Profile
+from models.config import Config
+
 from bot import constants, util
 from bot.bot import Bot
 from bot.decorators import (
@@ -14,8 +17,6 @@ from bot.decorators import (
     only_in_channel,
 )
 from bot.extensions import ErrorHandledCog
-from bot.models.profile import Profile
-from bot.models.config import Config
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")

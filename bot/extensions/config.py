@@ -4,12 +4,13 @@ from discord import app_commands, Interaction, Role, TextChannel, Member
 from discord.ext import commands
 from discord.ext.commands import command, Context
 
+from models.profile import Profile
+from models.config import Config as ConfigModel
+
 from bot import util
 from bot.bot import Bot
 from bot.decorators import check_user_has_admin_role
 from bot.extensions import ErrorHandledCog
-from bot.models.profile import Profile
-from bot.models.config import Config as ConfigModel
 
 
 class Config(ErrorHandledCog):

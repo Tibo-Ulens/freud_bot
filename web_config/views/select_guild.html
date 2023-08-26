@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block head %}
+	<link rel="stylesheet" href="{{ url_for('static', path='/styles/select_guild.css') }}">
+{% endblock head %}
+
+{% block title %}FreudBot Config{% endblock title %}
+
+{% block body %}
+	<main>
+		<div id="card">
+			<h2 id="card-title">select the server to configure</h2>
+
+			<ul id="guild-list">
+				{% for guild in guilds %}
+					<li class="guild-list-item">
+						{% if guild.icon is not none %}
+							<a class="guild-link" href="/config/{{guild.id}}">
+								<img class="guild-icon" src="{{ guild.icon }}" alt="server icon">
+								{{guild.name}}
+							</a>
+						{% else %}
+							<a class="guild-link padded" href="/config/{{guild.id}}">
+								{{guild.name}}
+							</a>
+						{% endif %}
+					</li>
+				{% endfor %}
+			</ul>
+		</div>
+	</main>
+{% endblock body %}

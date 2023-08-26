@@ -3,7 +3,7 @@ from sqlalchemy import Column, Text, Integer
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
-from bot.models import Base, Model, session_factory
+from models import Base, Model, session_factory
 
 
 class Lecture(Base, Model):

@@ -1,13 +1,23 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+import os
+
+from sqlalchemy import Column
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Query
 
-import bot
 
-engine = bot.instance.db
+logger = logging.getLogger("db")
+
+
+engine = create_async_engine(os.environ["DB_URL"], echo=False)
 session_factory = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 Base = declarative_base()
+
+
+logger.info("database connected")
 
 
 class Model:
@@ -21,6 +31,21 @@ class Model:
             await session.commit()
 
             return instance
+
+    @classmethod
+    async def get_all(cls) -> list["Model"]:
+        """Get all rows"""
+
+        async with session_factory() as session:
+            result: Query = await session.execute(select(cls))
+
+            return result.scalars().all()
+
+    @classmethod
+    def cols(cls) -> list[Column]:
+        """Get a list of all of the tables columns"""
+
+        return cls.__table__.columns
 
     async def save(self):
         """Save an updated row"""

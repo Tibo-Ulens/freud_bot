@@ -4,9 +4,9 @@ from sqlalchemy import Column, Text
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
-from bot.models import Base, Model, session_factory
-from bot.models.enrollment import Enrollment
-from bot.models.lecture import Lecture
+from models import Base, Model, session_factory
+from models.enrollment import Enrollment
+from models.lecture import Lecture
 
 
 class Course(Base, Model):
@@ -46,15 +46,6 @@ class Course(Base, Model):
                 return None
             else:
                 return r[0]
-
-    @classmethod
-    async def get_all(cls) -> list["Course"]:
-        """Get all available courses"""
-
-        async with session_factory() as session:
-            result: Query = await session.execute(select(cls))
-
-            return result.scalars().all()
 
     @classmethod
     async def get_all_names(cls) -> list[str]:
