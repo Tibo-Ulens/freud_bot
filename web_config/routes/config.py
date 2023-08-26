@@ -1,6 +1,7 @@
 import asyncio
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, status
+from fastapi.datastructures import FormData
 from fastapi.responses import RedirectResponse
 
 from models.config import Config as GuildConfig
@@ -50,7 +51,7 @@ async def index(request: Request):
 
 
 @router.get("/config/{guild_id}")
-async def config(request: Request, guild_id: str):
+async def show_config(request: Request, guild_id: str):
     [config, guild, channels] = await asyncio.gather(
         *[
             GuildConfig.get(int(guild_id)),
@@ -105,4 +106,26 @@ async def config(request: Request, guild_id: str):
             "confession_approval_channel": confession_approval_channel,
             "confession_channel": confession_channel,
         },
+    )
+
+
+@router.post("/config/{guild_id}")
+async def update_config(request: Request, guild_id: str):
+    import sys
+
+    typed_list: tuple[GuildConfig, FormData] = await asyncio.gather(
+        *[
+            GuildConfig.get(int(guild_id)),
+            request.form(),
+        ]
+    )
+
+    [config, form] = typed_list
+
+    config = config.update(form._dict)
+
+    await config.save()
+
+    return RedirectResponse(
+        f"/config/{guild_id}", status_code=status.HTTP_303_SEE_OTHER
     )

@@ -55,3 +55,12 @@ class Config(Base, Model):
                 return await Config.create(guild_id=guild.id)
             else:
                 return r[0]
+
+    def update(self, changes: dict[str, any]) -> "Config":
+        """Update a config given a dict of changes"""
+
+        for col in self.cols():
+            if col.name in changes:
+                setattr(self, col.name, int(changes[col.name]))
+
+        return self

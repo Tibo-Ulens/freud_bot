@@ -1,6 +1,7 @@
 import logging
 import os
 
+from sqlalchemy import Column
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -39,6 +40,12 @@ class Model:
             result: Query = await session.execute(select(cls))
 
             return result.scalars().all()
+
+    @classmethod
+    def cols(cls) -> list[Column]:
+        """Get a list of all of the tables columns"""
+
+        return cls.__table__.columns
 
     async def save(self):
         """Save an updated row"""
