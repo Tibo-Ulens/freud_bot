@@ -18,8 +18,6 @@ WORKDIR /web_config
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main,webconfig
 
-COPY ./static ./static
-COPY ./views ./views
 COPY ./models ./models
 COPY ./web_config ./web_config
 

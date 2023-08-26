@@ -20,7 +20,7 @@ logging.config.fileConfig(log_file_path, disable_existing_loggers=False)
 
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="web_config/static"), name="static")
 
 
 @app.middleware("http")
