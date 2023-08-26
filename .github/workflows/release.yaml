@@ -28,8 +28,8 @@ jobs:
 
           - name: Build new images
             run: |
-                docker build Dockerfile.bot -t ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }}
-                docker build Dockerfile.webconfig -t ghcr.io/tibo-ulens/freud_bot_webconfig:${{ steps.parse_tag.outputs.version }}
+                docker build . --file Dockerfile.bot -t ghcr.io/tibo-ulens/freud_bot:${{ steps.parse_tag.outputs.version }}
+                docker build . --file Dockerfile.webconfig -t ghcr.io/tibo-ulens/freud_bot_webconfig:${{ steps.parse_tag.outputs.version }}
 
           - name: Log in to ghcr
             run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
