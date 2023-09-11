@@ -1,8 +1,9 @@
 import random
 import logging
+from typing import Union
 
 import discord
-from discord import Message, Guild, Member
+from discord import Message, Guild, Member, RawReactionActionEvent
 
 from models.config import Config
 from models.profile import Profile
@@ -94,6 +95,18 @@ class Listeners(ErrorHandledCog):
             await member.add_roles(
                 discord.utils.get(guild.roles, id=guild_config.verified_role)
             )
+
+    @ErrorHandledCog.listener()
+    async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
+        if payload.emoji.name != "📌":
+            return
+
+        channel = self.bot.get_channel(payload.channel_id)
+        message: Message = await channel.fetch_message(payload.message_id)
+        count = len(list(filter(lambda r: r.emoji == "📌", message.reactions)))
+
+        if count >= 3:
+            await message.pin()
 
 
 async def setup(bot: Bot):
