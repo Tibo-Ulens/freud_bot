@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from sqlalchemy import Column, BigInteger
+from sqlalchemy import Column, BigInteger, Integer
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
@@ -22,6 +22,7 @@ class Config(Base, Model):
     logging_channel = Column(BigInteger, unique=True, nullable=True)
     confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
     confession_channel = Column(BigInteger, unique=True, nullable=True)
+    pin_reaction_threshold = Column(Integer, nullable=True)
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, verification_channel={self.verification_channel}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"

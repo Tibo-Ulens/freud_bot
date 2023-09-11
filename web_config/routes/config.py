@@ -105,6 +105,7 @@ async def show_config(request: Request, guild_id: str):
             "verification_channel": verification_channel,
             "confession_approval_channel": confession_approval_channel,
             "confession_channel": confession_channel,
+            "pin_reaction_threshold": config.pin_reaction_threshold,
         },
     )
 

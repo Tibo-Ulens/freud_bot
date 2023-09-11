@@ -35,7 +35,6 @@ class Bot(commands.Bot):
         intents.dm_messages = False
         intents.integrations = False
         intents.invites = False
-        intents.reactions = False
         intents.typing = False
         intents.voice_states = False
         intents.webhooks = False
