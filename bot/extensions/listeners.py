@@ -105,7 +105,13 @@ class Listeners(ErrorHandledCog):
         message: Message = await channel.fetch_message(payload.message_id)
         count = len(list(filter(lambda r: r.emoji == "📌", message.reactions)))
 
-        if count >= 3:
+        guild_config = await Config.get(message.guild.id)
+
+        if (
+            guild_config is not None
+            and guild_config.pin_reaction_threshold is not None
+            and count == guild_config.pin_reaction_threshold
+        ):
             await message.pin()
 
 
