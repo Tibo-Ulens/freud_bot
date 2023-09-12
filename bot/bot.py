@@ -1,5 +1,4 @@
 import asyncio
-import os
 from contextlib import suppress
 
 import logging
@@ -48,7 +47,7 @@ class Bot(commands.Bot):
 
         for ext in EXTENSIONS:
             await self.load_extension(ext)
-            logger.debug(f"loaded extension '{ext}'")
+            logger.info(f"loaded extension '{ext}'")
 
     async def add_cog(self, cog: commands.Cog) -> None:
         """Add a cog to the bot"""

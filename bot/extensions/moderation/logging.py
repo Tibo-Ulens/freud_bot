@@ -1,14 +1,11 @@
-import random
 import logging
-from typing import Union
 
 import discord
-from discord import Message, Guild, Member, RawReactionActionEvent
+from discord import Message, Guild
 
 from models.config import Config
-from models.profile import Profile
 
-from bot import constants, root_logger, util
+from bot import root_logger, util
 from bot.bot import Bot
 from bot.extensions import ErrorHandledCog
 from bot.log.discord_handler import DiscordHandler
@@ -28,7 +25,7 @@ If you experience further issues, please contact somebody that looks important.
 """
 
 
-class Listeners(ErrorHandledCog):
+class ModLogging(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
@@ -75,45 +72,6 @@ class Listeners(ErrorHandledCog):
 
             await msg.reply(MSG)
 
-        if self.bot.user in msg.mentions:
-            quote = random.choice(constants.FREUD_QUOTES)
-            await msg.reply(quote)
-
-    @ErrorHandledCog.listener()
-    async def on_member_join(self, member: Member):
-        guild = member.guild
-
-        guild_config = await Config.get(member.id)
-        if guild_config is None or guild_config.verified_role is None:
-            return
-
-        profile = await Profile.find_by_discord_id(member.id)
-        if profile is None:
-            return
-
-        if profile.email is not None and profile.confirmation_code is None:
-            await member.add_roles(
-                discord.utils.get(guild.roles, id=guild_config.verified_role)
-            )
-
-    @ErrorHandledCog.listener()
-    async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
-        if payload.emoji.name != "📌":
-            return
-
-        channel = self.bot.get_channel(payload.channel_id)
-        message: Message = await channel.fetch_message(payload.message_id)
-        count = len(list(filter(lambda r: r.emoji == "📌", message.reactions)))
-
-        guild_config = await Config.get(message.guild.id)
-
-        if (
-            guild_config is not None
-            and guild_config.pin_reaction_threshold is not None
-            and count == guild_config.pin_reaction_threshold
-        ):
-            await message.pin()
-
 
 async def setup(bot: Bot):
-    await bot.add_cog(Listeners(bot))
+    await bot.add_cog(ModLogging(bot))
