@@ -4,7 +4,7 @@ import smtplib
 import uuid
 
 import discord
-from discord import app_commands, Interaction
+from discord import app_commands, Interaction, Member
 
 from models.profile import Profile
 from models.config import Config
@@ -28,7 +28,7 @@ EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: Psychology Discord Verificati
 email_logger = logging.getLogger("email")
 
 
-class Verify(ErrorHandledCog):
+class Verification(ErrorHandledCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
@@ -188,6 +188,23 @@ class Verify(ErrorHandledCog):
                 ephemeral=True,
             )
 
+    @ErrorHandledCog.listener("on_member_join")
+    async def verify_if_already_verified(self, member: Member):
+        guild = member.guild
+
+        guild_config = await Config.get(member.id)
+        if guild_config is None or guild_config.verified_role is None:
+            return
+
+        profile = await Profile.find_by_discord_id(member.id)
+        if profile is None:
+            return
+
+        if profile.email is not None and profile.confirmation_code is None:
+            await member.add_roles(
+                discord.utils.get(guild.roles, id=guild_config.verified_role)
+            )
+
 
 async def setup(bot: Bot):
-    await bot.add_cog(Verify(bot))
+    await bot.add_cog(Verification(bot))
