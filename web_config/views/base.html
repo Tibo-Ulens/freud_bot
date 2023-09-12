@@ -11,7 +11,7 @@
 		<meta name="og:title" content="FreudBot Config">
 		<meta name="og:description" content="FreudBot Config">
 		<meta name="og:type" content="website">
-		<meta name="og:image" content="{{ url_for('static', path='/images/android-chrome-512x512.png') }}">
+		<meta name="og:image" content="/static/images/android-chrome-512x512.png">
 		<meta name="og:image:type" content="image/png">
 		<meta name="og:image:width" content="512">
 		<meta name="og:image:height" content="512">
@@ -20,14 +20,14 @@
 		<meta name="og:locale" content="en_US">
 		<meta name="og:site_name" content="FreudBot Config">
 
-		<link rel="shortcut icon" href="{{ url_for('static', path='/favicon.ico') }}" type="image/x-icon" />
-		<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/images/apple-touch-icon.png') }}" />
-		<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/images/favicon-32x32.png') }}" />
-		<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/images/favicon-16x16.png') }}" />
+		<link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png" />
 
-		<link rel="manifest" href="{{ url_for('static', path='/site.webmanifest') }}" />
+		<link rel="manifest" href="/static/site.webmanifest" />
 
-		<link rel="stylesheet" href="{{ url_for('static', path='/styles/root.css') }}">
+		<link rel="stylesheet" href="/static/styles/root.css">
 
 		{% block head %}
 		{% endblock head %}
@@ -37,7 +37,7 @@
 	<body>
 		<div id="header">
 			<a id="header-link" href="{{base_url}}">
-				<img id="header-image" src="{{ url_for('static', path='/images/android-chrome-512x512.png') }}" alt="freudbot logo">
+				<img id="header-image" src="/static/images/android-chrome-512x512.png" alt="freudbot logo">
 				<h1 id="header-link-text">FreudBot</h1>
 			</a>
 		</div>
