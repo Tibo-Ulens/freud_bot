@@ -112,8 +112,6 @@ async def show_config(request: Request, guild_id: str):
 
 @router.post("/config/{guild_id}")
 async def update_config(request: Request, guild_id: str):
-    import sys
-
     typed_list: tuple[GuildConfig, FormData] = await asyncio.gather(
         *[
             GuildConfig.get(int(guild_id)),
