@@ -115,7 +115,7 @@ class Confess(ErrorHandledCog):
 
     @app_commands.command(
         name="russianconfess",
-        description="send confession with a 1 in 6 chance of not being anonymous",
+        description="send a confession with a 1 in 6 chance of not being anonymous",
     )
     @app_commands.describe(confession="The confession you want to post")
     @app_commands.guild_only()
