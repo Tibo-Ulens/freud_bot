@@ -17,6 +17,9 @@ class ReactionPin(ErrorHandledCog):
 
     @ErrorHandledCog.listener("on_raw_reaction_add")
     async def pin_message_if_needed(self, payload: RawReactionActionEvent):
+        if payload.member and payload.member.bot:
+            return
+
         if payload.emoji.name != "📌":
             return
 
