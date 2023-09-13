@@ -14,7 +14,6 @@ from discord.ui import View, Button
 
 from models.config import Config
 
-from bot import util
 from bot.bot import Bot
 from bot.decorators import (
     check_has_config_option,
