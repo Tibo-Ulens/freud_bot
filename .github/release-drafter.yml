@@ -8,8 +8,11 @@ categories:
       - "bug"
       - "bugfix"
       - "fix"
+      - "hotfix"
   - title: "Maintenance"
-    label: "chore"
+    labels:
+      - "chore"
+      - "refactor"
   - title: "Documentation"
     labels:
       - "documentation"
