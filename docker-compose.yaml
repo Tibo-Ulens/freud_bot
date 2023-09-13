@@ -53,7 +53,7 @@ services:
           - discord_oauth_credentials
           - discord_token
         depends_on:
-          - freud_bot_dev
+          - freud_bot
 
     freud_bot_webconfig_dev:
         build:
