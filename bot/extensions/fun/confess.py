@@ -14,7 +14,6 @@ from discord.ui import View, Button
 
 from models.config import Config
 
-from bot import util
 from bot.bot import Bot
 from bot.decorators import (
     check_has_config_option,
@@ -29,7 +28,14 @@ async def send_pending_confession(
     approval_channel: TextChannel,
     russian_roulette_user: Member = None,
 ):
-    confession_embed = Embed(description=confession, colour=Colour.from_str("#88a8bf"))
+    confession_embed = Embed(
+        colour=Colour.from_rgb(255, 255, 0),
+        title="🔫 Russian Roulette Confession 🔫"
+        if russian_roulette_user
+        else "🥷 Anonymous Confession 🥷",
+        description=confession,
+    )
+
     pending_view = PendingApprovalView(
         confession=confession_embed,
         confession_channel=confession_channel,
@@ -56,18 +62,23 @@ class PendingApprovalView(View):
 
     @discord.ui.button(label="✓", style=ButtonStyle.green)
     async def approve(self, ia: Interaction, btn: Button):
-        if self.russian_roulette_user is not None and random.random() <= 1 / 6:
-            self.confession.description = f"{util.render_user(self.russian_roulette_user)}: {self.confession.description}"
+        actual_confession = self.confession.copy()
 
-        await self.confession_channel.send(embed=self.confession)
+        actual_confession.colour = Colour.random()
+
+        if self.russian_roulette_user is not None and random.random() <= 1 / 6:
+            actual_confession.add_field(
+                name="Sent By", value=self.russian_roulette_user.mention
+            )
+
+        await self.confession_channel.send(embed=actual_confession)
 
         for item in self.children:
             item.disabled = True
 
-        embed: Embed = self.message.embeds[0]
-        embed.colour = Colour.from_str("#3fc03f")
+        self.confession.colour = Colour.from_str("#3fc03f")
 
-        await self.message.edit(embed=embed, view=self)
+        await self.message.edit(embed=self.confession, view=self)
         await ia.response.defer()
 
     @discord.ui.button(label="⨯", style=ButtonStyle.red)
@@ -75,10 +86,9 @@ class PendingApprovalView(View):
         for item in self.children:
             item.disabled = True
 
-        embed: Embed = self.message.embeds[0]
-        embed.colour = Colour.from_str("#fb4934")
+        self.confession.colour = Colour.from_str("#fb4934")
 
-        await self.message.edit(embed=embed, view=self)
+        await self.message.edit(embed=self.confession, view=self)
         await ia.response.defer()
 
 
@@ -104,7 +114,7 @@ class Confess(ErrorHandledCog):
 
     @app_commands.command(
         name="russianconfess",
-        description="send confession with a 1 in 6 chance of not being anonymous",
+        description="send a confession with a 1 in 6 chance of not being anonymous",
     )
     @app_commands.describe(confession="The confession you want to post")
     @app_commands.guild_only()
