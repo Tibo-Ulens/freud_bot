@@ -192,7 +192,7 @@ class Verification(ErrorHandledCog):
     async def verify_if_already_verified(self, member: Member):
         guild = member.guild
 
-        guild_config = await Config.get(member.id)
+        guild_config = await Config.get(guild.id)
         if guild_config is None or guild_config.verified_role is None:
             return
 
