@@ -17,59 +17,66 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # guild_name
     op.add_column(
         "config",
         sa.Column(
             "verify_email_message",
             sa.Text,
             nullable=False,
-            server_default="Click the button to verify your email",
+            server_default="Click the button to verify your email to gain access to {guild_name}",
         ),
     )
+    # old
+    # new
     op.add_column(
         "config",
         sa.Column(
             "new_email_message",
             sa.Text,
             nullable=False,
-            server_default="A new code has been sent",
+            server_default="Your email has been updated from '{old}' to '{new}' and a new code has been sent to '{new}'",
         ),
     )
+    # email
     op.add_column(
         "config",
         sa.Column(
             "invalid_email_message",
             sa.Text,
             nullable=False,
-            server_default="This does not look like a valid email, please try again",
+            server_default="'{email}' does not look like a valid email, please try again",
         ),
     )
+    # email
     op.add_column(
         "config",
         sa.Column(
             "duplicate_email_message",
             sa.Text,
             nullable=False,
-            server_default="Duplicate email",
+            server_default="'{email}' is already in use",
         ),
     )
 
+    # email
     op.add_column(
         "config",
         sa.Column(
             "verify_code_message",
             sa.Text,
             nullable=False,
-            server_default="Click the button to verify your code",
+            server_default="A verification code was sent to {email}, click the button below to submit it",
         ),
     )
+    # code
     op.add_column(
         "config",
         sa.Column(
             "invalid_code_message",
             sa.Text,
             nullable=False,
-            server_default="Invalid code",
+            server_default="'{code}' is not a valid code",
         ),
     )
 
@@ -83,13 +90,14 @@ def upgrade() -> None:
         ),
     )
 
+    # guild_name
     op.add_column(
         "config",
         sa.Column(
             "welcome_message",
             sa.Text,
             nullable=False,
-            server_default="Welcome to {name}",
+            server_default="Welcome to {guild_name}",
         ),
     )
 

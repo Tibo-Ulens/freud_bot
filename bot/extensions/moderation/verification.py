@@ -73,7 +73,7 @@ class VerifyEmailModal(Modal):
             )
 
             return await ia.response.send_message(
-                guild_config.invalid_email_message,
+                str(guild_config.invalid_email_message).format(email=email),
             )
 
         author_id = ia.user.id
@@ -92,6 +92,7 @@ class VerifyEmailModal(Modal):
             else:
                 profile.confirmation_code = verification_code
                 # Users might have mistyped their email, update it just in case
+                old = profile.email
                 profile.email = email
                 await profile.save()
 
@@ -102,25 +103,30 @@ class VerifyEmailModal(Modal):
                     VerifyCodeButton(
                         guild=self.guild,
                         locale=self.locale,
-                        style=ButtonStyle.green,
-                        label="verify code",
                     )
                 )
 
+                self.bot.discord_logger.info(
+                    f"user {ia.user.mention} re-requested a verification code for '{email}'"
+                )
+
                 return await ia.response.send_message(
-                    guild_config.new_email_message, view=verify_code_view
+                    str(guild_config.new_email_message).format(old=old, new=email),
+                    view=verify_code_view,
                 )
 
         other = await Profile.find_by_email(email)
         if other is not None:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with duplicate email {email}"
+                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'"
             )
 
-            return await ia.response.send_message(guild_config.duplicate_email_message)
+            return await ia.response.send_message(
+                str(guild_config.duplicate_email_message).format(email=email)
+            )
 
         self.bot.discord_logger.info(
-            f"user {ia.user.mention} requested verification code for {email}"
+            f"user {ia.user.mention} requested verification code for '{email}'"
         )
 
         await Profile.create(
@@ -138,7 +144,7 @@ class VerifyEmailModal(Modal):
         )
 
         await ia.response.send_message(
-            str(guild_config.verify_code_message),
+            str(guild_config.verify_code_message).format(email=email),
             view=verify_code_view,
         )
 
@@ -188,7 +194,9 @@ class VerifyCodeModal(Modal):
                 f"user {ia.user.mention} attempted to verify with an invalid code"
             )
 
-            return await ia.response.send_message(guild_config.invalid_code_message)
+            return await ia.response.send_message(
+                str(guild_config.invalid_code_message).format(code=self.code.value)
+            )
 
         stored_code: str = profile.confirmation_code
 
@@ -197,7 +205,9 @@ class VerifyCodeModal(Modal):
                 f"user {ia.user.mention} attempted to verify with an invalid code"
             )
 
-            return await ia.response.send_message(guild_config.invalid_code_message)
+            return await ia.response.send_message(
+                str(guild_config.invalid_code_message).format(code=code)
+            )
 
         verified_role = guild_config.verified_role
 
@@ -211,7 +221,7 @@ class VerifyCodeModal(Modal):
         )
 
         await ia.response.send_message(
-            str(guild_config.welcome_message).format(name=self.guild.name)
+            str(guild_config.welcome_message).format(guild_name=self.guild.name)
         )
 
 
@@ -275,7 +285,10 @@ class Verification(ErrorHandledCog):
         )
 
         await dm_channel.send(
-            content=guild_config.verify_email_message, view=verify_email_view
+            content=str(guild_config.verify_email_message).format(
+                guild_name=ia.guild.name
+            ),
+            view=verify_email_view,
         )
 
         return await ia.response.send_message(content="done")
@@ -317,7 +330,9 @@ class Verification(ErrorHandledCog):
         )
 
         dm_channel.send(
-            content=guild_config.verify_email_message,
+            content=str(guild_config.verify_email_message).format(
+                guild_name=guild.name
+            ),
             view=verify_email_view,
         )
 
