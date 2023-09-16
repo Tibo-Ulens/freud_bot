@@ -89,7 +89,7 @@ def upgrade() -> None:
             "welcome_message",
             sa.Text,
             nullable=False,
-            server_default="Welcome to the server",
+            server_default="Welcome to {name}",
         ),
     )
 
