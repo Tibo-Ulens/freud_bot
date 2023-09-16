@@ -4,7 +4,7 @@ import smtplib
 import uuid
 
 import discord
-from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
+from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild, utils
 from discord.ui import View, Button, Modal, TextInput
 
 from models.profile import Profile
@@ -236,7 +236,7 @@ class VerifyEmailButton(Button):
 
     async def callback(self, ia: Interaction):
         await ia.response.send_modal(
-            VerifyEmailModal(bot=self.bot, guild=self.guild, locale=self.locale)
+            VerifyEmailModal(bot=self.bot, guild=self.guild, locale=ia.locale)
         )
 
 
@@ -346,10 +346,13 @@ class Verification(ErrorHandledCog):
             dm_channel = await member.create_dm()
 
         verify_email_view = View(timeout=None)
-        verify_email_view.add_item()
+        verify_email_view.add_item(
+            VerifyEmailButton(bot=self.bot, guild=guild, locale=guild.preferred_locale)
+        )
 
         dm_channel.send(
             content=guild_config.verify_email_message,
+            view=verify_email_view,
         )
 
 
