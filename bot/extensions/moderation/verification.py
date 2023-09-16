@@ -316,6 +316,9 @@ class Verification(ErrorHandledCog):
 
     @ErrorHandledCog.listener("on_member_join")
     async def handle_member_join(self, member: Member):
+        if member.bot:
+            return
+
         guild = member.guild
 
         # Exit if there's no verified role configured yet
