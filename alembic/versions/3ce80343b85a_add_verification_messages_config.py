@@ -29,6 +29,15 @@ def upgrade() -> None:
     op.add_column(
         "config",
         sa.Column(
+            "new_email_message",
+            sa.Text,
+            nullable=False,
+            server_default="A new code has been sent",
+        ),
+    )
+    op.add_column(
+        "config",
+        sa.Column(
             "invalid_email_message",
             sa.Text,
             nullable=False,
@@ -60,7 +69,7 @@ def upgrade() -> None:
             "invalid_code_message",
             sa.Text,
             nullable=False,
-            server_default="Click the button to verify your code",
+            server_default="Invalid code",
         ),
     )
 
@@ -87,6 +96,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_column("config", "verify_email_message")
+    op.drop_column("config", "new_email_message")
     op.drop_column("config", "invalid_email_message")
     op.drop_column("config", "duplicate_email_message")
     op.drop_column("config", "verify_code_message")
