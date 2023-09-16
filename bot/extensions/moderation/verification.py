@@ -4,19 +4,20 @@ import smtplib
 import uuid
 
 import discord
-from discord import app_commands, Interaction, Member, Locale, ButtonStyle
+from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
 from discord.ui import View, Button, Modal, TextInput
 
 from models.profile import Profile
 from models.config import Config
 
-from bot import constants, util
+from bot import constants
 from bot.bot import Bot
 from bot.decorators import (
     store_command_context,
     check_has_config_option,
     only_in_channel,
 )
+from bot.exceptions import MissingConfig
 from bot.extensions import ErrorHandledCog
 
 
@@ -46,24 +47,37 @@ def send_confirmation_email(to: str, code: str):
     email_logger.info(f"sent email to {to}")
 
 
-class VerifyEmailModal(Modal, title=""):
+class VerifyEmailModal(Modal):
     email = TextInput(label="email", placeholder="jan.peeters@ugent.be")
 
+    def __init__(self, bot: Bot, guild: Guild, locale: Locale) -> None:
+        self.bot = bot
+        self.guild = guild
+        self.locale = locale
+
+        title = "Verifieer je email" if locale == Locale.dutch else "Verify your email"
+
+        super().__init__(title=title, timeout=None)
+
+    @store_command_context
     async def on_submit(self, ia: Interaction):
         email = self.email.value
         author_id = ia.user.id
         verification_code = str(uuid.uuid4().hex)
 
+        guild_config = await Config.get(self.guild.id)
+        if guild_config is None:
+            raise MissingConfig(self.guild)
+
         profile = await Profile.find_by_discord_id(author_id)
         if profile is not None:
             if profile.confirmation_code is None:
-                # self.bot.discord_logger.warning(
-                #     f"user {util.render_user(ia.user)} attempted to verify despite already being verified"
-                # )
-                await ia.response.send_message(
-                    "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
-                    ephemeral=True,
+                self.bot.discord_logger.warning(
+                    f"user {ia.user.mention} attempted to verify despite already being verified"
                 )
+
+                await ia.response.send_message(guild_config.already_verified_message)
+
                 return
             else:
                 profile.confirmation_code = verification_code
@@ -75,13 +89,16 @@ class VerifyEmailModal(Modal, title=""):
 
                 verify_code_view = View(timeout=None)
                 verify_code_view.add_item(
-                    VerifyCodeButton(style=ButtonStyle.green, label="verify code")
+                    VerifyCodeButton(
+                        guild=self.guild,
+                        locale=self.locale,
+                        style=ButtonStyle.green,
+                        label="verify code",
+                    )
                 )
 
                 await ia.response.send_message(
-                    f"It seems you had already requested a confirmation code before\nThis code has been revoked and a new one has been sent to '{email}'",
-                    view=verify_code_view,
-                    ephemeral=True,
+                    guild_config.new_email_message, view=verify_code_view
                 )
 
                 return
@@ -91,15 +108,15 @@ class VerifyEmailModal(Modal, title=""):
             # self.bot.discord_logger.warning(
             #     f"user {util.render_user(ia.user)} attempted to verify with duplicate email {email}"
             # )
-            await ia.response.send_message(
-                "A different profile with this email already exists\nIf you think this is a mistake please contact a server admin",
-                ephemeral=True,
-            )
+
+            await ia.response.send_message(guild_config.duplicate_email_message)
+
             return
 
         # self.bot.logger.info(
         #     f"user {util.render_user(ia.user)} requested verification code for {email}"
         # )
+
         await Profile.create(
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
@@ -108,42 +125,70 @@ class VerifyEmailModal(Modal, title=""):
 
         verify_code_view = View(timeout=None)
         verify_code_view.add_item(
-            VerifyCodeButton(style=ButtonStyle.green, label="verify code")
+            VerifyCodeButton(
+                guild=self.guild,
+                locale=self.locale,
+            )
         )
 
         await ia.response.send_message(
-            content=f"A confirmation code has been sent to '{email}'",
+            str(guild_config.welcome_message).format(name=self.guild.name),
             view=verify_code_view,
         )
 
 
-class VerifyCodeModal(Modal, title=""):
+class VerifyCodeModal(Modal):
     code = TextInput(label="code", placeholder="1234567890")
 
+    def __init__(self, bot: Bot, guild: Guild, locale: Locale) -> None:
+        self.bot = bot
+        self.guild = guild
+        self.locale = locale
+
+        title = (
+            "Check je verificatie code"
+            if locale == Locale.dutch
+            else "Check your verification code"
+        )
+
+        super().__init__(title=title, timeout=None)
+
+    @store_command_context
     async def on_submit(self, ia: Interaction):
         code = self.code.value
         author_id = ia.user.id
         profile = await Profile.find_by_discord_id(author_id)
 
+        guild_config = await Config.get(self.guild.id)
+        if guild_config is None:
+            raise MissingConfig(self.guild)
+
         if profile is None:
             # self.bot.discord_logger.warning(
             #     f"user {util.render_user(ia.user)} attempted to verify without requesting a code"
             # )
-            await ia.response.send_message(
-                "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
-                ephemeral=True,
-            )
 
-            return
+            # await ia.response.send_message(
+            #     "It seems you are trying to verify a code without having requested one first\nPlease use `/verify <email>` to request a code",
+            #     ephemeral=True,
+            # )
+
+            # return
+
+            raise Exception()
 
         if profile.confirmation_code is None:
             # self.bot.discord_logger.warning(
             #     f"user {util.render_user(ia.user)} attempted to verify despite already being verified"
             # )
-            await ia.response.send_message(
-                "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
-                ephemeral=True,
-            )
+
+            await ia.response.send_message(guild_config.already_verified_message)
+
+            # await ia.response.send_message(
+            #     "It seems you are trying to verify again despite already having done so in the past\nIf you think this is a mistake please contact a server admin",
+            #     ephemeral=True,
+            # )
+
             return
 
         stored_code: str = profile.confirmation_code
@@ -152,10 +197,14 @@ class VerifyCodeModal(Modal, title=""):
             # self.bot.discord_logger.warning(
             #     f"user {util.render_user(ia.user)} attempted to verify with an invalid code"
             # )
-            await ia.response.send_message(
-                "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
-                ephemeral=True,
-            )
+
+            await ia.response.send_message(guild_config.invalid_code_message)
+
+            # await ia.response.send_message(
+            #     "This verification code is incorrect\nIf you would like to request a new code you may do so by using `/verify <email>`",
+            #     ephemeral=True,
+            # )
+
             return
 
         # user = ia.user
@@ -169,25 +218,42 @@ class VerifyCodeModal(Modal, title=""):
         await profile.save()
 
         # self.bot.logger.info(f"user {util.render_user(ia.user)} verified succesfully")
+
         await ia.response.send_message(
-            "You have verified succesfully! Welcome to the server"
+            str(guild_config.welcome_message).format(name=self.guild.name)
         )
 
 
 class VerifyEmailButton(Button):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, bot: Bot, guild: Guild, locale: Locale, *args, **kwargs):
+        self.bot = bot
+        self.guild = guild
+        self.locale = locale
+
+        label = "Verifieer je email" if locale == Locale.dutch else "Verify your email"
+
+        super().__init__(*args, style=ButtonStyle.green, label=label, **kwargs)
 
     async def callback(self, ia: Interaction):
-        await ia.response.send_modal(VerifyEmailModal())
+        await ia.response.send_modal(
+            VerifyEmailModal(bot=self.bot, guild=self.guild, locale=self.locale)
+        )
 
 
 class VerifyCodeButton(Button):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, bot: Bot, guild: Guild, locale: Locale, *args, **kwargs):
+        self.bot = bot
+        self.guild = guild
+        self.locale = locale
+
+        label = "Verifieer je code" if locale == Locale.dutch else "Verify your code"
+
+        super().__init__(*args, style=ButtonStyle.green, label=label, **kwargs)
 
     async def callback(self, ia: Interaction):
-        await ia.response.send_modal(VerifyCodeModal())
+        await ia.response.send_modal(
+            VerifyCodeModal(bot=self.bot, guild=self.guild, locale=self.locale)
+        )
 
 
 class Verification(ErrorHandledCog):
@@ -197,18 +263,33 @@ class Verification(ErrorHandledCog):
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
-    @app_commands.describe(argument="Your UGent email or verification code")
     @only_in_channel("verification_channel")
     @check_has_config_option("verification_channel")
     @check_has_config_option("verified_role")
     @store_command_context
-    async def verify(self, ia: Interaction, argument: str):
+    async def verify(self, ia: Interaction):
+        guild_config = await Config.get(ia.guild.id)
+        if guild_config is None:
+            raise MissingConfig(ia.guild)
+
         verify_email_view = View(timeout=None)
         verify_email_view.add_item(
-            VerifyEmailButton(style=ButtonStyle.green, label="verify")
+            VerifyEmailButton(bot=self.bot, guild=ia.guild, locale=ia.locale)
         )
 
-        await ia.response.send_message(content="verifying", view=verify_email_view)
+        dm_channel = (
+            ia.user.dm_channel
+            if ia.user.dm_channel is not None
+            else await ia.user.create_dm()
+        )
+
+        await dm_channel.send(
+            content=guild_config.verify_email_message, view=verify_email_view
+        )
+
+        await ia.response.send_message(content="done")
+
+        # await ia.response.send_message(content="verifying", view=verify_email_view)
         # msg = argument.strip().lower()
 
         # if len(msg.split(" ")) != 1:
@@ -247,7 +328,7 @@ class Verification(ErrorHandledCog):
         if profile is None:
             return
 
-        # If the profile is already verified somehwere else, verify them here
+        # If the profile is already verified somewhere else, verify them here
         # as well
         if profile.email is not None and profile.confirmation_code is None:
             await member.add_roles(
