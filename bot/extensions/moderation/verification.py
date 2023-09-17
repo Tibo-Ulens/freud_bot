@@ -331,6 +331,12 @@ class Verification(ErrorHandledCog):
             await member.add_roles(
                 discord.utils.get(guild.roles, id=guild_config.verified_role)
             )
+
+            self.bot.discord_logger.info(
+                f"{member.mention} has been automatically verified, their email is {profile.email}",
+                guild=guild,
+            )
+
             return
 
         # If the profile is not verified yet send them through the
