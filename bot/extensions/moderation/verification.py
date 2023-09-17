@@ -271,8 +271,6 @@ class Verification(ErrorHandledCog):
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
-    @only_in_channel("verification_channel")
-    @check_has_config_option("verification_channel")
     @check_has_config_option("verified_role")
     async def verify(self, ia: Interaction):
         guild_config = await Config.get(ia.guild.id)
@@ -306,7 +304,13 @@ class Verification(ErrorHandledCog):
             view=verify_email_view,
         )
 
-        return await ia.response.send_message(content="done")
+        msg = (
+            "Er is een DM verstuurd naar je met verdere instructies"
+            if ia.locale == Locale.dutch
+            else "You have received a DM with further instructions"
+        )
+
+        return await ia.response.send_message(content=msg, ephemeral=True)
 
     @ErrorHandledCog.listener("on_member_join")
     async def handle_member_join(self, member: Member):
