@@ -4,12 +4,15 @@
 .hooks/
 alembic/
 bin/
+privacy-policy/
 venv/
 .dockerignore
 .editorconfig
 .gitignore
+.pylintrc
 .tool-versions
 alembic.ini
+CONTRIBUTING.md
 docker-compose.yaml
 Dockerfile.bot
 Dockerfile.webconfig
