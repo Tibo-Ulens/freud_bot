@@ -12,9 +12,6 @@ logger = logging.getLogger("bot")
 
 
 class Quotes(ErrorHandledCog):
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
-
     @ErrorHandledCog.listener("on_message")
     async def send_quote_if_mentioned(self, msg: Message):
         if msg.author == self.bot.user:

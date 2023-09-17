@@ -13,16 +13,16 @@ from discord.app_commands import Command
 from models.course import Course
 
 
-def levenshtein_distance(s1: str, s2: str) -> int:
+def levenshtein_distance(str1: str, str2: str) -> int:
     """Get the levenshtein distance between two strings to check 'likeness'"""
 
-    if len(s1) > len(s2):
-        s1, s2 = s2, s1
+    if len(str1) > len(str2):
+        str1, str2 = str2, str1
 
-    distances = range(len(s1) + 1)
-    for index2, char2 in enumerate(s2):
+    distances = range(len(str1) + 1)
+    for index2, char2 in enumerate(str2):
         new_distances = [index2 + 1]
-        for index1, char1 in enumerate(s1):
+        for index1, char1 in enumerate(str1):
             if char1 == char2:
                 new_distances.append(distances[index1])
             else:
@@ -32,7 +32,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
                 )
         distances = new_distances
 
-    return distances[-1] / max(len(s1), len(s2))
+    return distances[-1] / max(len(str1), len(str2))
 
 
 async def course_autocomplete(

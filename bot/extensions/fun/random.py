@@ -5,9 +5,6 @@ from bot.extensions import ErrorHandledCog
 
 
 class Random(ErrorHandledCog):
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
-
     @app_commands.command(
         name="mommy",
         description="For when somebody likes their mother a little *too* much",

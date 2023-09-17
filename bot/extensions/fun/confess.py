@@ -61,7 +61,7 @@ class PendingApprovalView(View):
         self.russian_roulette_user = russian_roulette_user
 
     @discord.ui.button(label="✓", style=ButtonStyle.green)
-    async def approve(self, ia: Interaction, btn: Button):
+    async def approve(self, ia: Interaction, _btn: Button):
         actual_confession = self.confession.copy()
 
         actual_confession.colour = Colour.random()
@@ -82,7 +82,7 @@ class PendingApprovalView(View):
         await ia.response.defer()
 
     @discord.ui.button(label="⨯", style=ButtonStyle.red)
-    async def reject(self, ia: Interaction, btn: Button):
+    async def reject(self, ia: Interaction, _btn: Button):
         for item in self.children:
             item.disabled = True
 

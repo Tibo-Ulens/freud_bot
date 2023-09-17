@@ -4,12 +4,12 @@ import math
 
 
 DISCORD_TOKEN: str
-with open("/run/secrets/discord_token") as secret:
+with open("/run/secrets/discord_token", encoding="UTF-8") as secret:
     DISCORD_TOKEN = secret.readline().rstrip("\n")
 
 SMTP_USER: str
 SMTP_PASSWORD: str
-with open("/run/secrets/smtp_credentials") as secret:
+with open("/run/secrets/smtp_credentials", encoding="UTF-8") as secret:
     SMTP_USER = secret.readline().rstrip("\n")
     SMTP_PASSWORD = secret.readline().rstrip("\n")
 
@@ -200,13 +200,15 @@ CALENDAR_TEMPLATE = f"""<?xml version="1.0"?>
 """
 
 
+def to_time(date: str) -> datetime:
+    datetime.datetime.strptime(date, "%d-%m-%YT%H:%M").timestamp()
+
+
 def day_to_planner(day_idx: int, day_infos: list[dict[str, str]]) -> str:
     """
     Convert a list of courses happening on a given day to a visual
     representation using svg elements
     """
-
-    to_time = lambda d: datetime.datetime.strptime(d, "%d-%m-%YT%H:%M").timestamp()
 
     day_infos.sort(key=lambda i: to_time(f'{i["start_date"]}T{i["start_time"]}'))
 
@@ -266,7 +268,7 @@ def _group_to_items(day_idx: int, group: list[dict[str, str]]) -> str:
                     dominant-baseline="middle"
                     text-anchor="middle"
                 >
-                    {_make_wrapped_text(x, y_start, width, height, day_info)}
+                    {_make_wrapped_text(x, width, height, day_info)}
                 </text>
             </g>
         """
@@ -284,9 +286,7 @@ def _time_to_y_coord(time: str) -> int:
     )
 
 
-def _make_wrapped_text(
-    x: int, y: int, width: int, height: int, info: dict[str, str]
-) -> str:
+def _make_wrapped_text(x: int, width: int, height: int, info: dict[str, str]) -> str:
     name_text = info["course_name"]
     time_text = f"{info['start_time']} - {info['end_time']}"
     loc_text = f'{info["classroom"]}, {info["building"]}, {info["campus"]}'

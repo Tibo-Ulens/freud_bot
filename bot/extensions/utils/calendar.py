@@ -108,9 +108,6 @@ def get_csv_links(course: Course) -> Iterator[str]:
 
 
 class Calendar(ErrorHandledCog):
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
-
     group = app_commands.Group(name="course", description="course management")
 
     async def store_lecture_info(self, course: Course, ia: Interaction):
@@ -124,7 +121,7 @@ class Calendar(ErrorHandledCog):
         )
 
         try:
-            csv_urls = [url for url in get_csv_links(course)]
+            csv_urls = list(get_csv_links(course))
         except Exception as err:
             self.bot.logger.error(err)
             await ia.edit_original_response(
@@ -141,7 +138,7 @@ class Calendar(ErrorHandledCog):
 
         for csv_url in csv_urls:
             with closing(
-                requests.get(csv_url, allow_redirects=True, stream=True)
+                requests.get(csv_url, allow_redirects=True, stream=True, timeout=15)
             ) as req:
                 line_generator = (
                     line.decode("utf-8") for line in req.iter_lines(chunk_size=1024)
@@ -204,7 +201,7 @@ class Calendar(ErrorHandledCog):
         # not just ones that have items
         # {date: [{course}, {course}, ...], ...}
         week_info_dict: dict[DateTime, list[dict[str, str]]] = {
-            day: list() for day in week_days
+            day: [] for day in week_days
         }
         for course_code in course_codes:
             course_lectures = await Lecture.find_for_course(course_code)
@@ -438,7 +435,7 @@ class Calendar(ErrorHandledCog):
     @check_user_has_admin_role()
     async def list_courses(self, ia: Interaction):
         courses = await Course.get_all()
-        courses = list(map(lambda c: str(c), courses))
+        courses = list(map(str, courses))
 
         if courses:
             await ia.response.send_message("\n".join(courses))

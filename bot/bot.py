@@ -1,12 +1,14 @@
 import asyncio
 from contextlib import suppress
+from typing import Sequence
 
 import logging
 from logging import Logger
 import discord
+from discord.abc import Snowflake
 from discord.ext import commands
+from discord.utils import MISSING
 
-# from bot.events.bot import BotEvent as BotEvent
 from bot.log.guild_adapter import GuildAdapter
 
 
@@ -49,10 +51,18 @@ class Bot(commands.Bot):
             await self.load_extension(ext)
             logger.info(f"loaded extension '{ext}'")
 
-    async def add_cog(self, cog: commands.Cog) -> None:
+    async def add_cog(
+        self,
+        cog: commands.Cog,
+        /,
+        *,
+        override: bool = False,
+        guild: Snowflake | None = MISSING,
+        guilds: Sequence[Snowflake] = MISSING,
+    ) -> None:
         """Add a cog to the bot"""
 
-        await super().add_cog(cog)
+        await super().add_cog(cog, override=override, guild=guild, guilds=guilds)
         logger.debug(f"added cog '{cog.qualified_name}'")
 
     async def close(self) -> None:

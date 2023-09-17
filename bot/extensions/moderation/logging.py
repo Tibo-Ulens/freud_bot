@@ -17,9 +17,6 @@ logger = logging.getLogger("bot")
 
 
 class ModLogging(ErrorHandledCog):
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
-
     @ErrorHandledCog.listener()
     async def on_ready(self):
         discord_logger = logging.getLogger("discord")

@@ -4,7 +4,7 @@ import smtplib
 import uuid
 
 import discord
-from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild, utils
+from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
 from discord.ui import View, Button, Modal, TextInput
 
 from models.profile import Profile
@@ -89,33 +89,33 @@ class VerifyEmailModal(Modal):
                 return await ia.response.send_message(
                     guild_config.already_verified_message
                 )
-            else:
-                profile.confirmation_code = verification_code
-                # Users might have mistyped their email, update it just in case
-                old = profile.email
-                profile.email = email
-                await profile.save()
 
-                send_confirmation_email(email, verification_code)
+            profile.confirmation_code = verification_code
+            # Users might have mistyped their email, update it just in case
+            old = profile.email
+            profile.email = email
+            await profile.save()
 
-                verify_code_view = View(timeout=None)
-                verify_code_view.add_item(
-                    VerifyCodeButton(
-                        bot=self.bot,
-                        guild=self.guild,
-                        locale=self.locale,
-                    )
-                )
+            send_confirmation_email(email, verification_code)
 
-                self.bot.discord_logger.info(
-                    f"user {ia.user.mention} re-requested a verification code for '{email}'",
+            verify_code_view = View(timeout=None)
+            verify_code_view.add_item(
+                VerifyCodeButton(
+                    bot=self.bot,
                     guild=self.guild,
+                    locale=self.locale,
                 )
+            )
 
-                return await ia.response.send_message(
-                    str(guild_config.new_email_message).format(old=old, new=email),
-                    view=verify_code_view,
-                )
+            self.bot.discord_logger.info(
+                f"user {ia.user.mention} re-requested a verification code for '{email}'",
+                guild=self.guild,
+            )
+
+            return await ia.response.send_message(
+                str(guild_config.new_email_message).format(old=old, new=email),
+                view=verify_code_view,
+            )
 
         other = await Profile.find_by_email(email)
         if other is not None:
@@ -268,9 +268,6 @@ class VerifyCodeButton(Button):
 
 
 class Verification(ErrorHandledCog):
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
-
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
