@@ -101,6 +101,7 @@ class VerifyEmailModal(Modal):
                 verify_code_view = View(timeout=None)
                 verify_code_view.add_item(
                     VerifyCodeButton(
+                        bot=self.bot,
                         guild=self.guild,
                         locale=self.locale,
                     )
@@ -138,6 +139,7 @@ class VerifyEmailModal(Modal):
         verify_code_view = View(timeout=None)
         verify_code_view.add_item(
             VerifyCodeButton(
+                bot=self.bot,
                 guild=self.guild,
                 locale=self.locale,
             )
