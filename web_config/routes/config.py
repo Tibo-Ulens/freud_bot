@@ -78,15 +78,6 @@ async def show_config(request: Request, guild_id: str):
         )
     )
 
-    admin_role = str(config.admin_role)
-    logging_channel = str(config.logging_channel)
-
-    verified_role = str(config.verified_role)
-    verification_channel = str(config.verification_channel)
-
-    confession_approval_channel = str(config.confession_approval_channel)
-    confession_channel = str(config.confession_channel)
-
     return templates.TemplateResponse(
         "config_guild.html",
         {
@@ -94,14 +85,21 @@ async def show_config(request: Request, guild_id: str):
             "guild": guild,
             "roles": roles,
             "channels": channels,
-            "admin_role": admin_role,
-            "logging_channel": logging_channel,
-            "verified_role": verified_role,
-            "verification_channel": verification_channel,
-            "confession_approval_channel": confession_approval_channel,
-            "confession_channel": confession_channel,
-            "pin_reaction_threshold": config.pin_reaction_threshold,
-            "verify_email_message": config.verify_email_message,
+            "admin_role": str(config.admin_role),
+            "logging_channel": str(config.logging_channel),
+            "verified_role": str(config.verified_role),
+            "verification_channel": str(config.verification_channel),
+            "confession_approval_channel": str(config.confession_approval_channel),
+            "confession_channel": str(config.confession_channel),
+            "pin_reaction_threshold": int(config.pin_reaction_threshold),
+            "verify_email_message": str(config.verify_email_message),
+            "new_email_message": str(config.new_email_message),
+            "invalid_email_message": str(config.invalid_email_message),
+            "duplicate_email_message": str(config.duplicate_email_message),
+            "verify_code_message": str(config.verify_code_message),
+            "invalid_code_message": str(config.invalid_code_message),
+            "already_verified_message": str(config.already_verified_message),
+            "welcome_message": str(config.welcome_message),
         },
     )
 
