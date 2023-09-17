@@ -22,7 +22,7 @@ class Config(Base, Model):
     logging_channel = Column(BigInteger, unique=True, nullable=True)
     confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
     confession_channel = Column(BigInteger, unique=True, nullable=True)
-    pin_reaction_threshold = Column(Integer, nullable=True)
+    pin_reaction_threshold = Column(Integer, nullable=False)
     verify_email_message = Column(Text, nullable=False)
     new_email_message = Column(Text, nullable=False)
     invalid_email_message = Column(Text, nullable=False)

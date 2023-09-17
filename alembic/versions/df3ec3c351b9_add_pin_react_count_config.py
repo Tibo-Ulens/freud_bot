@@ -19,7 +19,9 @@ depends_on = None
 def upgrade() -> None:
     op.add_column(
         "config",
-        sa.Column("pin_reaction_threshold", sa.Integer, nullable=True),
+        sa.Column(
+            "pin_reaction_threshold", sa.Integer, nullable=False, server_default="3"
+        ),
     )
 
 
