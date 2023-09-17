@@ -1,14 +1,9 @@
-import logging
-
 from discord import Message, RawReactionActionEvent
 
 from models.config import Config
 
 from bot.bot import Bot
 from bot.extensions import ErrorHandledCog
-
-
-logger = logging.getLogger("bot")
 
 
 class ReactionPin(ErrorHandledCog):
