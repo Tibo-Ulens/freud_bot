@@ -85,13 +85,6 @@ async def show_config(request: Request, guild_id: str):
     confession_approval_channel = str(config.confession_approval_channel)
     confession_channel = str(config.confession_channel)
 
-    import sys
-
-    print(
-        f"guild: {guild}\nroles: {roles}\nchannels: {channels}\nadminrole: {admin_role}",
-        file=sys.stderr,
-    )
-
     return templates.TemplateResponse(
         "config_guild.html",
         {
