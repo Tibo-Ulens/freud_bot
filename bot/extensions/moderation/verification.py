@@ -213,7 +213,9 @@ class VerifyCodeModal(Modal):
 
         verified_role = guild_config.verified_role
 
-        await ia.user.add_roles(discord.utils.get(self.guild.roles, id=verified_role))
+        member = self.guild.get_member(ia.user.id)
+
+        await member.add_roles(self.guild.get_role(verified_role))
 
         profile.confirmation_code = None
         await profile.save()
