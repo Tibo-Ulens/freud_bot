@@ -196,7 +196,7 @@ class VerifyCodeModal(Modal):
             code = match.group(1)
         else:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with an invalid code",
+                f"user {ia.user.mention} attempted to verify with an invalid code '{self.code.value}'",
                 guild=self.guild,
             )
 
@@ -208,7 +208,7 @@ class VerifyCodeModal(Modal):
 
         if code != stored_code:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with an invalid code",
+                f"user {ia.user.mention} attempted to verify with an invalid code '{code}'",
                 guild=self.guild,
             )
 
