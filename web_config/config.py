@@ -2,26 +2,26 @@ import os
 
 
 class AppConfig:
-    BASE_URL: str
-    SESSION_COOKIE_DOMAIN: str
-    SESSION_COOKIE_NAME: str
+    base_url: str
+    session_cookie_domain: str
+    session_cookie_name: str
 
-    DISCORD_OAUTH_CLIENT_ID: str
-    DISCORD_OAUTH_CLIENT_SECRET: str
+    discord_oauth_client_id: str
+    discord_oauth_client_secret: str
 
-    DISCORD_BOT_TOKEN: str
+    discord_bot_token: str
 
     def __init__(self):
-        self.BASE_URL = os.environ["BASE_URL"]
-        self.SESSION_COOKIE_DOMAIN = os.environ["SESSION_COOKIE_DOMAIN"]
-        self.SESSION_COOKIE_NAME = os.environ["SESSION_COOKIE_NAME"]
+        self.base_url = os.environ["BASE_URL"]
+        self.session_cookie_domain = os.environ["SESSION_COOKIE_DOMAIN"]
+        self.session_cookie_name = os.environ["SESSION_COOKIE_NAME"]
 
-        with open("/run/secrets/discord_oauth_credentials") as secret:
-            self.DISCORD_OAUTH_CLIENT_ID = secret.readline().rstrip("\n")
-            self.DISCORD_OAUTH_CLIENT_SECRET = secret.readline().rstrip("\n")
+        with open("/run/secrets/discord_oauth_credentials", encoding="UTF-8") as secret:
+            self.discord_oauth_client_id = secret.readline().rstrip("\n")
+            self.discord_oauth_client_secret = secret.readline().rstrip("\n")
 
-        with open("/run/secrets/discord_token") as secret:
-            self.DISCORD_BOT_TOKEN = secret.readline().rstrip("\n")
+        with open("/run/secrets/discord_token", encoding="UTF-8") as secret:
+            self.discord_bot_token = secret.readline().rstrip("\n")
 
 
 Config = AppConfig()

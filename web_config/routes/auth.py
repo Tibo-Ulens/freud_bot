@@ -13,10 +13,10 @@ async def login():
     authorize_url = "https://discord.com/api/oauth2/authorize"
 
     params = {
-        "client_id": Config.DISCORD_OAUTH_CLIENT_ID,
+        "client_id": Config.discord_oauth_client_id,
         "response_type": "code",
         "scope": "identify%20guilds",
-        "redirect_uri": f"{Config.BASE_URL}/callback",
+        "redirect_uri": f"{Config.base_url}/callback",
     }
 
     authorize_url += "?" + "&".join([f"{k}={v}" for k, v in params.items()])

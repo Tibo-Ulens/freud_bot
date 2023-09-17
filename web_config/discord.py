@@ -54,11 +54,11 @@ async def get_access_token(auth_code: str) -> AccessTokenResponse:
     """Exchange an authorization code for an access token"""
 
     token_form = {
-        "client_id": Config.DISCORD_OAUTH_CLIENT_ID,
-        "client_secret": Config.DISCORD_OAUTH_CLIENT_SECRET,
+        "client_id": Config.discord_oauth_client_id,
+        "client_secret": Config.discord_oauth_client_secret,
         "grant_type": "authorization_code",
         "code": auth_code,
-        "redirect_uri": f"{Config.BASE_URL}/callback",
+        "redirect_uri": f"{Config.base_url}/callback",
     }
 
     async with http_session.post(
@@ -104,7 +104,7 @@ async def get_user_guilds(access_token: str) -> list[any]:
 async def get_guild(guild_id: str) -> dict:
     """Get a guild by ID"""
 
-    auth_header = {"Authorization": f"Bot {Config.DISCORD_BOT_TOKEN}"}
+    auth_header = {"Authorization": f"Bot {Config.discord_bot_token}"}
 
     async with http_session.get(
         f"https://discord.com/api/guilds/{guild_id}", headers=auth_header
@@ -116,7 +116,7 @@ async def get_guild(guild_id: str) -> dict:
 async def get_guild_channels(guild_id: str) -> list[dict]:
     """Get a guilds channels given its ID"""
 
-    auth_header = {"Authorization": f"Bot {Config.DISCORD_BOT_TOKEN}"}
+    auth_header = {"Authorization": f"Bot {Config.discord_bot_token}"}
 
     async with http_session.get(
         f"https://discord.com/api/guilds/{guild_id}/channels", headers=auth_header

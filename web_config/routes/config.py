@@ -24,7 +24,7 @@ async def index(request: Request):
     token = request.session["token"]
 
     user_guilds = await get_user_guilds(token)
-    manageable_guilds = list(filter(lambda g: can_manage(g), user_guilds))
+    manageable_guilds = list(filter(can_manage, user_guilds))
 
     stored_guild_ids = list(map(lambda c: str(c.guild_id), await GuildConfig.get_all()))
 
@@ -41,13 +41,14 @@ async def index(request: Request):
 
     if len(available_guilds) == 0:
         return templates.TemplateResponse("no_guilds.html", {"request": request})
-    elif len(available_guilds) == 1:
-        g = available_guilds[0]
-        return RedirectResponse(f"/config/{g['id']}")
-    else:
-        return templates.TemplateResponse(
-            "select_guild.html", {"request": request, "guilds": available_guilds}
-        )
+
+    if len(available_guilds) == 1:
+        guild = available_guilds[0]
+        return RedirectResponse(f"/config/{guild['id']}")
+
+    return templates.TemplateResponse(
+        "select_guild.html", {"request": request, "guilds": available_guilds}
+    )
 
 
 @router.get("/config/{guild_id}")

@@ -25,8 +25,8 @@ app.mount("/static", StaticFiles(directory="web_config/static"), name="static")
 
 @app.middleware("http")
 async def check_authorized(request: Request, call_next):
-    path = request.url.path
-    if path == "/login" or path == "/callback":
+    req_path = request.url.path
+    if req_path in ("/login", "/callback"):
         return await call_next(request)
 
     token = request.session.get("token")
@@ -44,11 +44,12 @@ async def check_authorized(request: Request, call_next):
         return await call_next(request)
 
 
-session_key = "".join([random.choice(string.printable) for _ in range(64)])
+SESSION_KEY = "".join([random.choice(string.printable) for _ in range(64)])
+
 app.add_middleware(
     SessionMiddleware,
     secret_key="",
-    session_cookie=Config.SESSION_COOKIE_NAME,
+    session_cookie=Config.session_cookie_name,
     max_age=None,
     same_site="lax",
     https_only=True,
