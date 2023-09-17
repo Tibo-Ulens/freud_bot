@@ -30,8 +30,8 @@ class Profile(Base, Model):
             r = result.first()
             if r is None:
                 return None
-            else:
-                return r[0]
+
+            return r[0]
 
     @classmethod
     async def find_by_email(cls, email: str) -> Optional["Profile"]:
@@ -43,8 +43,8 @@ class Profile(Base, Model):
             r = result.first()
             if r is None:
                 return None
-            else:
-                return r[0]
+
+            return r[0]
 
     @classmethod
     async def find_verified_in_guild(cls, guild: Guild) -> list["Profile"]:
@@ -52,7 +52,9 @@ class Profile(Base, Model):
 
         async with session_factory() as session:
             result: Query = await session.execute(
-                select(cls).where(cls.confirmation_code == None, cls.email != None)
+                select(cls).where(
+                    cls.confirmation_code.is_(None), cls.email.is_not(None)
+                )
             )
 
             profiles: list["Profile"] = result.scalars().all()

@@ -31,8 +31,8 @@ class Enrollment(Base, Model):
             r = result.first()
             if r is None:
                 return None
-            else:
-                return r[0]
+
+            return r[0]
 
     @classmethod
     async def find_for_profile(cls, profile_id: str) -> list["Enrollment"]:

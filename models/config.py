@@ -49,8 +49,8 @@ class Config(Base, Model):
             r = result.first()
             if r is None:
                 return None
-            else:
-                return r[0]
+
+            return r[0]
 
     @classmethod
     async def get_or_create(cls, guild: Guild) -> "Config":
@@ -64,8 +64,8 @@ class Config(Base, Model):
             r = result.first()
             if r is None:
                 return await Config.create(guild_id=guild.id)
-            else:
-                return r[0]
+
+            return r[0]
 
     def update(self, changes: dict[str, any]) -> "Config":
         """Update a config given a dict of changes"""

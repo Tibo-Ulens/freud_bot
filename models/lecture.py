@@ -1,4 +1,3 @@
-from datetime import datetime
 from sqlalchemy import Column, Text, Integer
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
@@ -31,12 +30,12 @@ class Lecture(Base, Model):
             location_parts if len(location_parts) == 3 else ["", "", ""]
         )
 
-        start_datetime = datetime.strptime(
-            f"{entry['Start datum']} {entry['Begin tijd']}", "%d-%m-%Y %H:%M"
-        )
-        end_datetime = datetime.strptime(
-            f"{entry['Eind datum']} {entry['Eind tijd']}", "%d-%m-%Y %H:%M"
-        )
+        # start_datetime = datetime.strptime(
+        #     f"{entry['Start datum']} {entry['Begin tijd']}", "%d-%m-%Y %H:%M"
+        # )
+        # end_datetime = datetime.strptime(
+        #     f"{entry['Eind datum']} {entry['Eind tijd']}", "%d-%m-%Y %H:%M"
+        # )
 
         return await cls.create(
             course_code=entry["Cursuscode,Naam"].split(".")[0].strip(),
