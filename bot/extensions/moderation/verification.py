@@ -277,6 +277,14 @@ class Verification(ErrorHandledCog):
         if guild_config is None:
             raise MissingConfig(ia.guild)
 
+        profile = await Profile.find_by_discord_id(ia.user.id)
+        if profile is not None and profile.confirmation_code is None:
+            self.bot.discord_logger.warning(
+                f"user {ia.user.mention} attempted to verify despite already being verified"
+            )
+
+            return await ia.response.send_message(guild_config.already_verified_message)
+
         verify_email_view = View(timeout=None)
         verify_email_view.add_item(
             VerifyEmailButton(bot=self.bot, guild=ia.guild, locale=ia.locale)
