@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
+
 from sqlalchemy import Column, BigInteger, Integer, Text
+from sqlalchemy.schema import FetchedValue
 from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
@@ -22,15 +24,15 @@ class Config(Base, Model):
     logging_channel = Column(BigInteger, unique=True, nullable=True)
     confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
     confession_channel = Column(BigInteger, unique=True, nullable=True)
-    pin_reaction_threshold = Column(Integer, nullable=False)
-    verify_email_message = Column(Text, nullable=False)
-    new_email_message = Column(Text, nullable=False)
-    invalid_email_message = Column(Text, nullable=False)
-    duplicate_email_message = Column(Text, nullable=False)
-    verify_code_message = Column(Text, nullable=False)
-    invalid_code_message = Column(Text, nullable=False)
-    already_verified_message = Column(Text, nullable=False)
-    welcome_message = Column(Text, nullable=False)
+    pin_reaction_threshold = Column(Integer, FetchedValue(), nullable=False)
+    verify_email_message = Column(Text, FetchedValue(), nullable=False)
+    new_email_message = Column(Text, FetchedValue(), nullable=False)
+    invalid_email_message = Column(Text, FetchedValue(), nullable=False)
+    duplicate_email_message = Column(Text, FetchedValue(), nullable=False)
+    verify_code_message = Column(Text, FetchedValue(), nullable=False)
+    invalid_code_message = Column(Text, FetchedValue(), nullable=False)
+    already_verified_message = Column(Text, FetchedValue(), nullable=False)
+    welcome_message = Column(Text, FetchedValue(), nullable=False)
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, verification_channel={self.verification_channel}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"
