@@ -80,6 +80,16 @@ label {
 	margin: 0.715rem 0;
 }
 
+label::before {
+	content: "";
+	width: 6px;
+	height: 2px;
+	border-radius: 50px;
+	background-color: hsl(32, 83%, 57%);
+	display: inline-block;
+	margin: 0 4px 4px 0;
+}
+
 select {
 	padding: 0.5rem;
 	background-color: transparent;

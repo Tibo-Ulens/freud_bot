@@ -78,17 +78,144 @@
 						</select>
 
 						<label for="verify_email_message">
-							Verify Email Message
-							<br>
-							-- guild_name--
+							Verify Email Message - The first message of the verification process,
+							asking users to submit their email (and potentially give info about the server)
 						</label>
 						<span class="interpolated-message-wrapper">
 							<textarea
 								name="verify_email_message"
 								id="verify_email_message"
-								cols="50"
-								rows="8"
+								cols="40"
+								rows="6"
 							>{{verify_email_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{guild_name}: The name of the server</li>
+								</ul>
+							</div>
+						</span>
+
+						<label for="new_email_message">
+							New Email Message - A message informing the user that their email has been updated after they re-request a verification code
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="new_email_message"
+								id="new_email_message"
+								cols="40"
+								rows="6"
+							>{{new_email_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{old}: The old email address</li>
+									<li>{new}: The new email address</li>
+								</ul>
+							</div>
+						</span>
+
+						<label for="invalid_email_message">
+							Invalid Email Message - A message informing the user that their provided email is invalid
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="invalid_email_message"
+								id="invalid_email_message"
+								cols="40"
+								rows="6"
+							>{{invalid_email_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{email}: The email that was provided</li>
+								</ul>
+							</div>
+						</span>
+
+						<label for="duplicate_email_message">
+							Duplicate Email Message - A message informing the user their provided email is already in use
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="duplicate_email_message"
+								id="duplicate_email_message"
+								cols="40"
+								rows="6"
+							>{{duplicate_email_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{email}: The email that was provided</li>
+								</ul>
+							</div>
+						</span>
+
+						<label for="verify_code_message">
+							Verify Code Message - The second message of a succesfull verification,
+							informing users a code has been sent to their email and asking them to submit it
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="verify_code_message"
+								id="verify_code_message"
+								cols="40"
+								rows="6"
+							>{{verify_code_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{email}: The email that was provided</li>
+								</ul>
+							</div>
+						</span>
+
+						<label for="invalid_code_message">
+							Invalid Code Message - A message informing users their provided code is invalid
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="invalid_code_message"
+								id="invalid_code_message"
+								cols="40"
+								rows="6"
+							>{{invalid_code_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{code}: The code that was provided</li>
+								</ul>
+							</div>
+						</span>
+
+						<label for="already_verified_message">
+							Already Verified Message - A message informing users that they're already verified
+							and don't need to do anything
+						</label>
+						<textarea
+							name="already_verified_message"
+							id="already_verified_message"
+							cols="40"
+							rows="6"
+						>{{already_verified_message}}</textarea>
+
+						<label for="welcome_message">
+							Welcome Message - The final message of a succesfull verification,
+							welcoming users to the server (and potentially providing further info)
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="welcome_message"
+								id="welcome_message"
+								cols="40"
+								rows="6"
+							>{{welcome_message}}</textarea>
 
 							<div class="interpolation-legend">
 								<h3>Variables</h3>
