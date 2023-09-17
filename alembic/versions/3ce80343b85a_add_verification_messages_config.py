@@ -66,7 +66,7 @@ def upgrade() -> None:
             "verify_code_message",
             sa.Text,
             nullable=False,
-            server_default="A verification code was sent to {email}, click the button below to submit it",
+            server_default="A verification code was sent to {email} (make sure to check your spam), click the button below to submit it",
         ),
     )
     # code
