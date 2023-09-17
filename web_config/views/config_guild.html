@@ -76,6 +76,27 @@
 								{% endif %}
 							{% endfor %}
 						</select>
+
+						<label for="verify_email_message">
+							Verify Email Message
+							<br>
+							-- guild_name--
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="verify_email_message"
+								id="verify_email_message"
+								cols="50"
+								rows="8"
+							>{{verify_email_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{guild_name}: The name of the server</li>
+								</ul>
+							</div>
+						</span>
 					</fieldset>
 
 					<fieldset>

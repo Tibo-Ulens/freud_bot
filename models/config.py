@@ -70,7 +70,7 @@ class Config(Base, Model):
 
         for col in self.cols():
             if col.name in changes:
-                if col.type == str:
+                if str(col.type) == "TEXT":
                     setattr(self, col.name, str(changes[col.name]))
                 else:
                     setattr(self, col.name, int(changes[col.name]))

@@ -94,6 +94,35 @@ input[type="number"] {
 	border: 1px solid #AAAAAA;
 }
 
+.interpolated-message-wrapper {
+	display: flex;
+	flex-flow: row wrap;
+	justify-content: flex-start;
+	align-items: flex-start;
+}
+
+.interpolation-legend {
+	max-width: 24rem;
+}
+
+.interpolation-legend > h3 {
+	margin: 0 0 1rem 2.5rem;
+	text-align: left;
+}
+
+@media only screen and (max-width: 800px) {
+	.interpolation-legend > h3 {
+		margin: 1rem 0;
+	}
+}
+
+textarea {
+	padding: 0.5rem;
+	background-color: transparent;
+	color: white;
+	border: 1px solid #AAAAAA;
+}
+
 input[type="submit"] {
 	min-width: 9rem;
 	padding: 0.75rem 1.5rem;
