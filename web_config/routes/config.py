@@ -52,13 +52,15 @@ async def index(request: Request):
 
 @router.get("/config/{guild_id}")
 async def show_config(request: Request, guild_id: str):
-    [config, guild, channels] = await asyncio.gather(
+    typed_list: tuple[GuildConfig, dict, list[dict]] = await asyncio.gather(
         *[
             GuildConfig.get(int(guild_id)),
             get_guild(guild_id),
             get_guild_channels(guild_id),
         ]
     )
+    [config, guild, channels] = typed_list
+
     roles = guild["roles"]
 
     guild = {
@@ -99,6 +101,7 @@ async def show_config(request: Request, guild_id: str):
             "confession_approval_channel": confession_approval_channel,
             "confession_channel": confession_channel,
             "pin_reaction_threshold": config.pin_reaction_threshold,
+            "verify_email_message": config.verify_email_message,
         },
     )
 
