@@ -19,7 +19,6 @@ class Config(Base, Model):
 
     guild_id = Column(BigInteger, primary_key=True)
     verified_role = Column(BigInteger, unique=True, nullable=True)
-    verification_channel = Column(BigInteger, unique=True, nullable=True)
     admin_role = Column(BigInteger, unique=True, nullable=True)
     logging_channel = Column(BigInteger, unique=True, nullable=True)
     confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
@@ -35,7 +34,7 @@ class Config(Base, Model):
     welcome_message = Column(Text, FetchedValue(), nullable=False)
 
     def __repr__(self) -> str:
-        return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, verification_channel={self.verification_channel}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"
+        return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"
 
     @classmethod
     async def get(cls, guild_id: int) -> Optional["Config"]:

@@ -89,7 +89,6 @@ async def show_config(request: Request, guild_id: str):
             "admin_role": str(config.admin_role),
             "logging_channel": str(config.logging_channel),
             "verified_role": str(config.verified_role),
-            "verification_channel": str(config.verification_channel),
             "confession_approval_channel": str(config.confession_approval_channel),
             "confession_channel": str(config.confession_channel),
             "pin_reaction_threshold": int(config.pin_reaction_threshold),

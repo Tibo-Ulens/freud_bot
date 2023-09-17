@@ -66,17 +66,6 @@
 							{% endfor %}
 						</select>
 
-						<label for="verification_channel">Verification Channel</label>
-						<select name="verification_channel" id="verification_channel">
-							{% for channel in channels %}
-								{% if verification_channel == channel.id %}
-									<option value="{{channel.id}}" selected>{{channel.name}}</option>
-								{% else %}
-									<option value="{{channel.id}}">{{channel.name}}</option>
-								{% endif %}
-							{% endfor %}
-						</select>
-
 						<label for="verify_email_message">
 							Verify Email Message - The first message of the verification process,
 							asking users to submit their email (and potentially give info about the server)

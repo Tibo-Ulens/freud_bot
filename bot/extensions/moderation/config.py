@@ -89,26 +89,6 @@ class Config(ErrorHandledCog):
         )
 
     @config_group.command(
-        name="verification_channel",
-        description="Set the channel in which the /verify command can be used",
-    )
-    @app_commands.describe(channel="The channel to select")
-    @app_commands.guild_only()
-    @check_user_has_admin_role()
-    async def set_verification_channel(self, ia: Interaction, channel: TextChannel):
-        guild_config = await ConfigModel.get_or_create(ia.guild)
-
-        guild_config.verification_channel = channel.id
-        await guild_config.save()
-
-        self.bot.logger.info(
-            f"set verification channel for {util.render_guild(ia.guild)} to {util.render_channel(channel)}"
-        )
-        await ia.response.send_message(
-            f"Set the verification channel to {util.render_channel(channel)}"
-        )
-
-    @config_group.command(
         name="logging_channel",
         description="Set the channel to which FreudBot logs will be posted",
     )
