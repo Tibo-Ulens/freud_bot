@@ -1,4 +1,5 @@
 import logging
+from logging import Filter
 
 from discord import Guild
 
@@ -7,6 +8,7 @@ from models.config import Config
 from bot import root_logger, util
 from bot.bot import Bot
 from bot.extensions import ErrorHandledCog
+
 from bot.log.discord_handler import DiscordHandler
 from bot.log.guild_adapter import GuildAdapter
 
@@ -21,13 +23,18 @@ class ModLogging(ErrorHandledCog):
     @ErrorHandledCog.listener()
     async def on_ready(self):
         discord_logger = logging.getLogger("discord")
-        discord_logger.addHandler(DiscordHandler(filter_target="discord"))
 
-        discord_logger_ = GuildAdapter(discord_logger)
-        self.bot.discord_logger = discord_logger_
+        handler = DiscordHandler()
+        handler.addFilter(Filter("discord"))
 
-        logger_ = root_logger.getChild("bot")
-        self.bot.logger = logger_
+        discord_logger.addHandler(handler)
+
+        routed_discord_logger = GuildAdapter(discord_logger)
+        routed_discord_logger.setLevel(logging.INFO)
+        self.bot.discord_logger = routed_discord_logger
+
+        bot_logger = root_logger.getChild("bot")
+        self.bot.logger = bot_logger
 
         logger.info("ready")
 

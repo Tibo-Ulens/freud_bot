@@ -1,37 +1,35 @@
-import inspect
-import gc
 from logging import LoggerAdapter
 from typing import Any, MutableMapping
 
+from discord import Guild
+
 
 class GuildAdapter(LoggerAdapter):
-    """
-    Logger adapter which, depending on whether the log was created in a command
-    or an app command, adds an extra `__context__`, or `__interaction__` field
-    to the extra arguments of the log record
-    """
+    """Log adapter to insert information about the guild logs should be routed to"""
+
+    def __init__(self, logger: Any) -> None:
+        super().__init__(logger)
+
+    def debug(self, msg, *args, guild: Guild, **kwargs) -> None:
+        return super().debug(msg, *args, guild=guild, **kwargs)
+
+    def info(self, msg, *args, guild: Guild, **kwargs) -> None:
+        return super().info(msg, *args, guild=guild, **kwargs)
+
+    def warning(self, msg, *args, guild: Guild, **kwargs) -> None:
+        return super().warning(msg, *args, guild=guild, **kwargs)
+
+    def error(self, msg, *args, guild: Guild, **kwargs) -> None:
+        return super().error(msg, *args, guild=guild, **kwargs)
+
+    def critical(self, msg, *args, guild: Guild, **kwargs) -> None:
+        return super().critical(msg, *args, guild=guild, **kwargs)
 
     def process(
         self, msg: Any, kwargs: MutableMapping[str, Any]
     ) -> tuple[Any, MutableMapping[str, Any]]:
-        # LoggerAdapter's process method gets called by its `.log` method,
-        # this in turn gets called by its debug/info/... methods
-        # this function -> adapter.log -> adapter.{level} -> caller
-        log_caller_frame = inspect.currentframe().f_back.f_back.f_back
-        log_caller_code = log_caller_frame.f_code
-
-        # Iterate over all objects that refer to the `log_caller_code` object
-        # This should just be this function and the actual function that called
-        # the logging function
-        for func in gc.get_referrers(log_caller_code):
-            # Find the actual calling function by comparing its code object to
-            # the one on the stack frame
-            if getattr(func, "__code__", None) is log_caller_code:
-                if "__interaction__" in func.__dict__.keys():
-                    interaction = func.__dict__["__interaction__"]
-                    kwargs["extra"] = {"__interaction__": interaction}
-                elif "__context__" in func.__dict__.keys():
-                    context = func.__dict__["__context__"]
-                    kwargs["extra"] = {"__context__": context}
+        if "guild" in kwargs:
+            kwargs["extra"] = {"guild": kwargs["guild"]}
+            del kwargs["guild"]
 
         return (msg, kwargs)

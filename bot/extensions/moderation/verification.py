@@ -13,7 +13,6 @@ from models.config import Config
 from bot import constants
 from bot.bot import Bot
 from bot.decorators import (
-    store_command_context,
     check_has_config_option,
     only_in_channel,
 )
@@ -59,7 +58,6 @@ class VerifyEmailModal(Modal):
 
         super().__init__(title=title, timeout=None)
 
-    @store_command_context
     async def on_submit(self, ia: Interaction):
         guild_config = await Config.get(self.guild.id)
         if guild_config is None:
@@ -69,7 +67,8 @@ class VerifyEmailModal(Modal):
 
         if not EMAIL_REGEX.match(email):
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with invalid email '{email}'"
+                f"user {ia.user.mention} attempted to verify with invalid email '{email}'",
+                guild=self.guild,
             )
 
             return await ia.response.send_message(
@@ -83,7 +82,8 @@ class VerifyEmailModal(Modal):
         if profile is not None:
             if profile.confirmation_code is None:
                 self.bot.discord_logger.warning(
-                    f"user {ia.user.mention} attempted to verify despite already being verified"
+                    f"user {ia.user.mention} attempted to verify despite already being verified",
+                    guild=self.guild,
                 )
 
                 return await ia.response.send_message(
@@ -108,7 +108,8 @@ class VerifyEmailModal(Modal):
                 )
 
                 self.bot.discord_logger.info(
-                    f"user {ia.user.mention} re-requested a verification code for '{email}'"
+                    f"user {ia.user.mention} re-requested a verification code for '{email}'",
+                    guild=self.guild,
                 )
 
                 return await ia.response.send_message(
@@ -119,7 +120,8 @@ class VerifyEmailModal(Modal):
         other = await Profile.find_by_email(email)
         if other is not None:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'"
+                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'",
+                guild=self.guild,
             )
 
             return await ia.response.send_message(
@@ -127,7 +129,8 @@ class VerifyEmailModal(Modal):
             )
 
         self.bot.discord_logger.info(
-            f"user {ia.user.mention} requested verification code for '{email}'"
+            f"user {ia.user.mention} requested verification code for '{email}'",
+            guild=self.guild,
         )
 
         await Profile.create(
@@ -167,7 +170,6 @@ class VerifyCodeModal(Modal):
 
         super().__init__(title=title, timeout=None)
 
-    @store_command_context
     async def on_submit(self, ia: Interaction):
         author_id = ia.user.id
         profile = await Profile.find_by_discord_id(author_id)
@@ -183,7 +185,8 @@ class VerifyCodeModal(Modal):
 
         if profile.confirmation_code is None:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify despite already being verified"
+                f"user {ia.user.mention} attempted to verify despite already being verified",
+                guild=self.guild,
             )
 
             return await ia.response.send_message(guild_config.already_verified_message)
@@ -193,7 +196,8 @@ class VerifyCodeModal(Modal):
             code = match.group(1)
         else:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with an invalid code"
+                f"user {ia.user.mention} attempted to verify with an invalid code",
+                guild=self.guild,
             )
 
             return await ia.response.send_message(
@@ -204,7 +208,8 @@ class VerifyCodeModal(Modal):
 
         if code != stored_code:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with an invalid code"
+                f"user {ia.user.mention} attempted to verify with an invalid code",
+                guild=self.guild,
             )
 
             return await ia.response.send_message(
@@ -221,7 +226,8 @@ class VerifyCodeModal(Modal):
         await profile.save()
 
         self.bot.discord_logger.info(
-            f"{ia.user.mention} verified succesfully with email {profile.email}"
+            f"{ia.user.mention} verified succesfully with email '{profile.email}'",
+            guild=self.guild,
         )
 
         await ia.response.send_message(
@@ -271,7 +277,6 @@ class Verification(ErrorHandledCog):
     @only_in_channel("verification_channel")
     @check_has_config_option("verification_channel")
     @check_has_config_option("verified_role")
-    @store_command_context
     async def verify(self, ia: Interaction):
         guild_config = await Config.get(ia.guild.id)
         if guild_config is None:
@@ -280,7 +285,8 @@ class Verification(ErrorHandledCog):
         profile = await Profile.find_by_discord_id(ia.user.id)
         if profile is not None and profile.confirmation_code is None:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify despite already being verified"
+                f"user {ia.user.mention} attempted to verify despite already being verified",
+                guild=ia.guild,
             )
 
             return await ia.response.send_message(guild_config.already_verified_message)
