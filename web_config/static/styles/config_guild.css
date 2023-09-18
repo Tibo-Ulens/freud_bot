@@ -80,6 +80,16 @@ label {
 	margin: 0.715rem 0;
 }
 
+label::before {
+	content: "";
+	width: 6px;
+	height: 2px;
+	border-radius: 50px;
+	background-color: hsl(32, 83%, 57%);
+	display: inline-block;
+	margin: 0 4px 4px 0;
+}
+
 select {
 	padding: 0.5rem;
 	background-color: transparent;
@@ -88,6 +98,35 @@ select {
 }
 
 input[type="number"] {
+	padding: 0.5rem;
+	background-color: transparent;
+	color: white;
+	border: 1px solid #AAAAAA;
+}
+
+.interpolated-message-wrapper {
+	display: flex;
+	flex-flow: row wrap;
+	justify-content: flex-start;
+	align-items: flex-start;
+}
+
+.interpolation-legend {
+	max-width: 24rem;
+}
+
+.interpolation-legend > h3 {
+	margin: 0 0 1rem 2.5rem;
+	text-align: left;
+}
+
+@media only screen and (max-width: 800px) {
+	.interpolation-legend > h3 {
+		margin: 1rem 0;
+	}
+}
+
+textarea {
 	padding: 0.5rem;
 	background-color: transparent;
 	color: white;

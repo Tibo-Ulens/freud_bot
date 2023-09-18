@@ -24,7 +24,7 @@ async def index(request: Request):
     token = request.session["token"]
 
     user_guilds = await get_user_guilds(token)
-    manageable_guilds = list(filter(lambda g: can_manage(g), user_guilds))
+    manageable_guilds = list(filter(can_manage, user_guilds))
 
     stored_guild_ids = list(map(lambda c: str(c.guild_id), await GuildConfig.get_all()))
 
@@ -41,24 +41,27 @@ async def index(request: Request):
 
     if len(available_guilds) == 0:
         return templates.TemplateResponse("no_guilds.html", {"request": request})
-    elif len(available_guilds) == 1:
-        g = available_guilds[0]
-        return RedirectResponse(f"/config/{g['id']}")
-    else:
-        return templates.TemplateResponse(
-            "select_guild.html", {"request": request, "guilds": available_guilds}
-        )
+
+    if len(available_guilds) == 1:
+        guild = available_guilds[0]
+        return RedirectResponse(f"/config/{guild['id']}")
+
+    return templates.TemplateResponse(
+        "select_guild.html", {"request": request, "guilds": available_guilds}
+    )
 
 
 @router.get("/config/{guild_id}")
 async def show_config(request: Request, guild_id: str):
-    [config, guild, channels] = await asyncio.gather(
+    typed_list: tuple[GuildConfig, dict, list[dict]] = await asyncio.gather(
         *[
             GuildConfig.get(int(guild_id)),
             get_guild(guild_id),
             get_guild_channels(guild_id),
         ]
     )
+    [config, guild, channels] = typed_list
+
     roles = guild["roles"]
 
     guild = {
@@ -76,22 +79,6 @@ async def show_config(request: Request, guild_id: str):
         )
     )
 
-    admin_role = str(config.admin_role)
-    logging_channel = str(config.logging_channel)
-
-    verified_role = str(config.verified_role)
-    verification_channel = str(config.verification_channel)
-
-    confession_approval_channel = str(config.confession_approval_channel)
-    confession_channel = str(config.confession_channel)
-
-    import sys
-
-    print(
-        f"guild: {guild}\nroles: {roles}\nchannels: {channels}\nadminrole: {admin_role}",
-        file=sys.stderr,
-    )
-
     return templates.TemplateResponse(
         "config_guild.html",
         {
@@ -99,13 +86,20 @@ async def show_config(request: Request, guild_id: str):
             "guild": guild,
             "roles": roles,
             "channels": channels,
-            "admin_role": admin_role,
-            "logging_channel": logging_channel,
-            "verified_role": verified_role,
-            "verification_channel": verification_channel,
-            "confession_approval_channel": confession_approval_channel,
-            "confession_channel": confession_channel,
-            "pin_reaction_threshold": config.pin_reaction_threshold,
+            "admin_role": str(config.admin_role),
+            "logging_channel": str(config.logging_channel),
+            "verified_role": str(config.verified_role),
+            "confession_approval_channel": str(config.confession_approval_channel),
+            "confession_channel": str(config.confession_channel),
+            "pin_reaction_threshold": int(config.pin_reaction_threshold),
+            "verify_email_message": str(config.verify_email_message),
+            "new_email_message": str(config.new_email_message),
+            "invalid_email_message": str(config.invalid_email_message),
+            "duplicate_email_message": str(config.duplicate_email_message),
+            "verify_code_message": str(config.verify_code_message),
+            "invalid_code_message": str(config.invalid_code_message),
+            "already_verified_message": str(config.already_verified_message),
+            "welcome_message": str(config.welcome_message),
         },
     )
 

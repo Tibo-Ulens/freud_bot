@@ -10,7 +10,6 @@ from discord.ext.commands import Context, CommandError, Cog, errors as cmd_error
 
 from bot import extensions, root_logger, exceptions as bot_errors
 from bot.bot import Bot
-from bot.decorators import store_command_context
 from bot.events import Event
 from bot.events.config import ConfigEvent
 from bot.events.moderation import ModerationEvent
@@ -63,24 +62,22 @@ class ErrorHandledCog(Cog):
 
         return event
 
-    @store_command_context
     async def cog_app_command_error(self, ia: Interaction, error: AppCommandError):
         event = self.app_error_to_event(ia, error)
 
         if event.error:
             logger.error(traceback.format_exc())
             self.bot.logger.error(event)
-            self.bot.discord_logger.error(event)
+            self.bot.discord_logger.error(event, guild=ia.guild)
         else:
-            self.bot.discord_logger.warning(event)
+            self.bot.discord_logger.warning(event, guild=ia.guild)
 
         await ia.response.send_message(event.user_msg)
 
-    @store_command_context
     async def cog_command_error(self, ctx: Context, error: CommandError):
         event = self.app_error_to_event(ctx, error)
 
-        self.bot.discord_logger.warning(event)
+        self.bot.discord_logger.warning(event, guild=ctx.guild)
         await ctx.response.send_message(event.user_msg)
 
 

@@ -1,65 +1,45 @@
 import asyncio
 from datetime import datetime
-import json
 import logging
-from logging import Handler, LogRecord, Formatter, Filter
+from logging import Handler, LogRecord
 
-import discord
-from discord import Embed, Colour, Interaction
-from discord.ext.commands import Context
+from discord import Embed, Colour, Guild
 
 from models.config import Config
 
-from bot import util
-
 
 class DiscordHandler(Handler):
-    """Log handler that writes log messages to a discord text channel"""
+    """Log handler to route logs to the correct guild"""
 
-    def __init__(self, filter_target: str):
-        super().__init__()
-        self.setFormatter(
-            Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
-        )
-        self.addFilter(Filter(filter_target))
-        self.setLevel(logging.WARNING)
-
+    def __init__(self, level: int | str = 0) -> None:
         self.loop = asyncio.get_event_loop()
+
+        super().__init__(level)
 
     def emit(self, record: LogRecord) -> None:
         self.loop.create_task(self.send_embed(record))
 
-    async def send_embed(self, record: LogRecord):
-        if hasattr(record, "__interaction__"):
-            record_interaction: Interaction = record.__interaction__
-            record_guild = record_interaction.guild
-        elif hasattr(record, "__context__"):
-            record_context: Context = record.__context__
-            record_guild = record_context.guild
-        else:
+    async def send_embed(self, record: LogRecord) -> None:
+        # The GuildAdapter should've stored the guild object in the records __dict__ keys
+        if record.__dict__["guild"] is None:
             return
 
-        if record_guild is None:
+        guild: Guild = record.__dict__["guild"]
+        guild_config = await Config.get(guild.id)
+
+        if guild_config is None or guild_config.logging_channel is None:
             return
 
-        guild_config = await Config.get(record_guild.id)
+        logging_channel = guild.get_channel(guild_config.logging_channel)
 
+        # Tag admins on errors
         tag_msg = ""
-        if (
-            record.levelno == logging.ERROR
-            and guild_config is not None
-            and guild_config.admin_role is not None
-        ):
-            admin_role = discord.utils.get(
-                record_guild.roles, id=guild_config.admin_role
-            )
-            tag_msg = util.render_role(admin_role)
+        if record.levelno == logging.ERROR and guild_config.admin_role is not None:
+            admin_role = guild.get_role(guild_config.admin_role)
+            tag_msg = admin_role.mention
 
-        if guild_config is not None and guild_config.logging_channel is not None:
-            logging_channel = record_guild.get_channel(guild_config.logging_channel)
-
-            embed = self.format_embed(record)
-            await logging_channel.send(content=tag_msg, embed=embed)
+        embed = self.format_embed(record)
+        await logging_channel.send(content=tag_msg, embed=embed)
 
     def format_embed(self, record: LogRecord) -> Embed:
         embed = Embed()

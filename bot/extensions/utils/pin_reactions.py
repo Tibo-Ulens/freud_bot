@@ -1,5 +1,3 @@
-import logging
-
 from discord import Message, RawReactionActionEvent
 
 from models.config import Config
@@ -8,13 +6,7 @@ from bot.bot import Bot
 from bot.extensions import ErrorHandledCog
 
 
-logger = logging.getLogger("bot")
-
-
 class ReactionPin(ErrorHandledCog):
-    def __init__(self, bot: Bot) -> None:
-        self.bot = bot
-
     @ErrorHandledCog.listener("on_raw_reaction_add")
     async def pin_message_if_needed(self, payload: RawReactionActionEvent):
         if payload.member and payload.member.bot:

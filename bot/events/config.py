@@ -7,6 +7,7 @@ from bot import util
 class ConfigEvent(Event):
     """Configuration related events"""
 
+    @staticmethod
     def missing_config(guild: Guild) -> Event:
         """The guild does not have a config yet"""
 
@@ -16,6 +17,7 @@ class ConfigEvent(Event):
             error=True,
         )
 
+    @staticmethod
     def missing_config_option(guild: Guild, option: str) -> Event:
         """The guild is missing a config option"""
 

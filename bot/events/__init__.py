@@ -19,6 +19,7 @@ class Event:
     def __str__(self) -> str:
         return f"{self.log_msg}"
 
+    @staticmethod
     def unknown_error() -> "Event":
         """An unknown error occured"""
 

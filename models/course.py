@@ -31,8 +31,8 @@ class Course(Base, Model):
             r = result.first()
             if r is None:
                 return None
-            else:
-                return r[0]
+
+            return r[0]
 
     @classmethod
     async def find_by_code(cls, code: str) -> Optional["Course"]:
@@ -44,8 +44,8 @@ class Course(Base, Model):
             r = result.first()
             if r is None:
                 return None
-            else:
-                return r[0]
+
+            return r[0]
 
     @classmethod
     async def get_all_names(cls) -> list[str]:

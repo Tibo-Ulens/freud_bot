@@ -1,45 +1,13 @@
-from functools import wraps
-from typing import Coroutine
-
 import discord
 from discord import (
     Interaction,
     app_commands,
 )
 from discord.app_commands.errors import MissingRole
-from discord.ext.commands import Context
 
 from models.config import Config
 
 from bot.exceptions import MissingConfig, MissingConfigOption, WrongChannel
-
-
-def store_command_context(func: Coroutine) -> Coroutine:
-    """
-    If the wrapped function takes an `Interaction` as an argument, sets a
-    custom `__interaction__` attribute on the function that refers to said
-    `Interaction`
-
-    If the wrapped function takes a `Context` as an argument, sets a
-    custom `__context__` attribute on the function that refers to said
-    `Context`
-
-    This attribute can then be extracted in the `GuildAdapter` logging adapter,
-    and used by the `DiscordHandler` logging handler to write to the correct
-    channel
-    """
-
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        for arg in args:
-            if isinstance(arg, Interaction):
-                setattr(func, "__interaction__", arg)
-            elif isinstance(arg, Context):
-                setattr(func, "__context__", arg)
-
-        return await func(*args, **kwargs)
-
-    return wrapper
 
 
 def check_user_has_admin_role() -> bool:

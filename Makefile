@@ -9,6 +9,9 @@ dev: fmt
 fmt:
 	black .
 
+lint:
+	pylint --disable missing-module-docstring bot/**/*.py
+
 setup:
 	chmod +x ./bin/setup.sh
 	./bin/setup.sh

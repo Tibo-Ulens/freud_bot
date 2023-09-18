@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from signal import SIGTERM
+import sys
 
 import bot
 from bot.bot import Bot
@@ -47,4 +48,4 @@ if __name__ == "__main__":
         logger.fatal(err)
     finally:
         loop.close()
-        exit(69)
+        sys.exit(69)
