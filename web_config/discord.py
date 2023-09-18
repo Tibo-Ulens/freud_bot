@@ -89,7 +89,7 @@ async def get_user(access_token: str) -> DiscordUser:
         return DiscordUser(data)
 
 
-async def get_user_guilds(access_token: str) -> list[any]:
+async def get_user_guilds(access_token: str) -> list[dict]:
     """Get the every guild the user is in"""
 
     auth_header = {"Authorization": f"Bearer {access_token}"}
@@ -99,6 +99,18 @@ async def get_user_guilds(access_token: str) -> list[any]:
     ) as res:
         data = await res.json()
         return data
+
+
+async def get_user_guild(access_token: str, guild_id) -> list[dict]:
+    """Get a guild the user is in by id"""
+
+    auth_header = {"Authorization": f"Bearer {access_token}"}
+
+    async with http_session.get(
+        "https://discord.com/api/users/@me/guilds", headers=auth_header
+    ) as res:
+        data: list[data] = await res.json()
+        return next(filter(lambda g: g["id"] == guild_id, data), None)
 
 
 async def get_guild(guild_id: str) -> dict:

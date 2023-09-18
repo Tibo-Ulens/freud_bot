@@ -12,6 +12,7 @@ from web_config.discord import (
     guild_icon_cdn_url,
     get_guild,
     get_guild_channels,
+    get_user_guild,
 )
 from web_config.templates import templates
 
@@ -53,6 +54,12 @@ async def index(request: Request):
 
 @router.get("/config/{guild_id}")
 async def show_config(request: Request, guild_id: str):
+    # token = request.session["token"]
+    # guild = await get_user_guild(token, guild_id)
+
+    # if not can_manage(guild):
+    #     return templates.TemplateResponse("forbidden.html", {"request": request}, status_code=403)
+
     typed_list: tuple[GuildConfig, dict, list[dict]] = await asyncio.gather(
         *[
             GuildConfig.get(int(guild_id)),
@@ -106,6 +113,14 @@ async def show_config(request: Request, guild_id: str):
 
 @router.post("/config/{guild_id}")
 async def update_config(request: Request, guild_id: str):
+    token = request.session["token"]
+    guild = await get_user_guild(token, guild_id)
+
+    if not can_manage(guild):
+        return templates.TemplateResponse(
+            "forbidden.html", {"request": request}, status_code=403
+        )
+
     typed_list: tuple[GuildConfig, FormData] = await asyncio.gather(
         *[
             GuildConfig.get(int(guild_id)),
