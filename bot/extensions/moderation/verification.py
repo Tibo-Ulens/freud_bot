@@ -63,7 +63,7 @@ class VerifyEmailModal(Modal):
         if guild_config is None:
             raise MissingConfig(self.guild)
 
-        email = self.email.value
+        email = self.email.value.lower()
 
         if not EMAIL_REGEX.match(email):
             self.bot.discord_logger.warning(
