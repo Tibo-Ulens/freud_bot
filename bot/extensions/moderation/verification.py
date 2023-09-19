@@ -196,7 +196,7 @@ class VerifyCodeModal(Modal):
             code = match.group(1)
         else:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with an invalid code '{self.code.value}'",
+                f"user {ia.user.mention} attempted to verify with an invalid code '{self.code.value}', invalid pattern",
                 guild=self.guild,
             )
 
@@ -208,7 +208,7 @@ class VerifyCodeModal(Modal):
 
         if code != stored_code:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with an invalid code '{code}'",
+                f"user {ia.user.mention} attempted to verify with an invalid code '{code}', expected '{stored_code}'",
                 guild=self.guild,
             )
 
@@ -271,6 +271,7 @@ class Verification(ErrorHandledCog):
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
+    @app_commands.guild_only()
     @check_has_config_option("verified_role")
     async def verify(self, ia: Interaction):
         guild_config = await Config.get(ia.guild.id)
