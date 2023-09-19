@@ -8,6 +8,9 @@ from discord import Embed, Colour, Guild
 from models.config import Config
 
 
+failure_logger = logging.getLogger("discord-failures")
+
+
 class DiscordHandler(Handler):
     """Log handler to route logs to the correct guild"""
 
@@ -21,7 +24,8 @@ class DiscordHandler(Handler):
 
     async def send_embed(self, record: LogRecord) -> None:
         # The GuildAdapter should've stored the guild object in the records __dict__ keys
-        if record.__dict__["guild"] is None:
+        if "guild" not in record.__dict__:
+            failure_logger.warn(f"record {record} failed to log, no guild found")
             return
 
         guild: Guild = record.__dict__["guild"]
