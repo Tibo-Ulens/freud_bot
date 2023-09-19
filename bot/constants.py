@@ -200,8 +200,8 @@ CALENDAR_TEMPLATE = f"""<?xml version="1.0"?>
 """
 
 
-def to_time(date: str) -> datetime:
-    datetime.datetime.strptime(date, "%d-%m-%YT%H:%M").timestamp()
+def to_time(date: str) -> float:
+    return datetime.datetime.strptime(date, "%d-%m-%YT%H:%M").timestamp()
 
 
 def day_to_planner(day_idx: int, day_infos: list[dict[str, str]]) -> str:
