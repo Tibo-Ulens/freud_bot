@@ -347,7 +347,9 @@ class Verification(ErrorHandledCog):
 
             return
 
-        self.bot.logger.info(f"sending DM to {member.mention} [{member.name}]")
+        self.bot.logger.info(
+            f"sending verification DM to {member.mention} [{member.name}]"
+        )
 
         # If the profile is not verified yet send them through the
         # verification process
@@ -360,7 +362,7 @@ class Verification(ErrorHandledCog):
             VerifyEmailButton(bot=self.bot, guild=guild, locale=guild.preferred_locale)
         )
 
-        dm_channel.send(
+        await dm_channel.send(
             content=str(guild_config.verify_email_message).format(
                 guild_name=guild.name
             ),
