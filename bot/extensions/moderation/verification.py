@@ -278,6 +278,8 @@ class Verification(ErrorHandledCog):
         if guild_config is None:
             raise MissingConfig(ia.guild)
 
+        await ia.response.defer(ephemeral=True, thinking=True)
+
         profile = await Profile.find_by_discord_id(ia.user.id)
         if profile is not None and profile.confirmation_code is None:
             self.bot.discord_logger.warning(
@@ -285,7 +287,7 @@ class Verification(ErrorHandledCog):
                 guild=ia.guild,
             )
 
-            return await ia.response.send_message(guild_config.already_verified_message)
+            return await ia.followup.send(guild_config.already_verified_message)
 
         verify_email_view = View(timeout=None)
         verify_email_view.add_item(
@@ -311,7 +313,7 @@ class Verification(ErrorHandledCog):
             else "You have received a DM with further instructions"
         )
 
-        return await ia.response.send_message(content=msg, ephemeral=True)
+        return await ia.followup.send(content=msg, ephemeral=True)
 
     @ErrorHandledCog.listener("on_member_join")
     async def handle_member_join(self, member: Member):
