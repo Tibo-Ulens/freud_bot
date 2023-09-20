@@ -347,6 +347,8 @@ class Verification(ErrorHandledCog):
 
             return
 
+        self.bot.logger.info(f"sending DM to {member.mention} [{member.name}]")
+
         # If the profile is not verified yet send them through the
         # verification process
         dm_channel = member.dm_channel
