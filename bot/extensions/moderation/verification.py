@@ -327,14 +327,15 @@ class Verification(ErrorHandledCog):
         if guild_config is None or guild_config.verified_role is None:
             return
 
-        # Ensure the profile exists
         profile = await Profile.find_by_discord_id(member.id)
-        if profile is None:
-            return
 
         # If the profile is already verified somewhere else, verify them here
         # as well
-        if profile.email is not None and profile.confirmation_code is None:
+        if (
+            profile is not None
+            and profile.email is not None
+            and profile.confirmation_code is None
+        ):
             await member.add_roles(
                 discord.utils.get(guild.roles, id=guild_config.verified_role)
             )
