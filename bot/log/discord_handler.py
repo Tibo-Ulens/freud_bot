@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from logging import Handler, LogRecord
 
-from discord import Embed, Colour, Guild
+from discord import Embed, Colour, Guild, GuildChannel
 
 from models.config import Config
 
@@ -25,16 +25,46 @@ class DiscordHandler(Handler):
     async def send_embed(self, record: LogRecord) -> None:
         # The GuildAdapter should've stored the guild object in the records __dict__ keys
         if "guild" not in record.__dict__:
-            failure_logger.warn(f"record {record} failed to log, no guild found")
+            failure_logger.error(f"record {record} failed to log, no guild found")
+            return
+
+        # The GuildAdapter should've stored the type in the records __dict__ keys
+        if "type" not in record.__dict__:
+            failure_logger.error(f"record {record} failed to log, no record type")
             return
 
         guild: Guild = record.__dict__["guild"]
         guild_config = await Config.get(guild.id)
 
-        if guild_config is None or guild_config.logging_channel is None:
+        if guild_config is None:
+            failure_logger.error(f"record {record} failed to log, no config")
             return
 
-        logging_channel = guild.get_channel(guild_config.logging_channel)
+        loggin_channel: GuildChannel = None
+
+        if record.__dict__["type"] == "regular":
+            if guild_config.logging_channel is None:
+                failure_logger.error(
+                    f"record {record} failed to log, no logging channel"
+                )
+                return
+
+            logging_channel = guild.get_channel(guild_config.logging_channel)
+        elif record.__dict__["type"] == "verification":
+            if guild_config.verification_logging_channel is None:
+                failure_logger.error(
+                    f"record {record} failed to log, no verification logging channel"
+                )
+                return
+
+            logging_channel = guild.get_channel(
+                guild_config.verification_logging_channel
+            )
+        else:
+            failure_logger.error(
+                f"record {record} failed to log, unknown type {record.__dict__['type']}"
+            )
+            return
 
         # Tag admins on errors
         tag_msg = ""
