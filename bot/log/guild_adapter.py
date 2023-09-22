@@ -10,24 +10,30 @@ class GuildAdapter(LoggerAdapter):
     def __init__(self, logger: Any) -> None:
         super().__init__(logger)
 
-    def debug(self, msg, *args, guild: Guild, type: str = "regular", **kwargs) -> None:
-        return super().debug(msg, *args, guild=guild, **kwargs)
+    def debug(
+        self, msg, *args, guild: Guild, log_type: str = "regular", **kwargs
+    ) -> None:
+        return super().debug(msg, *args, guild=guild, log_type=log_type, **kwargs)
 
-    def info(self, msg, *args, guild: Guild, type: str = "regular", **kwargs) -> None:
-        return super().info(msg, *args, guild=guild, **kwargs)
+    def info(
+        self, msg, *args, guild: Guild, log_type: str = "regular", **kwargs
+    ) -> None:
+        return super().info(msg, *args, guild=guild, log_type=log_type, **kwargs)
 
     def warning(
-        self, msg, *args, guild: Guild, type: str = "regular", **kwargs
+        self, msg, *args, guild: Guild, log_type: str = "regular", **kwargs
     ) -> None:
-        return super().warning(msg, *args, guild=guild, **kwargs)
+        return super().warning(msg, *args, guild=guild, log_type=log_type, **kwargs)
 
-    def error(self, msg, *args, guild: Guild, type: str = "regular", **kwargs) -> None:
-        return super().error(msg, *args, guild=guild, **kwargs)
+    def error(
+        self, msg, *args, guild: Guild, log_type: str = "regular", **kwargs
+    ) -> None:
+        return super().error(msg, *args, guild=guild, log_type=log_type, **kwargs)
 
     def critical(
-        self, msg, *args, guild: Guild, type: str = "regular", **kwargs
+        self, msg, *args, guild: Guild, log_type: str = "regular", **kwargs
     ) -> None:
-        return super().critical(msg, *args, guild=guild, **kwargs)
+        return super().critical(msg, *args, guild=guild, log_type=log_type, **kwargs)
 
     def process(
         self, msg: Any, kwargs: MutableMapping[str, Any]
@@ -35,8 +41,9 @@ class GuildAdapter(LoggerAdapter):
         if "guild" in kwargs:
             kwargs["extra"] = {
                 "guild": kwargs["guild"],
-                "type": kwargs["type"],
+                "log_type": kwargs["log_type"],
             }
             del kwargs["guild"]
+            del kwargs["log_type"]
 
         return (msg, kwargs)

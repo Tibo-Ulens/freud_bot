@@ -30,7 +30,7 @@ class DiscordHandler(Handler):
             return
 
         # The GuildAdapter should've stored the type in the records __dict__ keys
-        if "type" not in record.__dict__:
+        if "log_type" not in record.__dict__:
             failure_logger.error(f"record {record} failed to log, no record type")
             return
 
@@ -43,7 +43,7 @@ class DiscordHandler(Handler):
 
         loggin_channel: GuildChannel = None
 
-        if record.__dict__["type"] == "regular":
+        if record.__dict__["log_type"] == "regular":
             if guild_config.logging_channel is None:
                 failure_logger.error(
                     f"record {record} failed to log, no logging channel"
@@ -51,7 +51,7 @@ class DiscordHandler(Handler):
                 return
 
             logging_channel = guild.get_channel(guild_config.logging_channel)
-        elif record.__dict__["type"] == "verification":
+        elif record.__dict__["log_type"] == "verification":
             if guild_config.verification_logging_channel is None:
                 failure_logger.error(
                     f"record {record} failed to log, no verification logging channel"
@@ -63,7 +63,7 @@ class DiscordHandler(Handler):
             )
         else:
             failure_logger.error(
-                f"record {record} failed to log, unknown type {record.__dict__['type']}"
+                f"record {record} failed to log, unknown type {record.__dict__['log_type']}"
             )
             return
 
