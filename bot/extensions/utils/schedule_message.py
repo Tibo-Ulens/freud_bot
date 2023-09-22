@@ -6,6 +6,7 @@ from discord import app_commands, Interaction, TextChannel, TextStyle
 from discord.ui import Modal, TextInput
 
 from bot.bot import Bot
+from bot.decorators import check_user_has_admin_role
 from bot.extensions import ErrorHandledCog
 
 
@@ -77,6 +78,8 @@ class ScheduleMessage(ErrorHandledCog):
     @app_commands.command(
         name="schedule", description="Schedule a message to be sent at a specific time"
     )
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
     @app_commands.describe(
         channel="The channel to post the message in",
         time="The time to post the message at (format %Y/%m/%d %H:%M)",
