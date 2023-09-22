@@ -69,6 +69,7 @@ class VerifyEmailModal(Modal):
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify with invalid email '{email}'",
                 guild=self.guild,
+                log_type="verification",
             )
 
             return await ia.response.send_message(
@@ -84,6 +85,7 @@ class VerifyEmailModal(Modal):
                 self.bot.discord_logger.warning(
                     f"user {ia.user.mention} attempted to verify despite already being verified",
                     guild=self.guild,
+                    log_type="verification",
                 )
 
                 return await ia.response.send_message(
@@ -110,6 +112,7 @@ class VerifyEmailModal(Modal):
             self.bot.discord_logger.info(
                 f"user {ia.user.mention} re-requested a verification code for '{email}'",
                 guild=self.guild,
+                log_type="verification",
             )
 
             return await ia.response.send_message(
@@ -122,6 +125,7 @@ class VerifyEmailModal(Modal):
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify with duplicate email '{email}'",
                 guild=self.guild,
+                log_type="verification",
             )
 
             return await ia.response.send_message(
@@ -131,6 +135,7 @@ class VerifyEmailModal(Modal):
         self.bot.discord_logger.info(
             f"user {ia.user.mention} requested verification code for '{email}'",
             guild=self.guild,
+            log_type="verification",
         )
 
         await Profile.create(
@@ -187,6 +192,7 @@ class VerifyCodeModal(Modal):
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify despite already being verified",
                 guild=self.guild,
+                log_type="verification",
             )
 
             return await ia.response.send_message(guild_config.already_verified_message)
@@ -198,6 +204,7 @@ class VerifyCodeModal(Modal):
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify with an invalid code '{self.code.value}', invalid pattern",
                 guild=self.guild,
+                log_type="verification",
             )
 
             return await ia.response.send_message(
@@ -210,6 +217,7 @@ class VerifyCodeModal(Modal):
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify with an invalid code '{code}', expected '{stored_code}'",
                 guild=self.guild,
+                log_type="verification",
             )
 
             return await ia.response.send_message(
@@ -228,6 +236,7 @@ class VerifyCodeModal(Modal):
         self.bot.discord_logger.info(
             f"{ia.user.mention} verified succesfully with email '{profile.email}'",
             guild=self.guild,
+            log_type="verification",
         )
 
         await ia.response.send_message(
@@ -285,6 +294,7 @@ class Verification(ErrorHandledCog):
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify despite already being verified",
                 guild=ia.guild,
+                log_type="verification",
             )
 
             return await ia.followup.send(guild_config.already_verified_message)
@@ -343,6 +353,7 @@ class Verification(ErrorHandledCog):
             self.bot.discord_logger.info(
                 f"{member.mention} has been automatically verified, their email is {profile.email}",
                 guild=guild,
+                log_type="verification",
             )
 
             return

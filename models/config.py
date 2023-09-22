@@ -21,6 +21,7 @@ class Config(Base, Model):
     verified_role = Column(BigInteger, unique=True, nullable=True)
     admin_role = Column(BigInteger, unique=True, nullable=True)
     logging_channel = Column(BigInteger, unique=True, nullable=True)
+    verification_logging_channel = Column(BigInteger, unique=True, nullable=True)
     confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
     confession_channel = Column(BigInteger, unique=True, nullable=True)
     pin_reaction_threshold = Column(Integer, FetchedValue(), nullable=False)

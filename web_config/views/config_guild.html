@@ -43,6 +43,17 @@
 							{% endfor %}
 						</select>
 
+						<label for="verification_logging_channel">Verification Logging Channel</label>
+						<select name="verification_logging_channel" id="verification_logging_channel">
+							{% for channel in channels %}
+								{% if verification_logging_channel == channel.id %}
+									<option value="{{channel.id}}" selected>{{channel.name}}</option>
+								{% else %}
+									<option value="{{channel.id}}">{{channel.name}}</option>
+								{% endif %}
+							{% endfor %}
+						</select>
+
 						<label for="pin_reaction_threshold">Pin Reaction Threshold</label>
 						<input
 							type="number"

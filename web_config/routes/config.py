@@ -95,6 +95,7 @@ async def show_config(request: Request, guild_id: str):
             "channels": channels,
             "admin_role": str(config.admin_role),
             "logging_channel": str(config.logging_channel),
+            "logging_channel": str(config.verification_logging_channel),
             "verified_role": str(config.verified_role),
             "confession_approval_channel": str(config.confession_approval_channel),
             "confession_channel": str(config.confession_channel),
