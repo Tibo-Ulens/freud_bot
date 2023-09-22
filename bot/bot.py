@@ -28,14 +28,14 @@ class Bot(commands.Bot):
         """Create and return a new bot instance"""
 
         intents = discord.Intents.default()
-        intents.message_content = True
         intents.members = True
-        intents.presences = False
+        intents.message_content = True
 
-        intents.bans = False
-        intents.dm_messages = False
+        intents.auto_moderation = False
+        intents.emojis_and_stickers = False
         intents.integrations = False
         intents.invites = False
+        intents.moderation = False
         intents.typing = False
         intents.voice_states = False
         intents.webhooks = False
