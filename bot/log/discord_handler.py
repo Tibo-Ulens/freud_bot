@@ -3,7 +3,8 @@ from datetime import datetime
 import logging
 from logging import Handler, LogRecord
 
-from discord import Embed, Colour, Guild, GuildChannel
+from discord import Embed, Colour, Guild
+from discord.abc import GuildChannel
 
 from models.config import Config
 
