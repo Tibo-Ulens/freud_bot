@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional
-from sqlalchemy import Column, Text
-from sqlalchemy.future import select
+
+from sqlalchemy import Column, Text, select
 from sqlalchemy.orm import Query
 
 from models import Base, Model, session_factory

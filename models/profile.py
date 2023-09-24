@@ -1,8 +1,7 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, Text, BigInteger
-from sqlalchemy.future import select
+from sqlalchemy import Column, Text, BigInteger, select
 from sqlalchemy.orm import Query
 
 from models import Base, Model, session_factory
