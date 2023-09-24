@@ -1,8 +1,7 @@
 import logging
 import os
 
-from sqlalchemy import Column
-from sqlalchemy.future import select
+from sqlalchemy import Column, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Query

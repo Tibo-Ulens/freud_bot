@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Text, Integer
-from sqlalchemy.future import select
+from sqlalchemy import Column, Text, Integer, select
 from sqlalchemy.orm import Query
 
 from models import Base, Model, session_factory

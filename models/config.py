@@ -1,9 +1,8 @@
 import logging
 from typing import Optional
 
-from sqlalchemy import Column, BigInteger, Integer, Text
+from sqlalchemy import Column, BigInteger, Integer, Text, select
 from sqlalchemy.schema import FetchedValue
-from sqlalchemy.future import select
 from sqlalchemy.orm import Query
 
 from discord import Guild
