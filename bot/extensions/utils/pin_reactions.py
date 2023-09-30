@@ -22,9 +22,12 @@ class ReactionPin(ErrorHandledCog):
         if guild_config is None or guild_config.pin_reaction_threshold is None:
             return
 
-        count = len(list(filter(lambda r: r.emoji == "📌", message.reactions)))
+        pin_reaction_obj = next(r for r in message.reactions if r.emoji == "📌")
 
-        if count >= guild_config.pin_reaction_threshold and not message.pinned:
+        if (
+            pin_reaction_obj.count >= guild_config.pin_reaction_threshold
+            and not message.pinned
+        ):
             await message.pin()
 
 
