@@ -17,15 +17,14 @@ class ReactionPin(ErrorHandledCog):
 
         channel = self.bot.get_channel(payload.channel_id)
         message: Message = await channel.fetch_message(payload.message_id)
-        count = len(list(filter(lambda r: r.emoji == "📌", message.reactions)))
 
         guild_config = await Config.get(message.guild.id)
+        if guild_config is None or guild_config.pin_reaction_threshold is None:
+            return
 
-        if (
-            guild_config is not None
-            and guild_config.pin_reaction_threshold is not None
-            and count == guild_config.pin_reaction_threshold
-        ):
+        count = len(list(filter(lambda r: r.emoji == "📌", message.reactions)))
+
+        if count >= guild_config.pin_reaction_threshold and not message.pinned:
             await message.pin()
 
 
