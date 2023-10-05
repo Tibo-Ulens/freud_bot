@@ -15,7 +15,6 @@ class Profile(Base, Model):
     confirmation_code = Column(Text, unique=True)
     freudpoints = Column(Integer, nullable=False)
     spendable_freudpoints = Column(Integer, nullable=False)
-    max_spendable_freudpoints = Column(Integer, nullable=False)
 
     def __repr__(self) -> str:
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
@@ -31,13 +30,6 @@ class Profile(Base, Model):
     def validate_spendable_fp_positive(self, key, value):
         if value < 0:
             raise ValueError(f"spendable FreudPoints must be at least 0")
-
-        return value
-
-    @validates("max_spendable_freudpoints")
-    def validate_max_spendable_fp_positive(self, key, value):
-        if value < 0:
-            raise ValueError(f"maximum spendable FreudPoints must be at least 0")
 
         return value
 

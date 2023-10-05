@@ -35,8 +35,13 @@ def upgrade() -> None:
         ),
     )
 
+    op.create_check_constraint("freudpoints_min_0", "profile", "freudpoints >= 0")
+    op.create_check_constraint(
+        "spendable_freudpoints_min_0", "profile", "spendable_freudpoints >= 0"
+    )
+
     op.add_column(
-        "profile",
+        "config",
         sa.Column(
             "max_spendable_freudpoints",
             sa.Integer,
@@ -46,20 +51,18 @@ def upgrade() -> None:
         ),
     )
 
-    op.create_check_constraint("freudpoints_min_0", "profile", "freudpoints >= 0")
     op.create_check_constraint(
-        "spendable_freudpoints_min_0", "profile", "spendable_freudpoints >= 0"
-    )
-    op.create_check_constraint(
-        "max_spendable_freudpoints_min_0", "profile", "max_spendable_freudpoints >= 0"
+        "max_spendable_freudpoints_min_0", "config", "max_spendable_freudpoints >= 0"
     )
 
 
 def downgrade() -> None:
-    op.drop_constraint("max_spendable_freudpoints_min_0", "profile", type_="check")
+    op.drop_constraint("max_spendable_freudpoints_min_0", "config", type_="check")
+
+    op.drop_column("config", "max_spendable_freudpoints")
+
     op.drop_constraint("spendable_freudpoints_min_0", "profile", type_="check")
     op.drop_constraint("freudpoints_min_0", "profile", type_="check")
 
-    op.drop_column("profile", "max_spendable_freudpoints")
     op.drop_column("profile", "spendable_freudpoints")
     op.drop_column("profile", "freudpoints")
