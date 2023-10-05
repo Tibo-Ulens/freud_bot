@@ -2,6 +2,7 @@ from discord import (
     app_commands,
     Interaction,
     Member,
+    Embed,
 )
 
 from models.profile import Profile
@@ -27,7 +28,18 @@ class FreudStatOverview(ErrorHandledCog):
     async def show_profile(self, ia: Interaction):
         user = await Profile.find_by_discord_id(ia.user.id)
 
-        return await ia.response.send_message(f"FreudPoints: {user.freudpoints}")
+        profile_embed = (
+            Embed(title=f"{ia.user.display_name}s Profile", colour=ia.user.colour)
+            .set_thumbnail(url=ia.user.display_avatar.url)
+            .add_field(name="FreudPoints", value=user.freudpoints, inline=True)
+            .add_field(
+                name="Spendable FreudPoints",
+                value=user.spendable_freudpoints,
+                inline=True,
+            )
+        )
+
+        return await ia.response.send_message(embed=profile_embed)
 
 
 async def setup(bot: Bot):
