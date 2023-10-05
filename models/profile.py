@@ -1,10 +1,11 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, Text, BigInteger, select, Integer
+from sqlalchemy import Column, Text, BigInteger, select, update, Integer, func
 from sqlalchemy.orm import Query, validates
 
 from models import Base, Model, session_factory
+from models.profile_statistics import ProfileStatistics
 
 
 class Profile(Base, Model):
@@ -13,25 +14,19 @@ class Profile(Base, Model):
     discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
-    freudpoints = Column(Integer, nullable=False)
-    spendable_freudpoints = Column(Integer, nullable=False)
 
     def __repr__(self) -> str:
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
 
-    @validates("freudpoints")
-    def validate_fp_positive(self, key, value):
-        if value < 0:
-            raise ValueError(f"FreudPoints must be at least 0")
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Profile):
+            return NotImplemented
 
-        return value
-
-    @validates("spendable_freudpoints")
-    def validate_spendable_fp_positive(self, key, value):
-        if value < 0:
-            raise ValueError(f"spendable FreudPoints must be at least 0")
-
-        return value
+        return (
+            self.discord_id == other.discord_id
+            and self.email == other.email
+            and self.confirmation_code == other.confirmation_code
+        )
 
     @classmethod
     async def find_by_discord_id(cls, discord_id: int) -> Optional["Profile"]:
@@ -78,3 +73,17 @@ class Profile(Base, Model):
             lambda p: guild.get_member(p.discord_id) is not None, profiles
         )
         return list(profiles)
+
+    async def get_freudpoint_rank(self) -> int:
+        """Get a profiles freudpoint score rank"""
+
+        async with session_factory() as session:
+            query: Query = await session.execute(
+                select(Profile)
+                .join(ProfileStatistics)
+                .order_by(ProfileStatistics.freudpoints.desc(), Profile.email.desc())
+            )
+
+        profiles: list["Profile"] = query.scalars().all()
+
+        return profiles.index(self)

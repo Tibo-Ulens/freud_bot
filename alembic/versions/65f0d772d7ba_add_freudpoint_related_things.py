@@ -17,15 +17,23 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "profile",
+    op.create_table(
+        "profile_statistics",
+        sa.Column(
+            "profile_discord_id",
+            sa.BigInteger,
+            sa.ForeignKey("profile.discord_id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "config_guild_id",
+            sa.BigInteger,
+            sa.ForeignKey("config.guild_id"),
+            nullable=False,
+        ),
         sa.Column(
             "freudpoints", sa.Integer, nullable=False, default=0, server_default="0"
         ),
-    )
-
-    op.add_column(
-        "profile",
         sa.Column(
             "spendable_freudpoints",
             sa.Integer,
@@ -35,9 +43,19 @@ def upgrade() -> None:
         ),
     )
 
-    op.create_check_constraint("freudpoints_min_0", "profile", "freudpoints >= 0")
+    op.create_primary_key(
+        "pk_profilestat_discordid_guildid",
+        "profile_statistics",
+        ["profile_discord_id", "config_guild_id"],
+    )
+
     op.create_check_constraint(
-        "spendable_freudpoints_min_0", "profile", "spendable_freudpoints >= 0"
+        "freudpoints_min_0", "profile_statistics", "freudpoints >= 0"
+    )
+    op.create_check_constraint(
+        "spendable_freudpoints_min_0",
+        "profile_statistics",
+        "spendable_freudpoints >= 0",
     )
 
     op.add_column(
@@ -61,8 +79,9 @@ def downgrade() -> None:
 
     op.drop_column("config", "max_spendable_freudpoints")
 
-    op.drop_constraint("spendable_freudpoints_min_0", "profile", type_="check")
-    op.drop_constraint("freudpoints_min_0", "profile", type_="check")
+    op.drop_constraint(
+        "spendable_freudpoints_min_0", "profile_statistics", type_="check"
+    )
+    op.drop_constraint("freudpoints_min_0", "profile_statistics", type_="check")
 
-    op.drop_column("profile", "spendable_freudpoints")
-    op.drop_column("profile", "freudpoints")
+    op.drop_table("profile_statistics")

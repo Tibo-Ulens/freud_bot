@@ -12,6 +12,7 @@ from bot.decorators import (
     check_user_is_verified,
 )
 from bot.extensions import ErrorHandledCog
+from models.profile_statistics import ProfileStatistics
 
 
 class FreudStatOverview(ErrorHandledCog):
@@ -20,21 +21,57 @@ class FreudStatOverview(ErrorHandledCog):
     )
 
     @freudstat_group.command(
-        name="profile",
+        name="me",
         description="Get an overview of your personal FreudStats profile",
     )
     @app_commands.guild_only()
     @check_user_is_verified()
-    async def show_profile(self, ia: Interaction):
+    async def show_me(self, ia: Interaction):
         user = await Profile.find_by_discord_id(ia.user.id)
+        stats = await ProfileStatistics.get(ia.user.id, ia.guild_id)
+
+        rank = await user.get_freudpoint_rank()
 
         profile_embed = (
             Embed(title=f"{ia.user.display_name}s Profile", colour=ia.user.colour)
             .set_thumbnail(url=ia.user.display_avatar.url)
-            .add_field(name="FreudPoints", value=user.freudpoints, inline=True)
+            .add_field(
+                name="FreudPoints",
+                value=f"#{rank + 1} ({stats.freudpoints} FP)",
+                inline=True,
+            )
             .add_field(
                 name="Spendable FreudPoints",
-                value=user.spendable_freudpoints,
+                value=stats.spendable_freudpoints,
+                inline=True,
+            )
+        )
+
+        return await ia.response.send_message(embed=profile_embed)
+
+    @freudstat_group.command(
+        name="profile", description="Get an overview of somebodies profile"
+    )
+    @app_commands.describe(user="The user whose profile you want to see")
+    @app_commands.guild_only()
+    @check_user_is_verified()
+    async def show_profile(self, ia: Interaction, user: Member):
+        db_user = await Profile.find_by_discord_id(user.id)
+
+        if db_user is None:
+            return await ia.response.send_message(
+                f"{user.display_name} is not verified and doesn't have a profile"
+            )
+
+        stats = await ProfileStatistics.get(user.id, ia.guild_id)
+        rank = await db_user.get_freudpoint_rank()
+
+        profile_embed = (
+            Embed(title=f"{user.display_name}s Profile", colour=user.colour)
+            .set_thumbnail(url=user.display_avatar.url)
+            .add_field(
+                name="FreudPoints",
+                value=f"#{rank + 1} ({stats.freudpoints} FP)",
                 inline=True,
             )
         )

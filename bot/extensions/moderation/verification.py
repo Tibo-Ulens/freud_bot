@@ -14,10 +14,10 @@ from bot import constants
 from bot.bot import Bot
 from bot.decorators import (
     check_has_config_option,
-    only_in_channel,
 )
 from bot.exceptions import MissingConfig
 from bot.extensions import ErrorHandledCog
+from models.profile_statistics import ProfileStatistics
 
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
@@ -233,6 +233,10 @@ class VerifyCodeModal(Modal):
         profile.confirmation_code = None
         await profile.save()
 
+        await ProfileStatistics.create(
+            profile_discord_id=ia.user.id, config_guild_id=self.guild.id
+        )
+
         self.bot.discord_logger.info(
             f"{ia.user.mention} verified succesfully with email '{profile.email}'",
             guild=self.guild,
@@ -348,6 +352,10 @@ class Verification(ErrorHandledCog):
         ):
             await member.add_roles(
                 discord.utils.get(guild.roles, id=guild_config.verified_role)
+            )
+
+            await ProfileStatistics.create(
+                profile_discord_id=member.id, config_guild_id=guild.id
             )
 
             self.bot.discord_logger.info(
