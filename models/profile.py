@@ -1,8 +1,8 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, Text, BigInteger, select
-from sqlalchemy.orm import Query
+from sqlalchemy import Column, Text, BigInteger, select, Integer
+from sqlalchemy.orm import Query, validates
 
 from models import Base, Model, session_factory
 
@@ -13,9 +13,33 @@ class Profile(Base, Model):
     discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
+    freudpoints = Column(Integer, nullable=False)
+    spendable_freudpoints = Column(Integer, nullable=False)
+    max_spendable_freudpoints = Column(Integer, nullable=False)
 
     def __repr__(self) -> str:
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
+
+    @validates("freudpoints")
+    def validate_fp_positive(self, key, value):
+        if value < 0:
+            raise ValueError(f"FreudPoints must be at least 0")
+
+        return value
+
+    @validates("spendable_freudpoints")
+    def validate_spendable_fp_positive(self, key, value):
+        if value < 0:
+            raise ValueError(f"spendable FreudPoints must be at least 0")
+
+        return value
+
+    @validates("max_spendable_freudpoints")
+    def validate_max_spendable_fp_positive(self, key, value):
+        if value < 0:
+            raise ValueError(f"maximum spendable FreudPoints must be at least 0")
+
+        return value
 
     @classmethod
     async def find_by_discord_id(cls, discord_id: int) -> Optional["Profile"]:
