@@ -1,7 +1,8 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, Text, BigInteger, select
+from sqlalchemy import Column, Text, BigInteger, Integer, select, update
+from sqlalchemy.schema import FetchedValue
 from sqlalchemy.orm import Query
 
 from models import Base, Model, session_factory
@@ -13,6 +14,7 @@ class Profile(Base, Model):
     discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
+    confession_exposed_count = Column(Integer, FetchedValue(), nullable=False)
 
     def __repr__(self) -> str:
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
@@ -62,3 +64,33 @@ class Profile(Base, Model):
             lambda p: guild.get_member(p.discord_id) is not None, profiles
         )
         return list(profiles)
+
+    @classmethod
+    async def increment_exposed_count(cls, discord_id: int):
+        """Increment the confession exposed count for a profile given their ID"""
+
+        async with session_factory() as session:
+            stmt = (
+                update(cls)
+                .where(cls.discord_id == discord_id)
+                .values(confession_exposed_count=cls.confession_exposed_count + 1)
+                .returning(cls.confession_exposed_count)
+            )
+
+            await session.execute(stmt)
+            await session.commit()
+
+        return
+
+    @classmethod
+    async def get_exposed_top_10(cls) -> list["Profile"]:
+        """Get a top 10 of the most exposed users"""
+
+        async with session_factory() as session:
+            result: Query = await session.execute(
+                select(cls)
+                .order_by(cls.confession_exposed_count.desc(), cls.email.asc())
+                .limit(10)
+            )
+
+        return result.scalars().all()
