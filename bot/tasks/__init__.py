@@ -3,10 +3,7 @@ import importlib
 import inspect
 from typing import Iterator, NoReturn
 
-from bot import tasks, root_logger
-
-
-task_logger = root_logger.getChild("task")
+from bot import tasks
 
 
 def walk_tasks() -> Iterator[str]:

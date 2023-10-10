@@ -1,9 +1,12 @@
 import asyncio
 from datetime import datetime, timezone, timedelta
+import logging
 from bot.bot import Bot
-from bot.tasks import task_logger
 
 from models.profile_statistics import ProfileStatistics
+
+
+logger = logging.getLogger("freudpoint_increment")
 
 
 async def freudpoint_increment():
@@ -17,12 +20,12 @@ async def freudpoint_increment():
 
         delay = (next_midnight - now).total_seconds()
 
-        task_logger.info(f"waiting {delay}s until next midnight")
+        logger.info(f"waiting {delay}s until next midnight")
         await asyncio.sleep(delay)
 
-        task_logger.info("incrementing spendable freudpoints...")
+        logger.info("incrementing spendable freudpoints...")
         await ProfileStatistics.increment_spendable_freudpoints()
-        task_logger.info("done")
+        logger.info("done")
 
 
 async def setup(bot: Bot):
