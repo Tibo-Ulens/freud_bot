@@ -4,4 +4,6 @@ select
 	profile.discord_id, config.guild_id
 from
 	profile, config
+where
+	profile.email is not null and profile.confirmation_code is null
 on conflict do nothing;

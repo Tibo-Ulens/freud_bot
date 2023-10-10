@@ -18,6 +18,9 @@ async def main():
     logger.info("Loading extensions...")
     await bot.instance.load_extensions()
 
+    logger.info("Starting tasks...")
+    await bot.instance.start_tasks()
+
     logger.info("Starting bot...")
     await bot.instance.start(DISCORD_TOKEN)
 
