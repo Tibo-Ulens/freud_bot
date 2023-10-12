@@ -6,6 +6,7 @@ from sqlalchemy.schema import FetchedValue
 from sqlalchemy.orm import Query
 
 from models import Base, Model, session_factory
+from models.profile_statistics import ProfileStatistics
 
 
 class Profile(Base, Model):
@@ -18,6 +19,16 @@ class Profile(Base, Model):
 
     def __repr__(self) -> str:
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Profile):
+            return NotImplemented
+
+        return (
+            self.discord_id == other.discord_id
+            and self.email == other.email
+            and self.confirmation_code == other.confirmation_code
+        )
 
     @classmethod
     async def find_by_discord_id(cls, discord_id: int) -> Optional["Profile"]:
@@ -94,3 +105,17 @@ class Profile(Base, Model):
             )
 
         return result.scalars().all()
+
+    async def get_freudpoint_rank(self) -> int:
+        """Get a profiles freudpoint score rank"""
+
+        async with session_factory() as session:
+            query: Query = await session.execute(
+                select(Profile)
+                .join(ProfileStatistics)
+                .order_by(ProfileStatistics.freudpoints.desc(), Profile.email.desc())
+            )
+
+        profiles: list["Profile"] = query.scalars().all()
+
+        return profiles.index(self)

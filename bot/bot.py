@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import suppress
+import importlib.util
 from typing import Sequence
 
 import logging
@@ -19,9 +20,11 @@ class Bot(commands.Bot):
     """Custom discord bot class"""
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self.logger: Logger = None
         self.discord_logger: GuildAdapter = None
-        super().__init__(*args, **kwargs)
+        self.loop = asyncio.get_running_loop()
 
     @classmethod
     async def create(cls) -> "Bot":
@@ -50,6 +53,28 @@ class Bot(commands.Bot):
         for ext in EXTENSIONS:
             await self.load_extension(ext)
             logger.info(f"loaded extension '{ext}'")
+
+    async def start_tasks(self) -> None:
+        """Start all bot-related tasks"""
+
+        from bot.tasks import TASKS
+
+        await self._async_setup_hook()
+
+        for task in TASKS:
+            await self._start_task(task)
+            logger.info(f"started task '{task}'")
+
+    async def _start_task(self, name: str):
+        spec = importlib.util.find_spec(name)
+        if spec is None:
+            raise ImportError(f"Task {name} not found")
+
+        lib = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lib)
+
+        setup = getattr(lib, "setup")
+        await setup(self)
 
     async def add_cog(
         self,
