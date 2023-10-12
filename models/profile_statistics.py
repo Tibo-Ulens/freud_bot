@@ -8,6 +8,7 @@ from sqlalchemy import (
     Integer,
     func,
 )
+from sqlalchemy.engine import Result
 from sqlalchemy.orm import Query, validates, relationship
 from sqlalchemy.schema import FetchedValue
 
@@ -50,7 +51,7 @@ class ProfileStatistics(Base, Model):
         """Find statistics the profile and guild id"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(
                     cls.profile_discord_id == discord_id,
                     cls.config_guild_id == guild_id,
@@ -84,3 +85,17 @@ class ProfileStatistics(Base, Model):
             )
 
             await session.commit()
+
+    @classmethod
+    async def get_freudpoint_top_10(cls, guild_id: int) -> list["ProfileStatistics"]:
+        """Get a top 10 of the members in the given guild with the most freudpoints"""
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                select(cls)
+                .where(cls.config_guild_id == guild_id)
+                .order_by(cls.freudpoints.desc())
+                .limit(10)
+            )
+
+        return result.scalars().all()

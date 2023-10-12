@@ -78,6 +78,26 @@ class FreudStatOverview(ErrorHandledCog):
 
         return await ia.response.send_message(embed=profile_embed)
 
+    @freudstat_group.command(
+        name="leaderboard",
+        description="See a leaderboard of members with the most FreudPoints",
+    )
+    @app_commands.guild_only()
+    @check_user_is_verified()
+    async def show_leaderboard(self, ia: Interaction):
+        top_10 = await ProfileStatistics.get_freudpoint_top_10(ia.guild_id)
+
+        top_10 = [
+            f"#{i + 1} - <@{p.profile_discord_id}> ({p.freudpoints})"
+            for i, p in enumerate(top_10)
+        ]
+
+        leaderboard = Embed(
+            title="Members with the most FreudPoints", description="\n".join(top_10)
+        )
+
+        return await ia.response.send_message(embed=leaderboard)
+
 
 async def setup(bot: Bot):
     await bot.add_cog(FreudStatOverview(bot))
