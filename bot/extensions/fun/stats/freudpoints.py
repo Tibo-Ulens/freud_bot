@@ -29,6 +29,12 @@ class FreudPoints(ErrorHandledCog):
     async def award_freudpoints(
         self, ia: Interaction, user: Member, amount: Optional[int] = 1
     ):
+        if ia.user.id == user.id:
+            return await ia.response.send_message(
+                "Nice try, but you can't award FreudPoints to yourself",
+                ephemeral=True,
+            )
+
         awarder_stats = await ProfileStatistics.get(ia.user.id, ia.guild_id)
 
         if awarder_stats.spendable_freudpoints < amount:
