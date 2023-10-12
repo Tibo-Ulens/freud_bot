@@ -136,22 +136,6 @@ class Confess(ErrorHandledCog):
         name="confess", description="Confession related commands", guild_only=True
     )
 
-    @confess_group.command(
-        name="leaderboard", description="See a leaderboard of the most exposed people"
-    )
-    @check_user_is_verified()
-    async def leaderboard(self, ia: Interaction):
-        top_10 = await ProfileStatistics.get_exposed_top_10(ia.guild_id)
-
-        top_10 = [
-            f"#{i + 1} - <@{p.profile_discord_id}> ({p.confession_exposed_count})"
-            for i, p in enumerate(top_10)
-        ]
-
-        leaderboard = Embed(title="Most exposed members", description="\n".join(top_10))
-
-        return await ia.response.send_message(embed=leaderboard)
-
     @staticmethod
     async def confess_inner(ia: Interaction, confession: str, type_: ConfessionType):
         config = await Config.get(ia.guild_id)
