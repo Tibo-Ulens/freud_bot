@@ -14,7 +14,7 @@ from discord import (
 from discord.ui import View, Button
 
 from models.config import Config
-from models.profile import Profile
+from models.profile_statistics import ProfileStatistics
 
 from bot.bot import Bot
 from bot.decorators import (
@@ -114,7 +114,7 @@ class PendingApprovalView(View):
         actual_confession.colour = Colour.random()
 
         if self.chance is not None and random.random() <= self.chance:
-            await Profile.increment_exposed_count(self.poster.id)
+            await ProfileStatistics.increment_exposed_count(self.poster.id, ia.guild_id)
 
             actual_confession.add_field(name="Sent By", value=self.poster.mention)
 
@@ -141,10 +141,10 @@ class Confess(ErrorHandledCog):
     )
     @check_user_is_verified()
     async def leaderboard(self, ia: Interaction):
-        top_10 = await Profile.get_exposed_top_10()
+        top_10 = await ProfileStatistics.get_exposed_top_10(ia.guild_id)
 
         top_10 = [
-            f"#{i + 1} - <@{p.discord_id}> ({p.confession_exposed_count})"
+            f"#{i + 1} - <@{p.profile_discord_id}> ({p.confession_exposed_count})"
             for i, p in enumerate(top_10)
         ]
 

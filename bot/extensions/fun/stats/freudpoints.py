@@ -6,8 +6,6 @@ from discord import (
     Member,
 )
 
-from models.profile import Profile
-
 from bot.bot import Bot
 from bot.decorators import (
     check_user_is_verified,

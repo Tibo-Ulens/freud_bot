@@ -28,6 +28,7 @@ class ProfileStatistics(Base, Model):
 
     freudpoints = Column(Integer, FetchedValue(), nullable=False)
     spendable_freudpoints = Column(Integer, FetchedValue(), nullable=False)
+    confession_exposed_count = Column(Integer, FetchedValue(), nullable=False)
 
     profile = relationship("Profile", foreign_keys=[profile_discord_id])
     config = relationship("Config", foreign_keys=[config_guild_id])
@@ -95,6 +96,40 @@ class ProfileStatistics(Base, Model):
                 select(cls)
                 .where(cls.config_guild_id == guild_id)
                 .order_by(cls.freudpoints.desc())
+                .limit(10)
+            )
+
+        return result.scalars().all()
+
+    @classmethod
+    async def increment_exposed_count(cls, discord_id: int, guild_id: int):
+        """Increment the confession exposed count for a profile in a given server"""
+
+        async with session_factory() as session:
+            stmt = (
+                update(cls)
+                .where(
+                    cls.profile_discord_id == discord_id,
+                    cls.config_guild_id == guild_id,
+                )
+                .values(confession_exposed_count=cls.confession_exposed_count + 1)
+                .returning(cls.confession_exposed_count)
+            )
+
+            await session.execute(stmt)
+            await session.commit()
+
+        return
+
+    @classmethod
+    async def get_exposed_top_10(cls, guild_id: int) -> list["ProfileStatistics"]:
+        """Get a top 10 of the most exposed users for the given guild"""
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                select(cls)
+                .where(cls.config_guild_id == guild_id)
+                .order_by(cls.confession_exposed_count.desc())
                 .limit(10)
             )
 

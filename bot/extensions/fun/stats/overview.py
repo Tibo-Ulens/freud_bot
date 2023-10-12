@@ -30,7 +30,7 @@ class FreudStatOverview(ErrorHandledCog):
         user = await Profile.find_by_discord_id(ia.user.id)
         stats = await ProfileStatistics.get(ia.user.id, ia.guild_id)
 
-        rank = await user.get_freudpoint_rank()
+        rank = await user.get_freudpoint_rank(ia.guild_id)
 
         profile_embed = (
             Embed(title=f"{ia.user.display_name}s Profile", colour=ia.user.colour)
