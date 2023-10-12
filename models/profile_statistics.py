@@ -9,7 +9,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.engine import Result
-from sqlalchemy.orm import Query, validates, relationship
+from sqlalchemy.orm import validates, relationship
 from sqlalchemy.schema import FetchedValue
 
 from models import Base, Model, session_factory

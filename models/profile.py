@@ -1,8 +1,8 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, Text, BigInteger, select, update, Integer, func
-from sqlalchemy.orm import Query, validates
+from sqlalchemy import Column, Text, BigInteger, select
+from sqlalchemy.orm import Query
 
 from models import Base, Model, session_factory
 from models.profile_statistics import ProfileStatistics
