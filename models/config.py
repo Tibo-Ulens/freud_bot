@@ -2,8 +2,9 @@ import logging
 from typing import Optional
 
 from sqlalchemy import Column, BigInteger, Integer, Text, select
+from sqlalchemy.engine import Result
 from sqlalchemy.schema import FetchedValue
-from sqlalchemy.orm import Query, validates
+from sqlalchemy.orm import validates
 
 from discord import Guild
 
@@ -49,7 +50,7 @@ class Config(Base, Model):
         """Find a config given its guild ID"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.guild_id == guild_id)
             )
 
@@ -64,7 +65,7 @@ class Config(Base, Model):
         """Find a config given its guild ID, or create an empty config if it does not exist"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.guild_id == guild.id)
             )
 
