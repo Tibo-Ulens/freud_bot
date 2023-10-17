@@ -9,6 +9,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.engine import Result
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import validates, relationship
 from sqlalchemy.schema import FetchedValue
 
@@ -48,8 +49,12 @@ class ProfileStatistics(Base, Model):
         return value
 
     @classmethod
-    async def get(cls, discord_id: int, guild_id: int) -> Optional["ProfileStatistics"]:
-        """Find statistics the profile and guild id"""
+    async def get(cls, discord_id: int, guild_id: int) -> "ProfileStatistics":
+        """
+        Find statistics given a profile and guild
+
+        Creates a new row if there isn't one already
+        """
 
         async with session_factory() as session:
             result: Result = await session.execute(
@@ -61,7 +66,11 @@ class ProfileStatistics(Base, Model):
 
             r = result.first()
             if r is None:
-                return None
+                new_stats = cls(profile_discord_id=discord_id, config_guild_id=guild_id)
+                session.add(new_stats)
+                await session.commit()
+
+                return new_stats
 
             return r[0]
 
@@ -106,20 +115,25 @@ class ProfileStatistics(Base, Model):
         """Increment the confession exposed count for a profile in a given server"""
 
         async with session_factory() as session:
-            stmt = (
+            result: Result = await session.execute(
                 update(cls)
                 .where(
                     cls.profile_discord_id == discord_id,
                     cls.config_guild_id == guild_id,
                 )
                 .values(confession_exposed_count=cls.confession_exposed_count + 1)
-                .returning(cls.confession_exposed_count)
+                .returning(cls)
             )
 
-            await session.execute(stmt)
-            await session.commit()
+            if len(result.scalars().all()) == 0:
+                new_stats = cls(
+                    profile_discord_id=discord_id,
+                    config_guild_id=guild_id,
+                    confession_exposed_count=1,
+                )
+                session.add(new_stats)
 
-        return
+            await session.commit()
 
     @classmethod
     async def get_exposed_top_10(cls, guild_id: int) -> list["ProfileStatistics"]:
