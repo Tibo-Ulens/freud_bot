@@ -1,4 +1,5 @@
 from typing import Optional
+import asyncio
 
 from discord import (
     app_commands,
@@ -33,6 +34,12 @@ class FreudPoints(ErrorHandledCog):
                 ephemeral=True,
             )
 
+        if amount <= 0:
+            return await ia.response.send_message(
+                "You have to award at least 1 FreudPoint",
+                ephemeral=True,
+            )
+
         awarder_stats = await ProfileStatistics.get(ia.user.id, ia.guild_id)
 
         if awarder_stats.spendable_freudpoints < amount:
@@ -43,16 +50,15 @@ class FreudPoints(ErrorHandledCog):
 
         awardee_stats = await ProfileStatistics.get(user.id, ia.guild_id)
 
-        if awardee_stats is None:
-            return await ia.response.send_message(
-                f"{user.display_name} is not verified and is not elligible for FreudPoints"
-            )
-
         awarder_stats.spendable_freudpoints -= amount
         awardee_stats.freudpoints += amount
 
-        await awarder_stats.save()
-        await awardee_stats.save()
+        await asyncio.gather(
+            *[
+                awarder_stats.save(),
+                awardee_stats.save(),
+            ]
+        )
 
         return await ia.response.send_message(
             f"{user.display_name} has been awarded {amount} FreudPoint(s)!",
