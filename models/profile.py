@@ -2,9 +2,10 @@ from typing import Optional
 
 from discord import Guild
 from sqlalchemy import Column, Text, BigInteger, select
-from sqlalchemy.orm import Query
+from sqlalchemy.engine import Result
 
 from models import Base, Model, session_factory
+from models.profile_statistics import ProfileStatistics
 
 
 class Profile(Base, Model):
@@ -17,12 +18,22 @@ class Profile(Base, Model):
     def __repr__(self) -> str:
         return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Profile):
+            return NotImplemented
+
+        return (
+            self.discord_id == other.discord_id
+            and self.email == other.email
+            and self.confirmation_code == other.confirmation_code
+        )
+
     @classmethod
     async def find_by_discord_id(cls, discord_id: int) -> Optional["Profile"]:
         """Find a profile given its discord_id"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.discord_id == discord_id)
             )
 
@@ -37,7 +48,9 @@ class Profile(Base, Model):
         """Find a profile given its email"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(select(cls).where(cls.email == email))
+            result: Result = await session.execute(
+                select(cls).where(cls.email == email)
+            )
 
             r = result.first()
             if r is None:
@@ -50,7 +63,7 @@ class Profile(Base, Model):
         """Find all profiles in a specific guild that are verified"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(
                     cls.confirmation_code.is_(None), cls.email.is_not(None)
                 )
@@ -62,3 +75,18 @@ class Profile(Base, Model):
             lambda p: guild.get_member(p.discord_id) is not None, profiles
         )
         return list(profiles)
+
+    async def get_freudpoint_rank(self, guild_id: int) -> int:
+        """Get a profiles FreudPoint score rank in a given guild"""
+
+        async with session_factory() as session:
+            query: Result = await session.execute(
+                select(Profile)
+                .join(ProfileStatistics)
+                .where(ProfileStatistics.config_guild_id == guild_id)
+                .order_by(ProfileStatistics.freudpoints.desc())
+            )
+
+        profiles: list["Profile"] = query.scalars().all()
+
+        return profiles.index(self)

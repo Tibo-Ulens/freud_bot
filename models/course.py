@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional
 
 from sqlalchemy import Column, Text, select
-from sqlalchemy.orm import Query
+from sqlalchemy.engine import Result
 
 from models import Base, Model, session_factory
 from models.enrollment import Enrollment
@@ -26,7 +26,7 @@ class Course(Base, Model):
         """Find a course given its name"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(select(cls).where(cls.name == name))
+            result: Result = await session.execute(select(cls).where(cls.name == name))
 
             r = result.first()
             if r is None:
@@ -39,7 +39,7 @@ class Course(Base, Model):
         """Find a course given its code"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(select(cls).where(cls.code == code))
+            result: Result = await session.execute(select(cls).where(cls.code == code))
 
             r = result.first()
             if r is None:
@@ -52,7 +52,7 @@ class Course(Base, Model):
         """Get the names of all available courses"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(select(cls.name))
+            result: Result = await session.execute(select(cls.name))
 
             return result.scalars().all()
 

@@ -2,8 +2,9 @@ import logging
 from typing import Optional
 
 from sqlalchemy import Column, BigInteger, Integer, Text, select
+from sqlalchemy.engine import Result
 from sqlalchemy.schema import FetchedValue
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import validates
 
 from discord import Guild
 
@@ -32,16 +33,24 @@ class Config(Base, Model):
     invalid_code_message = Column(Text, FetchedValue(), nullable=False)
     already_verified_message = Column(Text, FetchedValue(), nullable=False)
     welcome_message = Column(Text, FetchedValue(), nullable=False)
+    max_spendable_freudpoints = Column(Integer, nullable=False)
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"
+
+    @validates("max_spendable_freudpoints")
+    def validate_max_spendable_fp_positive(self, key, value):
+        if value < 0:
+            raise ValueError(f"maximum spendable FreudPoints must be at least 0")
+
+        return value
 
     @classmethod
     async def get(cls, guild_id: int) -> Optional["Config"]:
         """Find a config given its guild ID"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.guild_id == guild_id)
             )
 
@@ -56,7 +65,7 @@ class Config(Base, Model):
         """Find a config given its guild ID, or create an empty config if it does not exist"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.guild_id == guild.id)
             )
 

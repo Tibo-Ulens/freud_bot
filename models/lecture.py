@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Text, Integer, select
-from sqlalchemy.orm import Query
+from sqlalchemy.engine import Result
 
 from models import Base, Model, session_factory
 
@@ -55,7 +55,7 @@ class Lecture(Base, Model):
         """Find all lectures for a given course"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.course_code == course_code)
             )
 

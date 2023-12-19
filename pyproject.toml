@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "freud_bot"
-version = "3.2.2"
+version = "3.4.1"
 description = "UGent discord bot"
 authors = ["Tibo Ulens <ulens.tibo@gmail.com>"]
 

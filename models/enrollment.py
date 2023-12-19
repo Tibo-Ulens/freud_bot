@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlalchemy import Column, Text, select
-from sqlalchemy.orm import Query
+from sqlalchemy.engine import Result
 
 from models import Base, Model, session_factory
 
@@ -22,7 +22,7 @@ class Enrollment(Base, Model):
         """Find a specific enrollment"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls)
                 .where(cls.profile_discord_id == profile_discord_id)
                 .where(cls.course_code == course_code)
@@ -39,7 +39,7 @@ class Enrollment(Base, Model):
         """Find all enrollments for a given profile"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.profile_discord_id == profile_id)
             )
 
@@ -50,7 +50,7 @@ class Enrollment(Base, Model):
         """Find all enrollments for a given course"""
 
         async with session_factory() as session:
-            result: Query = await session.execute(
+            result: Result = await session.execute(
                 select(cls).where(cls.course_code == course_code)
             )
 
