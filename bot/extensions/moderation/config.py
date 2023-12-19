@@ -56,6 +56,10 @@ class Config(ErrorHandledCog):
     @app_commands.guild_only()
     @check_user_has_admin_role()
     async def set_verified_role(self, ia: Interaction, role: Role):
+        ia.response.send_message(
+            "Updating verified role...\nThis message will be updated when everything is completed"
+        )
+
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
         old_verified_role = None
@@ -84,7 +88,7 @@ class Config(ErrorHandledCog):
         self.bot.logger.info(
             f"set verified role for {util.render_guild(ia.guild)} to {util.render_role(role)}, {len(members)} members updated"
         )
-        await ia.response.send_message(
+        await ia.edit_original_response(
             f"Set the verified role to {util.render_role(role)}, {len(members)} members updated"
         )
 
