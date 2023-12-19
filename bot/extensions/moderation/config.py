@@ -48,6 +48,32 @@ class Config(ErrorHandledCog):
             f"Set the admin role to {util.render_role(role)}"
         )
 
+    async def refresh_verified_role(self, ia: Interaction, role: Role):
+        await ia.response.send_message(
+            "New verified role is the same as the old one\nRefreshing role for all verified members...\nThis message will be updated when everything is completed"
+        )
+
+        verified_profiles = await Profile.find_verified_in_guild(ia.guild)
+
+        member_coroutines = []
+        for profile in verified_profiles:
+            member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
+
+        members: list[Member] = await asyncio.gather(*member_coroutines)
+
+        role_coroutines = []
+        for member in members:
+            if member.get_role(role.id) is not None:
+                continue
+
+            role_coroutines.append(member.add_roles(role))
+
+        await asyncio.gather(*role_coroutines)
+
+        await ia.edit_original_response(
+            content=f"Verified role refreshed, {len(members)} members updated"
+        )
+
     @config_group.command(
         name="verified_role",
         description="Set the role to be applied to members once they have been verified",
@@ -56,10 +82,6 @@ class Config(ErrorHandledCog):
     @app_commands.guild_only()
     @check_user_has_admin_role()
     async def set_verified_role(self, ia: Interaction, role: Role):
-        ia.response.send_message(
-            "Updating verified role...\nThis message will be updated when everything is completed"
-        )
-
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
         old_verified_role = None
@@ -68,18 +90,32 @@ class Config(ErrorHandledCog):
                 ia.guild.roles, id=guild_config.verified_role
             )
 
+        if old_verified_role == role:
+            await self.refresh_verified_role(ia, role)
+            return
+
+        await ia.response.send_message(
+            "Updating verified role...\nThis message will be updated when everything is completed"
+        )
+
         verified_profiles = await Profile.find_verified_in_guild(ia.guild)
 
         member_coroutines = []
         for profile in verified_profiles:
             member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
+
         members: list[Member] = await asyncio.gather(*member_coroutines)
 
         role_coroutines = []
         for member in members:
             role_coroutines.append(member.add_roles(role))
-            if old_verified_role is not None:
+
+            if (
+                old_verified_role is not None
+                and member.get_role(old_verified_role.id) is not None
+            ):
                 role_coroutines.append(member.remove_roles(old_verified_role))
+
         await asyncio.gather(*role_coroutines)
 
         guild_config.verified_role = role.id
@@ -89,7 +125,7 @@ class Config(ErrorHandledCog):
             f"set verified role for {util.render_guild(ia.guild)} to {util.render_role(role)}, {len(members)} members updated"
         )
         await ia.edit_original_response(
-            f"Set the verified role to {util.render_role(role)}, {len(members)} members updated"
+            content=f"Set the verified role to {util.render_role(role)}, {len(members)} members updated"
         )
 
     @config_group.command(
