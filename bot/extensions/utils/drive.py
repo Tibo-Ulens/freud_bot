@@ -10,22 +10,14 @@ from bot.extensions import ErrorHandledCog
 class Drive(ErrorHandledCog):
     @app_commands.command(
         name="drive",
-        description="Send a link to the Google Drive folder for a specific course",
+        description="Send a link to a Google Drive folder",
     )
-    @app_commands.describe(course="The name of the course to link to")
+    @app_commands.describe(course="The name of the link")
     @app_commands.choices(
         course=[
-            Choice(name="Grondslagen van de Psychologie", value="1"),
-            Choice(name="Kwalitatieve Data Analyse", value="2"),
-            Choice(name="Ontwikkelingspsychologie", value="3"),
-            Choice(name="Sociale Psychologie", value="4"),
-            Choice(name="Statistiek 1", value="5"),
-            Choice(name="Algemene Psychologie", value="6"),
-            Choice(name="Differentiële Psychologie", value="7"),
-            Choice(name="Erfelijkheidsleer", value="8"),
-            Choice(name="Introductie Cognitieve Psychologie 1", value="9"),
-            Choice(name="Methodologie", value="10"),
-            Choice(name="Maatschappelijke Structuren", value="11"),
+            Choice(name="1e Bachelor", value="1"),
+            Choice(name="2e Bachelor", value="2"),
+            Choice(name="Nuttige Info", value="3"),
         ]
     )
     @check_user_is_verified()
