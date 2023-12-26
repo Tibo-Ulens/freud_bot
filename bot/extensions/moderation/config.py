@@ -55,11 +55,15 @@ class Config(ErrorHandledCog):
 
         verified_profiles = await Profile.find_verified_in_guild(ia.guild)
 
-        member_coroutines = []
-        for profile in verified_profiles:
-            member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
+        # member_coroutines = []
+        # for profile in verified_profiles:
+        #     member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
 
-        members: list[Member] = await asyncio.gather(*member_coroutines)
+        # members: list[Member] = await asyncio.gather(*member_coroutines)
+
+        members: list[Member] = []
+        for profile in verified_profiles:
+            members.append(ia.guild.get_member(profile.discord_id))
 
         role_coroutines = []
         for member in members:
@@ -100,11 +104,15 @@ class Config(ErrorHandledCog):
 
         verified_profiles = await Profile.find_verified_in_guild(ia.guild)
 
-        member_coroutines = []
-        for profile in verified_profiles:
-            member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
+        # member_coroutines = []
+        # for profile in verified_profiles:
+        #     member_coroutines.append(ia.guild.fetch_member(profile.discord_id))
 
-        members: list[Member] = await asyncio.gather(*member_coroutines)
+        # members: list[Member] = await asyncio.gather(*member_coroutines)
+
+        members: list[Member] = []
+        for profile in verified_profiles:
+            members.append(ia.guild.get_member(profile.discord_id))
 
         role_coroutines = []
         for member in members:
