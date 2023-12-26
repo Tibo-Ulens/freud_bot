@@ -1,10 +1,11 @@
+import asyncio
 import logging
 import re
 import smtplib
 import uuid
 
 import discord
-from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
+from discord import Role, app_commands, Interaction, Member, Locale, ButtonStyle, Guild
 from discord.ui import View, Button, Modal, TextInput
 
 from models.profile import Profile
@@ -14,6 +15,7 @@ from bot import constants
 from bot.bot import Bot
 from bot.decorators import (
     check_has_config_option,
+    check_user_has_admin_role,
 )
 from bot.exceptions import MissingConfig
 from bot.extensions import ErrorHandledCog
@@ -281,6 +283,42 @@ class VerifyCodeButton(Button):
 
 
 class Verification(ErrorHandledCog):
+    @app_commands.command(
+        name="verifix",
+        description="Check that every verified member has the verified role",
+    )
+    @app_commands.guild_only()
+    @check_has_config_option("verified_role")
+    @check_user_has_admin_role()
+    async def verifix(self, ia: Interaction):
+        guild_config = await Config.get(ia.guild_id)
+        verified_role = discord.utils.get(ia.guild.roles, id=guild_config.verified_role)
+
+        await ia.response.send_message(
+            "Checking members...\nThis message will be updated when everything is completed"
+        )
+
+        verified_profiles = await Profile.find_verified_in_guild(ia.guild)
+
+        members: list[Member] = []
+        for profile in verified_profiles:
+            members.append(ia.guild.get_member(profile.discord_id))
+
+        role_coroutines = []
+        not_updated = 0
+        for member in members:
+            if member.get_role(verified_role.id) is not None:
+                not_updated += 1
+                continue
+
+            role_coroutines.append(member.add_roles(verified_role))
+
+        await asyncio.gather(*role_coroutines)
+
+        await ia.edit_original_response(
+            content=f"{len(members)} verified members checked, {len(members) - not_updated} members updated"
+        )
+
     @app_commands.command(
         name="verify", description="Verify that you are a true UGentStudent"
     )
