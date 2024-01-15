@@ -1,4 +1,4 @@
-.PHONY: all fmt migrate down dbd setup
+.PHONY: all dev fmt lint setup dbd migrate psql chd redis down
 
 all:
 	docker compose up --build freud_bot freud_bot_webconfig
@@ -26,6 +26,12 @@ migrate: dbd
 
 psql: dbd
 	docker exec -it freud_bot_db psql -d freud_bot -h freud_bot_db -U postgres_user
+
+chd:
+	docker compose up --build freud_bot_cache --remove-orphans -d
+
+redis: chd
+	docker exec -it freud_bot_cache redis-cli -h freud_bot_cache -p 6379
 
 down:
 	docker compose down
