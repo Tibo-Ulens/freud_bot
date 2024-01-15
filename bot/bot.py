@@ -28,7 +28,7 @@ class Bot(commands.Bot):
         self.discord_logger: GuildAdapter = None
         self.loop = asyncio.get_running_loop()
 
-        self.redis = redis.Redis.from_url(os.environ["CH_URL"])
+        self.redis = redis.Redis.from_url(os.environ["CH_URL"], decode_responses=True)
         logger.info("cache connected")
 
     @classmethod
