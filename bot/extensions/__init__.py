@@ -72,7 +72,7 @@ class ErrorHandledCog(Cog):
         else:
             self.bot.discord_logger.warning(event, guild=ia.guild)
 
-        await ia.response.send_message(event.user_msg, ephemeral=True)
+        await ia.followup.send(content=event.user_msg, ephemeral=True)
 
     async def cog_command_error(self, ctx: Context, error: CommandError):
         event = self.app_error_to_event(ctx, error)
