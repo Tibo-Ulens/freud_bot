@@ -7,6 +7,8 @@ services:
         environment:
           - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
           - PGPASSWORD=postgres_password
+
+          - CH_URL=redis://@freud_bot_cache:6379/0
         logging:
             options:
                 max-size: "4096m"
@@ -15,6 +17,7 @@ services:
           - smtp_credentials
         depends_on:
           - freud_bot_db
+          - freud_bot_cache
 
     freud_bot_dev:
         build:
@@ -25,6 +28,8 @@ services:
         environment:
           - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
           - PGPASSWORD=postgres_password
+
+          - CH_URL=redis://@freud_bot_cache:6379/0
         logging:
             options:
                 max-size: "4096m"
@@ -33,6 +38,7 @@ services:
           - smtp_credentials
         depends_on:
           - freud_bot_db
+          - freud_bot_cache
 
     freud_bot_webconfig:
         image: ghcr.io/tibo-ulens/freud_bot_webconfig:latest
@@ -96,6 +102,21 @@ services:
           - freud_bot_data:/var/lib/postgresql/data
         healthcheck:
             test: pg_isready -d freud_bot -h freud_bot_db -U postgres_user
+            interval: 10m
+            timeout: 5s
+            retries: 2
+
+    freud_bot_cache:
+        image: redis:7.2-alpine
+        container_name: freud_bot_cache
+        restart: unless-stopped
+        logging:
+            options:
+                max-size: "4096m"
+        ports:
+          - "6379:6379"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
             interval: 10m
             timeout: 5s
             retries: 2

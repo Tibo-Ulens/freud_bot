@@ -1,14 +1,16 @@
 import asyncio
 from contextlib import suppress
 import importlib.util
-from typing import Sequence
-
 import logging
 from logging import Logger
+import os
+from typing import Sequence
+
 import discord
 from discord.abc import Snowflake
 from discord.ext import commands
 from discord.utils import MISSING
+import redis.asyncio as redis
 
 from bot.log.guild_adapter import GuildAdapter
 
@@ -25,6 +27,9 @@ class Bot(commands.Bot):
         self.logger: Logger = None
         self.discord_logger: GuildAdapter = None
         self.loop = asyncio.get_running_loop()
+
+        self.redis = redis.Redis.from_url(os.environ["CH_URL"], decode_responses=True)
+        logger.info("cache connected")
 
     @classmethod
     async def create(cls) -> "Bot":
@@ -111,6 +116,9 @@ class Bot(commands.Bot):
 
         await super().close()
         logger.info("client closed")
+
+        await self.redis.aclose()
+        logger.info("cache closed")
 
         await self.db.dispose()
         logger.info("database closed")
