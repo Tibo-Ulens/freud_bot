@@ -159,6 +159,7 @@ class PendingApprovalView(View):
             actual_msg = await self.confession_channel.send(embed=actual_confession)
 
         await self.redis.set(f"confession:{confession_id}", actual_msg.id)
+        await self.redis.expire(f"confession:{confession_id}", 86400)
 
     @discord.ui.button(label="⨯", style=ButtonStyle.red)
     async def reject(self, ia: Interaction, _btn: Button):
