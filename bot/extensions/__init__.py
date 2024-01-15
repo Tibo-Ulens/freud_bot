@@ -5,6 +5,8 @@ import traceback
 from typing import Iterator, NoReturn
 
 from discord import Interaction
+from discord import errors as discord_errors
+from discord import HTTPException as http_errors
 from discord.app_commands import AppCommandError, errors as app_errors
 from discord.ext.commands import Context, CommandError, Cog, errors as cmd_errors
 
@@ -27,6 +29,20 @@ class ErrorHandledCog(Cog):
         """Map an app command error and its interaction to a loggable event"""
 
         match type(error):
+            case app_errors.CommandInvokeError:
+                original = error.original
+
+                match type(original):
+                    case discord_errors.Forbidden:
+                        forbidden_error: discord_errors.Forbidden = original
+
+                        match forbidden_error.code:
+                            case 50007:
+                                event = Event.cannot_message_user(ia.user, ia.command)
+                            case _:
+                                event = Event.forbidden(ia.user, ia.command)
+                    case _:
+                        event = Event.unknown_error()
             case app_errors.MissingRole:
                 event = ModerationEvent.missing_role(
                     ia.user, ia.command, error.missing_role
