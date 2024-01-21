@@ -12,7 +12,6 @@ from discord import (
     Colour,
     Member,
 )
-from discord.ext.commands import Context
 from discord.ui import View, Button
 from redis.asyncio import Redis
 
@@ -199,15 +198,15 @@ class Confess(ErrorHandledCog):
                     f"{reply} is not a valid confession ID", ephemeral=True
                 )
                 return
-            else:
-                try:
-                    await confession_channel.fetch_message(int(reply_msg_id))
-                except discord.errors.HTTPException:
-                    await ia.response.send_message(
-                        f"{reply} is not a valid confession ID (keep in mind that you cannot reply to other replies)",
-                        ephemeral=True,
-                    )
-                    return
+
+            try:
+                await confession_channel.fetch_message(int(reply_msg_id))
+            except discord.errors.HTTPException:
+                await ia.response.send_message(
+                    f"{reply} is not a valid confession ID (keep in mind that you cannot reply to other replies)",
+                    ephemeral=True,
+                )
+                return
 
         confession_wrapper = Confession(
             confession=confession,

@@ -41,7 +41,7 @@ class DiscordHandler(Handler):
             failure_logger.error(f"record {record} failed to log, no config")
             return
 
-        loggin_channel: GuildChannel = None
+        logging_channel: GuildChannel = None
 
         if record.__dict__["log_type"] == "regular":
             if guild_config.logging_channel is None:
