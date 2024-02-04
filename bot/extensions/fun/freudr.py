@@ -41,8 +41,20 @@ class Freudr(ErrorHandledCog):
         )
 
         if ia.user.id in crush_profile.crushes:
-            await ia.channel.send(
-                f"{ia.user.mention} and {crush.mention} want to get married\nTODO: make this send a DM instead"
+            user_dm_channel = ia.user.dm_channel
+            if user_dm_channel is None:
+                user_dm_channel = await ia.user.create_dm()
+
+            await user_dm_channel.send(
+                f"Congratulations! You and {crush.mention} like eachother!\nSend them a message with your best pickup line"
+            )
+
+            crush_dm_channel = crush.dm_channel
+            if crush_dm_channel is None:
+                crush_dm_channel = await crush.create_dm()
+
+            await crush_dm_channel.send(
+                f"Congratulations! You and {ia.user.mention} like eachother!\nSend them a message with your best pickup line"
             )
 
     @freudr_group.command(
