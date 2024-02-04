@@ -6,6 +6,7 @@ from sqlalchemy.engine import Result
 from sqlalchemy.schema import FetchedValue
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.mutable import Mutable
+from sqlalchemy.sql import text
 
 from models import Base, Model, session_factory
 from models.profile_statistics import ProfileStatistics
@@ -109,6 +110,38 @@ class Profile(Base, Model):
         )
         return list(profiles)
 
+    @classmethod
+    async def get_most_liked_top_10(cls, guild_id: int) -> list[tuple[int, int]]:
+        """Get a top 10 of the most liked profiles"""
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                text(
+                    """
+                    select
+                        discord_id,
+                        (
+                            select count(*)
+                            from profile p2
+                            where p1.discord_id = ANY(p2.crushes)
+                        ) as likes
+                    from profile p1
+                    where exists(
+                        select *
+                        from profile_statistics ps
+                        where
+                            ps.profile_discord_id=p1.discord_id
+                            and ps.config_guild_id=:guild_id
+                    )
+                    order by likes desc
+                    limit 10;
+                """
+                ),
+                {"guild_id": guild_id},
+            )
+
+        return result.all()
+
     async def get_freudpoint_rank(self, guild_id: int) -> int:
         """Get a profiles FreudPoint score rank in a given guild"""
 
@@ -123,6 +156,23 @@ class Profile(Base, Model):
         profiles: list["Profile"] = query.scalars().all()
 
         return profiles.index(self)
+
+    async def get_freudr_likes(self) -> int:
+        """Get the total number of likes this profile has on Freudr"""
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                text(
+                    """
+                        select count(*)
+                        from profile p
+                        where :discord_id = ANY(p.crushes);
+                    """
+                ),
+                {"discord_id": self.discord_id},
+            )
+
+        return result.first()[0]
 
     def is_verified(self) -> bool:
         """Check if a profile is verified"""
