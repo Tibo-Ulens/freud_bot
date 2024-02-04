@@ -3,9 +3,39 @@ from typing import Optional
 from discord import Guild
 from sqlalchemy import Column, Text, BigInteger, select
 from sqlalchemy.engine import Result
+from sqlalchemy.schema import FetchedValue
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.ext.mutable import Mutable
 
 from models import Base, Model, session_factory
 from models.profile_statistics import ProfileStatistics
+
+
+class MutableList(Mutable, list):
+    @classmethod
+    def coerce(cls, key, value):
+        if not isinstance(value, MutableList):
+            if isinstance(value, list):
+                return MutableList(value)
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+    def __setitem__(self, key, value):
+        list.__setitem__(self, key, value)
+        self.changed()
+
+    def __delitem__(self, key):
+        list.__delitem__(self, key)
+        self.changed()
+
+    def append(self, value):
+        list.append(self, value)
+        self.changed()
+
+    def remove(self, value):
+        list.remove(self, value)
+        self.changed()
 
 
 class Profile(Base, Model):
@@ -14,9 +44,12 @@ class Profile(Base, Model):
     discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
+    crushes = Column(
+        MutableList.as_mutable(ARRAY(BigInteger)), FetchedValue(), nullable=False
+    )
 
     def __repr__(self) -> str:
-        return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
+        return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code}), crushes={self.crushes}"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Profile):
@@ -90,3 +123,8 @@ class Profile(Base, Model):
         profiles: list["Profile"] = query.scalars().all()
 
         return profiles.index(self)
+
+    def is_verified(self) -> bool:
+        """Check if a profile is verified"""
+
+        return self.email is not None and self.confirmation_code is None
