@@ -91,9 +91,15 @@ class ErrorHandledCog(Cog):
         await ia.followup.send(content=event.user_msg, ephemeral=True)
 
     async def cog_command_error(self, ctx: Context, error: CommandError):
-        event = self.app_error_to_event(ctx, error)
+        event = self.error_to_event(ctx, error)
 
-        self.bot.discord_logger.warning(event, guild=ctx.guild)
+        if event.error:
+            logger.error(traceback.format_exc())
+            self.bot.logger.error(event)
+            self.bot.discord_logger.error(event, guild=ctx.guild)
+        else:
+            self.bot.discord_logger.warning(event, guild=ctx.guild)
+
         await ctx.reply(event.user_msg, ephemeral=True)
 
 
