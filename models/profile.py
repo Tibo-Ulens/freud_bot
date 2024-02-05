@@ -3,9 +3,40 @@ from typing import Optional
 from discord import Guild
 from sqlalchemy import Column, Text, BigInteger, select
 from sqlalchemy.engine import Result
+from sqlalchemy.schema import FetchedValue
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.ext.mutable import Mutable
+from sqlalchemy.sql import text
 
 from models import Base, Model, session_factory
 from models.profile_statistics import ProfileStatistics
+
+
+class MutableList(Mutable, list):
+    @classmethod
+    def coerce(cls, key, value):
+        if not isinstance(value, MutableList):
+            if isinstance(value, list):
+                return MutableList(value)
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+    def __setitem__(self, key, value):
+        list.__setitem__(self, key, value)
+        self.changed()
+
+    def __delitem__(self, key):
+        list.__delitem__(self, key)
+        self.changed()
+
+    def append(self, value):
+        list.append(self, value)
+        self.changed()
+
+    def remove(self, value):
+        list.remove(self, value)
+        self.changed()
 
 
 class Profile(Base, Model):
@@ -14,9 +45,12 @@ class Profile(Base, Model):
     discord_id = Column(BigInteger, primary_key=True)
     email = Column(Text, unique=True, nullable=False)
     confirmation_code = Column(Text, unique=True)
+    crushes = Column(
+        MutableList.as_mutable(ARRAY(BigInteger)), FetchedValue(), nullable=False
+    )
 
     def __repr__(self) -> str:
-        return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code})"
+        return f"Profile(discord_id={self.discord_id}, email={self.email}, confirmation_code={self.confirmation_code}), crushes={self.crushes}"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Profile):
@@ -76,6 +110,38 @@ class Profile(Base, Model):
         )
         return list(profiles)
 
+    @classmethod
+    async def get_most_liked_top_10(cls, guild_id: int) -> list[tuple[int, int]]:
+        """Get a top 10 of the most liked profiles"""
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                text(
+                    """
+                    select
+                        discord_id,
+                        (
+                            select count(*)
+                            from profile p2
+                            where p1.discord_id = ANY(p2.crushes)
+                        ) as likes
+                    from profile p1
+                    where exists(
+                        select *
+                        from profile_statistics ps
+                        where
+                            ps.profile_discord_id=p1.discord_id
+                            and ps.config_guild_id=:guild_id
+                    )
+                    order by likes desc
+                    limit 10;
+                """
+                ),
+                {"guild_id": guild_id},
+            )
+
+        return result.all()
+
     async def get_freudpoint_rank(self, guild_id: int) -> int:
         """Get a profiles FreudPoint score rank in a given guild"""
 
@@ -90,3 +156,25 @@ class Profile(Base, Model):
         profiles: list["Profile"] = query.scalars().all()
 
         return profiles.index(self)
+
+    async def get_freudr_likes(self) -> int:
+        """Get the total number of likes this profile has on Freudr"""
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                text(
+                    """
+                        select count(*)
+                        from profile p
+                        where :discord_id = ANY(p.crushes);
+                    """
+                ),
+                {"discord_id": self.discord_id},
+            )
+
+        return result.first()[0]
+
+    def is_verified(self) -> bool:
+        """Check if a profile is verified"""
+
+        return self.email is not None and self.confirmation_code is None

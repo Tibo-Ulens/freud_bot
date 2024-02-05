@@ -1,5 +1,4 @@
-import discord
-from discord import app_commands, Interaction, Member, Embed, SelectOption, Message
+from discord import app_commands, Interaction, Member, Embed, SelectOption
 from discord.ui import View, Select
 
 from models.profile import Profile
@@ -24,6 +23,10 @@ class LeaderboardDropdown(Select["Leaderboard"]):
                 label="Confession Exposures",
                 value="exposed",
             ),
+            SelectOption(
+                label="Freudr Likes",
+                value="crush",
+            ),
         ]
 
         super().__init__(options=options)
@@ -44,6 +47,9 @@ class LeaderboardDropdown(Select["Leaderboard"]):
         elif value == "exposed":
             self.set_default_option(1)
             leaderboard = await self.make_exposed_leaderboard(ia)
+        elif value == "crush":
+            self.set_default_option(2)
+            leaderboard = await self.make_crush_leaderboard(ia)
         else:
             raise ValueError()
 
@@ -79,6 +85,16 @@ class LeaderboardDropdown(Select["Leaderboard"]):
 
         return Embed(title="Most exposed members", description="\n".join(top_10))
 
+    @staticmethod
+    async def make_crush_leaderboard(ia: Interaction) -> Embed:
+        top_10 = await Profile.get_most_liked_top_10(ia.guild_id)
+
+        top_10 = [f"#{i + 1} - <@{p[0]}> ({p[1]})" for i, p in enumerate(top_10)]
+
+        return Embed(
+            title="Members with the most likes on Freudr", description="\n".join(top_10)
+        )
+
 
 class Leaderboard(View):
     def __init__(self, owner: Member):
@@ -105,6 +121,7 @@ class FreudStatOverview(ErrorHandledCog):
         stats = await ProfileStatistics.get(ia.user.id, ia.guild_id)
 
         rank = await user.get_freudpoint_rank(ia.guild_id)
+        likes = await user.get_freudr_likes()
 
         profile_embed = (
             Embed(title=f"{ia.user.display_name}s Profile", colour=ia.user.colour)
@@ -122,6 +139,11 @@ class FreudStatOverview(ErrorHandledCog):
             .add_field(
                 name="Confession Exposures",
                 value=stats.confession_exposed_count,
+                inline=False,
+            )
+            .add_field(
+                name="Likes on Freudr",
+                value=likes,
                 inline=False,
             )
         )
