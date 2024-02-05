@@ -1,4 +1,5 @@
 import asyncio
+import time
 from discord import Member, app_commands, Interaction, Embed
 
 from bot.bot import Bot
@@ -8,16 +9,41 @@ from models.profile import Profile
 from models.profile_statistics import ProfileStatistics
 
 
-async def ensure_has_statistics(id1: int, id2: int, guild_id: int):
-    await asyncio.gather(
-        *[
-            ProfileStatistics.get(id1, guild_id),
-            ProfileStatistics.get(id2, guild_id),
-        ]
-    )
-
-
 class Freudr(ErrorHandledCog):
+    @staticmethod
+    async def ensure_has_statistics(id1: int, id2: int, guild_id: int):
+        await asyncio.gather(
+            *[
+                ProfileStatistics.get(id1, guild_id),
+                ProfileStatistics.get(id2, guild_id),
+            ]
+        )
+
+    @staticmethod
+    def hash_match(user_id, crush_id) -> int:
+        if user_id <= crush_id:
+            return hash(f"{user_id}:{crush_id}")
+
+        return hash(f"{crush_id}:{user_id}")
+
+    async def is_match_cached(self, user_id: int, crush_id: int) -> bool:
+        match_hash = self.hash_match(user_id, crush_id)
+
+        timestamp = int(time.time())
+        await self.bot.redis.zremrangebyscore("freudr_matches", 0, timestamp - 86400)
+
+        score = await self.bot.redis.zscore("freudr_matches", match_hash)
+
+        return score is not None
+
+    async def cache_match(self, user_id: int, crush_id: int):
+        match_hash = self.hash_match(user_id, crush_id)
+
+        timestamp = int(time.time())
+        await self.bot.redis.zremrangebyscore("freudr_matches", 0, timestamp - 86400)
+
+        await self.bot.redis.zadd("freudr_matches", {match_hash: timestamp}, nx=True)
+
     freudr_group = app_commands.Group(
         name="freudr", description="Freudr dating service commands", guild_only=True
     )
@@ -42,13 +68,19 @@ class Freudr(ErrorHandledCog):
                 ephemeral=True,
             )
 
-        await ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
+        await self.ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
 
         profile = await Profile.find_by_discord_id(ia.user.id)
 
         if crush.id in profile.crushes:
             return await ia.response.send_message(
                 f"{crush.mention} is already in your list of crushes. If you like them this much, maybe you should send them a DM yourself.",
+                ephemeral=True,
+            )
+
+        if await self.is_match_cached(ia.user.id, crush.id):
+            return await ia.response.send_message(
+                f"Calm down there, you already matched with {crush.mention} in the last 24 hours",
                 ephemeral=True,
             )
 
@@ -60,6 +92,8 @@ class Freudr(ErrorHandledCog):
         )
 
         if ia.user.id in crush_profile.crushes:
+            await self.cache_match(ia.user.id, crush.id)
+
             user_dm_channel = ia.user.dm_channel
             if user_dm_channel is None:
                 user_dm_channel = await ia.user.create_dm()
@@ -95,7 +129,7 @@ class Freudr(ErrorHandledCog):
                 "https://www.wikihow.com/Love-Yourself", ephemeral=True
             )
 
-        await ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
+        await self.ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
 
         profile = await Profile.find_by_discord_id(ia.user.id)
 
@@ -121,7 +155,7 @@ class Freudr(ErrorHandledCog):
     async def show_list(self, ia: Interaction):
         profile = await Profile.find_by_discord_id(ia.user.id)
 
-        await ensure_has_statistics(ia.user.id, ia.user.id, ia.guild_id)
+        await self.ensure_has_statistics(ia.user.id, ia.user.id, ia.guild_id)
 
         if not profile.crushes:
             return await ia.response.send_message(
@@ -129,11 +163,29 @@ class Freudr(ErrorHandledCog):
                 ephemeral=True,
             )
 
-        crushes = [f"- <@{crush_id}>" for crush_id in profile.crushes]
+        await ia.response.defer(thinking=True, ephemeral=True)
 
-        list_embed = Embed(title="Your Crushes", description="\n".join(crushes))
+        matches = [
+            f"- <@{crush_id}> ❤️‍🔥"
+            for crush_id in profile.crushes
+            if (crush := await Profile.find_by_discord_id(crush_id))
+            and ia.user.id in crush.crushes
+        ]
 
-        await ia.response.send_message(embed=list_embed, ephemeral=True)
+        crushes = [
+            f"- <@{crush_id}>"
+            for crush_id in profile.crushes
+            if (crush := await Profile.find_by_discord_id(crush_id))
+            and ia.user.id not in crush.crushes
+        ]
+
+        embeds = []
+        if matches:
+            embeds.append(Embed(title="Your Matches", description="\n".join(matches)))
+        if crushes:
+            embeds.append(Embed(title="Your Crushes", description="\n".join(crushes)))
+
+        await ia.followup.send(embeds=embeds, ephemeral=True)
 
 
 async def setup(bot: Bot):
