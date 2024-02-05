@@ -36,6 +36,12 @@ class Freudr(ErrorHandledCog):
                 ephemeral=True,
             )
 
+        if crush.id == ia.user.id:
+            return await ia.response.send_message(
+                "Some recommended reading: https://en.wikipedia.org/wiki/Narcissistic_personality_disorder",
+                ephemeral=True,
+            )
+
         await ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
 
         profile = await Profile.find_by_discord_id(ia.user.id)
@@ -82,6 +88,11 @@ class Freudr(ErrorHandledCog):
             return await ia.response.send_message(
                 f"{crush.mention} is not verified, freudr commands only work on verified members",
                 ephemeral=True,
+            )
+
+        if crush.id == ia.user.id:
+            return await ia.response.send_message(
+                "https://www.wikihow.com/Love-Yourself", ephemeral=True
             )
 
         await ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
