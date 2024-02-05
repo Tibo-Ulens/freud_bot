@@ -34,6 +34,11 @@ class FreudPoints(ErrorHandledCog):
                 ephemeral=True,
             )
 
+        if user.id == self.bot.user.id:
+            return await ia.response.send_message(
+                "I do not need your fake internet points, mortal", ephemeral=True
+            )
+
         if amount <= 0:
             return await ia.response.send_message(
                 "You have to award at least 1 FreudPoint",
