@@ -1,4 +1,3 @@
-import asyncio
 import time
 from discord import Member, app_commands, Interaction, Embed
 
@@ -6,19 +5,9 @@ from bot.bot import Bot
 from bot.decorators import check_user_is_verified
 from bot.extensions import ErrorHandledCog
 from models.profile import Profile
-from models.profile_statistics import ProfileStatistics
 
 
 class Freudr(ErrorHandledCog):
-    @staticmethod
-    async def ensure_has_statistics(id1: int, id2: int, guild_id: int):
-        await asyncio.gather(
-            *[
-                ProfileStatistics.get(id1, guild_id),
-                ProfileStatistics.get(id2, guild_id),
-            ]
-        )
-
     @staticmethod
     def hash_match(user_id, crush_id) -> int:
         if user_id <= crush_id:
@@ -67,8 +56,6 @@ class Freudr(ErrorHandledCog):
                 "Some recommended reading: https://en.wikipedia.org/wiki/Narcissistic_personality_disorder",
                 ephemeral=True,
             )
-
-        await self.ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
 
         profile = await Profile.find_by_discord_id(ia.user.id)
 
@@ -129,8 +116,6 @@ class Freudr(ErrorHandledCog):
                 "https://www.wikihow.com/Love-Yourself", ephemeral=True
             )
 
-        await self.ensure_has_statistics(ia.user.id, crush.id, ia.guild_id)
-
         profile = await Profile.find_by_discord_id(ia.user.id)
 
         if crush.id not in profile.crushes:
@@ -154,8 +139,6 @@ class Freudr(ErrorHandledCog):
     @check_user_is_verified()
     async def show_list(self, ia: Interaction):
         profile = await Profile.find_by_discord_id(ia.user.id)
-
-        await self.ensure_has_statistics(ia.user.id, ia.user.id, ia.guild_id)
 
         if not profile.crushes:
             return await ia.response.send_message(
