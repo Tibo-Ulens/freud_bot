@@ -6,7 +6,6 @@ from sqlalchemy.engine import Result
 from sqlalchemy.schema import FetchedValue
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.mutable import Mutable
-from sqlalchemy.sql import text
 
 from models import Base, Model, session_factory
 from models.profile_statistics import ProfileStatistics
