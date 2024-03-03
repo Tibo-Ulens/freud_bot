@@ -64,6 +64,71 @@ https://freudbot.org***
  - `/verify` - Sends a DM to the user with verification instructions, this can be used in case the
  user didn't receive a DM or if the previous messsages buttons have expired.
 
+#### Confessions
+
+Confessions can be sent as replies to other confessions by adding the confession ID as an optional
+argument.
+
+eg.
+You can reply to "Anonymous Confession (#14) - I like ducks"
+with `/confess normal "So do I" "14"`
+
+Note: this is a bit scuffed at the moment and might not work exceptionally well, bugfixes pending.
+
+ - `/confess normal <confession> [<reply>]` - Sends a normal, anonymous confession.
+
+ - `/confess russian <confession> [<reply>]` - Sends a russian roulette confession with a 1/6
+ chance of exposing the user who sent it
+
+ - `/confess extreme <confession> [<reply>]` - Sends an extreme roulette confession with a 1/2
+ chance of exposing the user who sent it
+
+#### Message Scheduling
+
+Working with time in python is pain, so this command is also pain.
+Use at your own risk.
+
+ - `/schedule <channel> <time> [<timezone>] [<message>]` - Schedules a message to be sent in
+ `<channel>` at a given `<time>` \
+   - `<time>` is a string in the format "%Y/%m/%d %H:%M"
+   - `<timezone>` is the timezone of your timestamp (default UTC)
+   (UTC = 0000, CET = 0100, CEST = 0200)
+   - `<message>` can be given inline or left empty, if left empty a popup will appear with more
+   space to type your message.
+
+#### FreudPoints
+
+FreudPoints aren't exceptionally useful at this point, but hopefully they will eventually have
+some purpose like a shop mechanic.
+
+ - `/freudpoint award <user> [<amount>]` - Awards `<user>` `<amount>` (default 1) FreudPoint(s)
+
+#### Freudr
+
+Freudr Dating Service, because discord users are too afraid of actual social interaction.
+When 2 users match, FreudBot will send them both a DM to congratulate them on their newfound
+love.
+
+ - `/freudr like <user>` - Adds a user to your likes (you can only like the same user once every
+ 24 hours)
+
+ - `/freudr unlike <user>` - Removes a user from your likes
+
+ - `/freudr list` - See a list of your likes and matches
+
+#### Statistics
+
+At the moment FreudBot doesn't keep track of a whole lot of statistics, but this should change in
+the "near" future.
+
+ - `/freudstat me` - See an overview of the statistics FreudBot tracks about you
+
+ - `/freudstat profile <user>` - See an overview of the statistics FreudBot tracks about another
+ user
+
+ - `/freudstat leaderboard` - See the leaderboards for the stats FreudBot tracks, selectable with a
+ dropdown menu
+
 #### Random
 
 - `/mommy` - You can figure this one out for yourself
