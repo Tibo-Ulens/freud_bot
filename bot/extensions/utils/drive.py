@@ -12,19 +12,19 @@ class Drive(ErrorHandledCog):
         name="drive",
         description="Send a link to a Google Drive folder",
     )
-    @app_commands.describe(course="The name of the link")
+    @app_commands.describe(folder="The name of the link")
     @app_commands.choices(
-        course=[
+        folder=[
             Choice(name="1e Bachelor", value="1"),
             Choice(name="2e Bachelor", value="2"),
             Choice(name="Nuttige Info", value="3"),
         ]
     )
     @check_user_is_verified()
-    async def drive(self, ia: Interaction, course: Choice[str]):
+    async def drive(self, ia: Interaction, folder: Choice[str]):
         embed = Embed(
             title="",
-            description=f"[{course.name}]({constants.DRIVE_LINKS[course.name]})",
+            description=f"[{folder.name}]({constants.DRIVE_LINKS[folder.name]})",
         )
         await ia.response.send_message(embed=embed)
 

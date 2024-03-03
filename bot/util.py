@@ -10,8 +10,6 @@ from discord import (
 )
 from discord.app_commands import Command
 
-from models.course import Course
-
 
 def levenshtein_distance(str1: str, str2: str) -> int:
     """Get the levenshtein distance between two strings to check 'likeness'"""
@@ -33,20 +31,6 @@ def levenshtein_distance(str1: str, str2: str) -> int:
         distances = new_distances
 
     return distances[-1] / max(len(str1), len(str2))
-
-
-async def course_autocomplete(
-    _: Interaction, current: str
-) -> list[app_commands.Choice[str]]:
-    """
-    Order the list of availble courses by 'likeness' to the current argument
-    and send them as an autocomplete list
-    """
-
-    courses = await Course.get_all_names()
-    courses.sort(key=lambda c: levenshtein_distance(c, current))
-
-    return [app_commands.Choice(name=course, value=course) for course in courses]
 
 
 def render_user(user: User | Member) -> str:
