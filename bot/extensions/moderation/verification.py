@@ -238,6 +238,8 @@ class VerifyCodeModal(Modal):
                 return
 
             member = guild.get_member(ia.user.id)
+            if member is None:
+                return
 
             await member.add_roles(guild.get_role(verified_role))
 
