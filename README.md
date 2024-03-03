@@ -1,6 +1,6 @@
 # FreudBot
 
-UGent Psychology Discord server bot
+UGent Discord verification and shenanigans bot
 
 ## Contributing
 
@@ -10,35 +10,59 @@ See [the contributing guide](CONTRIBUTING.md) for instructions on how to contrib
 
 Unless stated otherwise all commands are slash commands
 
+### Hooks
+
+ - bot mentioned: Responds to the message with a random Freud quote
+
+ - new member joins: Sends the member a DM with verification instructions or verifies them
+ automatically if they are already verified in another Freud-enabled server
+
+ - 📌 emoji reaction: If enough people react to a message with this emoji it will be pinned
+ automatically.
+ The amount of reactions needed for this is configurable on the website.
+
 ### Commands
 
 #### Configuration
 
- - `$freud_sync` (MESSAGE COMMAND) (OWNER ONLY) - force-syncs the bot's slash commands to
- whatever guild it's connected to
- - `/config admin_role` (OWNER ONLY) - Set the role that 'admin' members will have
- - `/config verified_role` (ADMIN ONLY) - Set the role that's given to verified members
- - `/config verification_channel` (ADMIN ONLY) - Set the channel in which the `/verify`
- command may be used
- - `/config logging_channel` (ADMIN ONLY) - Set the channel into which log messages will be
+***The configuration commands are largely deprecated and have been replaced by the config website
+https://freudbot.org***
+
+ - `$freud_sync` \
+ (MESSAGE COMMAND) \
+ (MANAGE GUILD) \
+ force-syncs the bot's slash commands to
+ whatever guild it's connected to. This can be used after a new version of the bot goes live to
+ ensure all commands are up to date, however just waiting for around an hour will achieve the same
+ goal.
+
+ - `/config admin_role` \
+ (MANAGE GUILD) \
+ Set the role that 'admin' members will have, this is used to check permissions for the other
+ `/config` commands
+
+ - `/config verified_role` \
+ (ADMIN) \
+ Set the role that's given to verified members
+
+ - `/config logging_channel` \
+ (ADMIN) \
+ Set the channel into which log messages will be
  posted
 
-#### Calendar
+ - `/config confession_channel` \
+ (ADMIN) \
+ Set the channel where approved confessions will be posted
 
- - `/calendar` - Build an image to show your calendar for this week
- - `/course enroll` - Set yourself as enrolled in a course
- - `/course drop` - Unset yourself as enrolled in a course
- - `/course overview` - Send a list of all courses you are enrolled in
- - `/course add` (ADMIN ONLY) - Add an available course and scrape its lecture dates
- - `/course remove` (ADMIN ONLY) - Remove an available course
- - `/course list` (ADMIN ONLY) - List all available Courses
+ - `/config confession_approval_channel` \
+ (ADMIN) \
+ Set the channel where confessions awaiting approval will be posted (this should be a channel only
+ admins can access)
 
 #### Verification
 
- - `/verify <email>` - Sends an email to `<email>` containing a verification
- code the user can then use in the `/verify <code>` command
- - `/verify <code>` - Checks if the supplied code is valid for a given user
- and gives them the 'Verified' role if it is.
+ - `/verify` - Sends a DM to the user with verification instructions, this can be used in case the
+ user didn't receive a DM or if the previous messsages buttons have expired.
 
 #### Random
 
@@ -46,11 +70,9 @@ Unless stated otherwise all commands are slash commands
 
 #### Link Shortcuts (DEPRECATED)
 
- - `/drive <course>` - Send a link to a google drive for that course
-
-### Hooks
-
- - on mention: Responds to the message with a random Freud quote
+ - `/drive <shortcut>` - Send a link to a hardcoded google drive folder
+ At the moment this is only useful for the psychology discord, so other servers should disable this
+ command
 
 ## Running
 

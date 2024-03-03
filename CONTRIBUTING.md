@@ -16,7 +16,7 @@ intended to be used in context managers.
 ## Getting started
 
 You will need to be on a *nix operating system, with docker, docker compose,
-make, and python installed.
+make, python, and poetry installed.
 
 You can set up the project locally by running `make setup`.
 
@@ -29,10 +29,14 @@ container, run the migrations, and then stop the container again.
 
 ### Utilities
 
- - `make setup` will create/download the stuff needed to work on the project
- - `make dbd` will spin up a headless instance of the database container
- - `make psql` will start a psql instance in the database container
+ - `make` will pull the latest docker image from GHCR and run it
+ - `make dev` will build a docker image from the local code and run it
  - `make down` will stop all running containers
+ - `make dbd` will spin up a headless instance of the database container
+ - `make chd` will spin up a headless instance of the cache container
+ - `make psql` will start a psql instance in the database container
+ - `make redis` will start a redis CLI instance in the cache container
+ - `make setup` will create/download the stuff needed to work on the project
 
 ### Issues
 
