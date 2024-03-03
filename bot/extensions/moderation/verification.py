@@ -155,7 +155,7 @@ class VerifyEmailModal(Modal):
             )
         )
 
-        await ia.response.send_message(
+        return await ia.response.send_message(
             str(guild_config.verify_code_message).format(email=email),
             view=verify_code_view,
         )
@@ -178,6 +178,8 @@ class VerifyCodeModal(Modal):
         super().__init__(title=title, timeout=None)
 
     async def on_submit(self, ia: Interaction):
+        await ia.response.defer(thinking=True)
+
         author_id = ia.user.id
         profile = await Profile.find_by_discord_id(author_id)
 
@@ -197,7 +199,7 @@ class VerifyCodeModal(Modal):
                 log_type="verification",
             )
 
-            return await ia.response.send_message(guild_config.already_verified_message)
+            return await ia.followup.send(guild_config.already_verified_message)
 
         code = ""
         if match := CODE_REGEX.search(self.code.value):
@@ -209,7 +211,7 @@ class VerifyCodeModal(Modal):
                 log_type="verification",
             )
 
-            return await ia.response.send_message(
+            return await ia.followup.send(
                 str(guild_config.invalid_code_message).format(code=self.code.value)
             )
 
@@ -222,12 +224,35 @@ class VerifyCodeModal(Modal):
                 log_type="verification",
             )
 
-            return await ia.response.send_message(
+            return await ia.followup.send(
                 str(guild_config.invalid_code_message).format(code=code)
             )
 
-        verified_role = guild_config.verified_role
+        async def verify_member_in_guild(guild: Guild):
+            guild_config = await Config.get(guild.id)
+            if guild_config is None:
+                return
 
+            verified_role = guild_config.verified_role
+            if verified_role is None:
+                return
+
+            member = guild.get_member(ia.user.id)
+
+            await member.add_roles(guild.get_role(verified_role))
+
+            await ProfileStatistics.create(
+                profile_discord_id=ia.user.id, config_guild_id=guild.id
+            )
+
+            self.bot.discord_logger.info(
+                f"{ia.user.mention} verified succesfully with email {profile.email} from within server '{self.guild.name}'",
+                guild=guild,
+                log_type="verification",
+            )
+
+        # Verify the user in the guild they used the command in
+        verified_role = guild_config.verified_role
         member = self.guild.get_member(ia.user.id)
 
         await member.add_roles(self.guild.get_role(verified_role))
@@ -245,7 +270,12 @@ class VerifyCodeModal(Modal):
             log_type="verification",
         )
 
-        await ia.response.send_message(
+        # Verify the user in any other freud-enabled guilds
+        other_guilds = list(filter(lambda g: g.id != self.guild.id, self.bot.guilds))
+        other_guild_coroutines = [verify_member_in_guild(g) for g in other_guilds]
+        await asyncio.gather(*other_guild_coroutines)
+
+        return await ia.followup.send(
             str(guild_config.welcome_message).format(guild_name=self.guild.name)
         )
 

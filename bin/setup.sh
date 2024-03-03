@@ -1,5 +1,5 @@
 #!/bin/sh
-#
+
 # Setup script to ensure the development environment is properly configured
 # for FreudBot
 
