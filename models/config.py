@@ -33,7 +33,7 @@ class Config(Base, Model):
     invalid_code_message = Column(Text, FetchedValue(), nullable=False)
     already_verified_message = Column(Text, FetchedValue(), nullable=False)
     welcome_message = Column(Text, FetchedValue(), nullable=False)
-    max_spendable_freudpoints = Column(Integer, nullable=False)
+    max_spendable_freudpoints = Column(Integer, FetchedValue(), nullable=False)
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"
