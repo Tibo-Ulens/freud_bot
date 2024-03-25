@@ -14,7 +14,6 @@ services:
                 max-size: "4096m"
         secrets:
           - discord_token
-          - smtp_credentials
         depends_on:
           - freud_bot_db
           - freud_bot_cache
@@ -35,7 +34,6 @@ services:
                 max-size: "4096m"
         secrets:
           - discord_token
-          - smtp_credentials
         depends_on:
           - freud_bot_db
           - freud_bot_cache
@@ -128,7 +126,5 @@ volumes:
 secrets:
     discord_token:
         file: ./secrets/discord_token.txt
-    smtp_credentials:
-        file: ./secrets/smtp_credentials.txt
     discord_oauth_credentials:
         file: ./secrets/discord_oauth_credentials.txt

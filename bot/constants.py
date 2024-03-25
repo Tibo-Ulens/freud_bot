@@ -2,12 +2,6 @@ DISCORD_TOKEN: str
 with open("/run/secrets/discord_token", encoding="UTF-8") as secret:
     DISCORD_TOKEN = secret.readline().rstrip("\n")
 
-SMTP_USER: str
-SMTP_PASSWORD: str
-with open("/run/secrets/smtp_credentials", encoding="UTF-8") as secret:
-    SMTP_USER = secret.readline().rstrip("\n")
-    SMTP_PASSWORD = secret.readline().rstrip("\n")
-
 DRIVE_LINKS = {
     "1e Bachelor": "https://drive.google.com/drive/folders/1wVpaBTF-s7UOCdFaIBIplzYsusskMBcn?usp=sharing",
     "2e Bachelor": "https://drive.google.com/drive/folders/1cpEQnaghjK1zy56QDIi-P16No-mKnnav?usp=sharing",
