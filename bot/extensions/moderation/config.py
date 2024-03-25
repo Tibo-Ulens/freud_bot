@@ -204,8 +204,8 @@ class Config(ErrorHandledCog):
             f"Set the confession channel to {util.render_channel(channel)}"
         )
 
-    @config_group.command(
-        name="email",
+    @config_email_group.command(
+        name="credentials",
         description="Set the email address from which verification emails will be sent",
     )
     @app_commands.describe(
@@ -214,7 +214,9 @@ class Config(ErrorHandledCog):
     )
     @app_commands.guild_only()
     @check_user_has_admin_role()
-    async def set_verification_email(self, ia: Interaction, email: str, password: str):
+    async def set_verification_email_credentials(
+        self, ia: Interaction, email: str, password: str
+    ):
         guild_config = await ConfigModel.get_or_create(ia.guild)
 
         guild_config.verification_email_smtp_user = email
