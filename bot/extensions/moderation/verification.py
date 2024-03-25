@@ -5,19 +5,18 @@ import smtplib
 import uuid
 
 import discord
-from discord import Role, app_commands, Interaction, Member, Locale, ButtonStyle, Guild
+from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
 from discord.ui import View, Button, Modal, TextInput
 
 from models.profile import Profile
 from models.config import Config
 
-from bot import constants
 from bot.bot import Bot
 from bot.decorators import (
     check_has_config_option,
     check_user_has_admin_role,
 )
-from bot.exceptions import MissingConfig
+from bot.exceptions import MissingConfig, MissingConfigOption
 from bot.extensions import ErrorHandledCog
 from models.profile_statistics import ProfileStatistics
 
@@ -25,23 +24,28 @@ from models.profile_statistics import ProfileStatistics
 EMAIL_REGEX = re.compile(r"^[^\s@]+@ugent\.be$")
 CODE_REGEX = re.compile(r"^['|<]?([a-z0-9]{32})[>|']?$")
 
-EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: Psychology Discord Verification Code\n\nYour verification code for the psychology discord server is '{code}'"
+EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: {subject}\n\n{body}"
 
 
 email_logger = logging.getLogger("email")
 
 
-def send_confirmation_email(to: str, code: str):
-    message = EMAIL_MESSAGE.format(from_=constants.SMTP_USER, to=to, code=code)
+def send_confirmation_email(
+    from_: str, password: str, to: str, subject: str, body: str, code: str
+):
+    actual_body = body.format(code=code)
+    message = EMAIL_MESSAGE.format(
+        from_=from_, to=to, subject=subject, body=actual_body
+    )
 
     email_logger.info(f"creating email to {to}")
     server = smtplib.SMTP("smtp.gmail.com", 587)
 
     server.ehlo()
     server.starttls()
-    server.login(constants.SMTP_USER, constants.SMTP_PASSWORD)
+    server.login(from_, password)
 
-    server.sendmail(constants.SMTP_USER, to, message)
+    server.sendmail(from_, to, message)
 
     server.close()
 
@@ -100,7 +104,14 @@ class VerifyEmailModal(Modal):
             profile.email = email
             await profile.save()
 
-            send_confirmation_email(email, verification_code)
+            send_confirmation_email(
+                guild_config.verification_email_smtp_user,
+                guild_config.verification_email_smtp_password,
+                email,
+                guild_config.verification_email_subject,
+                guild_config.verification_email_body,
+                verification_code,
+            )
 
             verify_code_view = View(timeout=None)
             verify_code_view.add_item(
@@ -144,7 +155,14 @@ class VerifyEmailModal(Modal):
             discord_id=author_id, email=email, confirmation_code=verification_code
         )
 
-        send_confirmation_email(email, verification_code)
+        send_confirmation_email(
+            guild_config.verification_email_smtp_user,
+            guild_config.verification_email_smtp_password,
+            email,
+            guild_config.verification_email_subject,
+            guild_config.verification_email_body,
+            verification_code,
+        )
 
         verify_code_view = View(timeout=None)
         verify_code_view.add_item(
@@ -356,6 +374,8 @@ class Verification(ErrorHandledCog):
     )
     @app_commands.guild_only()
     @check_has_config_option("verified_role")
+    @check_has_config_option("verification_email_smtp_user")
+    @check_has_config_option("verification_email_smtp_password")
     async def verify(self, ia: Interaction):
         guild_config = await Config.get(ia.guild.id)
         if guild_config is None:
@@ -408,8 +428,14 @@ class Verification(ErrorHandledCog):
 
         # Exit if there's no verified role configured yet
         guild_config = await Config.get(guild.id)
-        if guild_config is None or guild_config.verified_role is None:
-            return
+        if guild_config is None:
+            raise MissingConfig(guild)
+        if guild_config.verified_role is None:
+            raise MissingConfigOption("verified_role")
+        if guild_config.verification_email_smtp_user is None:
+            raise MissingConfigOption("verification_email_smtp_user")
+        if guild_config.verification_email_smtp_password is None:
+            raise MissingConfigOption("verification_email_smtp_password")
 
         profile = await Profile.find_by_discord_id(member.id)
 
