@@ -16,6 +16,12 @@ from bot.extensions import ErrorHandledCog
 class Config(ErrorHandledCog):
     config_group = app_commands.Group(name="config", description="bot configuration")
 
+    config_email_group = app_commands.Group(
+        name="email",
+        description="verification email configuration",
+        parent=config_group,
+    )
+
     @command(name="freudsync")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -197,6 +203,61 @@ class Config(ErrorHandledCog):
         await ia.response.send_message(
             f"Set the confession channel to {util.render_channel(channel)}"
         )
+
+    @config_email_group.command(
+        name="credentials",
+        description="Set the email address from which verification emails will be sent",
+    )
+    @app_commands.describe(
+        email="The email address you want to use",
+        password="The SMTP password for the email you want to use",
+    )
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    async def set_verification_email_credentials(
+        self, ia: Interaction, email: str, password: str
+    ):
+        guild_config = await ConfigModel.get_or_create(ia.guild)
+
+        guild_config.verification_email_smtp_user = email
+        guild_config.verification_email_smtp_password = password
+        await guild_config.save()
+
+        self.bot.logger.info(
+            f"set verification email for {util.render_guild(ia.guild)} to {email}"
+        )
+        await ia.response.send_message(f"Set the verification email to {email}")
+
+    @config_email_group.command(
+        name="content", description="Set the content of the verification email"
+    )
+    @app_commands.describe(
+        subject="The subject of the verification email",
+        body="The body of the verification email",
+    )
+    @app_commands.guild_only()
+    @check_user_has_admin_role()
+    async def set_verification_email_content(
+        self, ia: Interaction, subject: str | None = None, body: str | None = None
+    ):
+        guild_config = await ConfigModel.get_or_create(ia.guild)
+
+        if subject:
+            guild_config.verification_email_subject = subject
+        if body:
+            if body.find("\{code\}") == -1:
+                return await ia.response.send_message(
+                    "The email body should contain the '\{code\}' variable"
+                )
+
+            guild_config.verification_email_body = body
+
+        await guild_config.save()
+
+        self.bot.logger.info(
+            f"updated the verification email body for {util.render_guild(ia.guild)}"
+        )
+        await ia.response.send_message("Verification email subject & body updated")
 
 
 async def setup(bot: Bot):
