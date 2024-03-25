@@ -42,8 +42,8 @@ def upgrade() -> None:
             "verification_email_body",
             sa.Text,
             nullable=False,
-            default="",
-            server_default="",
+            default="{code}",
+            server_default="{code}",
         ),
     )
 
