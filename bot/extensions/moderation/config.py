@@ -245,7 +245,7 @@ class Config(ErrorHandledCog):
         if subject:
             guild_config.verification_email_subject = subject
         if body:
-            if body.find("\{code\}") == -1:
+            if body.find("{code}") == -1:
                 return await ia.response.send_message(
                     "The email body should contain the '\{code\}' variable"
                 )
