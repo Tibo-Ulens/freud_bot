@@ -183,6 +183,8 @@ class Confess(ErrorHandledCog):
         type_: ConfessionType,
         reply: str | None = None,
     ):
+        await ia.response.defer(ephemeral=True, thinking=True)
+
         config = await Config.get(ia.guild_id)
         approval_channel = discord.utils.get(
             ia.guild.channels, id=config.confession_approval_channel
@@ -194,7 +196,7 @@ class Confess(ErrorHandledCog):
         if reply is not None:
             reply_msg_id = await self.bot.redis.get(f"confession:{reply}")
             if reply_msg_id is None:
-                await ia.response.send_message(
+                await ia.followup.send(
                     f"{reply} is not a valid confession ID", ephemeral=True
                 )
                 return
@@ -202,7 +204,7 @@ class Confess(ErrorHandledCog):
             try:
                 await confession_channel.fetch_message(int(reply_msg_id))
             except discord.errors.HTTPException:
-                await ia.response.send_message(
+                await ia.followup.send(
                     f"{reply} is not a valid confession ID (keep in mind that you cannot reply to other replies)",
                     ephemeral=True,
                 )
@@ -220,7 +222,7 @@ class Confess(ErrorHandledCog):
 
         await confession_wrapper.send_pending()
 
-        await ia.response.send_message(
+        await ia.followup.send(
             content=confession_wrapper.type_.success_msg, ephemeral=True
         )
 
