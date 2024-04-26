@@ -137,7 +137,7 @@ class VerifyEmailModal(Modal):
         other = await Profile.find_by_email(email)
         if other is not None:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'",
+                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'\ntheir other account is <@{other.discord_id}>",
                 guild=self.guild,
                 log_type="verification",
             )
