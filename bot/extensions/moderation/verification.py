@@ -136,7 +136,7 @@ class VerifyEmailModal(Modal):
         other = await Profile.find_by_email(email)
         if other is not None:
             self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'",
+                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'\ntheir other account is <@{other.discord_id}>",
                 guild=self.guild,
                 log_type="verification",
             )
@@ -418,6 +418,41 @@ class Verification(ErrorHandledCog):
         )
 
         return await ia.followup.send(content=msg, ephemeral=True)
+
+    @app_commands.command(
+        name="unverify", description="Remove somebody from the verified users database"
+    )
+    @app_commands.describe(user="The user to unverify")
+    @app_commands.guild_only()
+    async def unverify(self, ia: Interaction, user: Member):
+        guild_config = await Config.get(ia.guild.id)
+        if guild_config is None:
+            raise MissingConfig(ia.guild)
+
+        await ia.response.defer(ephemeral=True, thinking=True)
+
+        profile_statistics = await ProfileStatistics.get_all_for_user(user.id)
+        stat_futures = [stat.delete() for stat in profile_statistics]
+        await asyncio.gather(*stat_futures)
+
+        profile = await Profile.find_by_discord_id(user.id)
+        if profile:
+            await profile.delete()
+
+        if guild_config.verified_role:
+            verified_role = discord.utils.get(
+                ia.guild.roles, id=guild_config.verified_role
+            )
+            if verified_role:
+                await user.remove_roles(verified_role)
+
+        self.bot.discord_logger.info(
+            f"{user.mention} was unverified manually",
+            guild=self.guild,
+            log_type="verification",
+        )
+
+        return await ia.followup.send("done")
 
     @ErrorHandledCog.listener("on_member_join")
     async def handle_member_join(self, member: Member):

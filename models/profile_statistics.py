@@ -75,6 +75,19 @@ class ProfileStatistics(Base, Model):
             return r[0]
 
     @classmethod
+    async def get_all_for_user(cls, discord_id: int) -> list["ProfileStatistics"]:
+        """
+        Get all profile statistics for a given user
+        """
+
+        async with session_factory() as session:
+            result: Result = await session.execute(
+                select(cls).where(cls.profile_discord_id == discord_id)
+            )
+
+            return result.scalars().all()
+
+    @classmethod
     async def increment_spendable_freudpoints(cls):
         """Increment the spendable freudpoints for each profile by 1 up to the max"""
 
