@@ -8,7 +8,6 @@ import discord
 from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
 from discord.ui import View, Button, Modal, TextInput
 
-from models import profile_statistics
 from models.profile import Profile
 from models.config import Config
 
