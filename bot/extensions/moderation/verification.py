@@ -448,7 +448,7 @@ class Verification(ErrorHandledCog):
 
         self.bot.discord_logger.info(
             f"{user.mention} was unverified manually",
-            guild=self.guild,
+            guild=ia.guild,
             log_type="verification",
         )
 
