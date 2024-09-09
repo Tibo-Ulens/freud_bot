@@ -1,5 +1,3 @@
-version: '3'
-
 services:
     freud_bot:
         image: ghcr.io/tibo-ulens/freud_bot:latest
@@ -38,15 +36,17 @@ services:
           - freud_bot_db
           - freud_bot_cache
 
-    freud_bot_webconfig:
-        image: ghcr.io/tibo-ulens/freud_bot_webconfig:latest
-        container_name: freud_bot_webconfig
+    freud_bot_api:
+        image: ghcr.io/tibo-ulens/freud_bot_api:latest
+        container_name: freud_bot_api
         ports:
           - "3000:80"
         environment:
           - BASE_URL=http://localhost:3000
+          - HOMEPAGE_URL=http://localhost:5173
           - SESSION_COOKIE_DOMAIN=.localhost
-          - SESSION_COOKIE_NAME=freud_bot_webconfig_session
+          - ACCESS_COOKIE_NAME=DISCORD_ACCESS_TOKEN
+          - REFRESH_COOKIE_NAME=DISCORD_REFRESH_TOKEN
 
           - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
           - PGPASSWORD=postgres_password
@@ -59,18 +59,20 @@ services:
         depends_on:
           - freud_bot
 
-    freud_bot_webconfig_dev:
+    freud_bot_api_dev:
         build:
             context: .
-            dockerfile: Dockerfile.webconfig
-        container_name: freud_bot_webconfig_dev
+            dockerfile: Dockerfile.api
+        container_name: freud_bot_api_dev
         restart: "no"
         ports:
           - "3000:80"
         environment:
           - BASE_URL=http://localhost:3000
+          - HOMEPAGE_URL=http://localhost:5173
           - SESSION_COOKIE_DOMAIN=.localhost
-          - SESSION_COOKIE_NAME=freud_bot_webconfig_session
+          - ACCESS_COOKIE_NAME=DISCORD_ACCESS_TOKEN
+          - REFRESH_COOKIE_NAME=DISCORD_REFRESH_TOKEN
 
           - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
           - PGPASSWORD=postgres_password

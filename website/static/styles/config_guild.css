@@ -10,7 +10,7 @@ main {
 
 #card {
 	flex: 1 0 auto;
-	background-color: #202020FF;
+	background-color: #202020ff;
 	border-radius: 8px;
 	padding: 1rem;
 	width: 100%;
@@ -94,14 +94,14 @@ select {
 	padding: 0.5rem;
 	background-color: transparent;
 	color: white;
-	border: 1px solid #AAAAAA;
+	border: 1px solid #aaaaaa;
 }
 
 input[type="number"] {
 	padding: 0.5rem;
 	background-color: transparent;
 	color: white;
-	border: 1px solid #AAAAAA;
+	border: 1px solid #aaaaaa;
 }
 
 .interpolated-message-wrapper {
@@ -130,7 +130,7 @@ textarea {
 	padding: 0.5rem;
 	background-color: transparent;
 	color: white;
-	border: 1px solid #AAAAAA;
+	border: 1px solid #aaaaaa;
 }
 
 input[type="submit"] {

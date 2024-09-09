@@ -10,7 +10,7 @@ main {
 }
 
 #card {
-	background-color: #202020FF;
+	background-color: #202020ff;
 	border-radius: 8px;
 	padding: 1rem;
 	margin-top: 4rem;
@@ -37,7 +37,39 @@ main {
 	white-space: pre-wrap;
 }
 
-#card-body {
-	width: 100%;
-	height: 100%;
+#guild-list {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+}
+
+.guild-icon {
+	width: 2rem;
+	height: 2rem;
+	margin: 0 1rem 0 0;
+}
+
+.guild-link {
+	margin: 0;
+	padding: 1rem;
+	border-radius: 8px;
+
+	text-decoration: none;
+	text-align: left;
+	color: inherit;
+	transition: background-color 0.25s;
+
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: flex-start;
+	align-items: center;
+}
+
+.guild-link:hover {
+	cursor: pointer;
+	background-color: #2d2d2dff;
+}
+
+.guild-link.padded {
+	padding-left: 4rem;
 }

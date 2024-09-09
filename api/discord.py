@@ -1,5 +1,5 @@
-from web_config.config import Config
-from web_config.session import http_session
+from api.config import Config
+from api.session import http_session
 
 
 ADMINISTRATOR_FLAG = 0b1000
@@ -49,25 +49,6 @@ def can_manage(guild: dict) -> bool:
 
     return (perms & ADMINISTRATOR_FLAG) != 0 or (perms & MANAGE_GUILD_FLAG) != 0
 
-
-async def get_access_token(auth_code: str) -> AccessTokenResponse:
-    """Exchange an authorization code for an access token"""
-
-    token_form = {
-        "client_id": Config.discord_oauth_client_id,
-        "client_secret": Config.discord_oauth_client_secret,
-        "grant_type": "authorization_code",
-        "code": auth_code,
-        "redirect_uri": f"{Config.base_url}/callback",
-    }
-
-    async with http_session.post(
-        "https://discord.com/api/oauth2/token", data=token_form
-    ) as res:
-        data = await res.json()
-        return AccessTokenResponse(data)
-
-
 def guild_icon_cdn_url(guild_id: str, icon_id: str | None) -> str | None:
     """Get the discord CDN url for a guild icon"""
 
@@ -109,7 +90,7 @@ async def get_user_guild(access_token: str, guild_id) -> list[dict]:
     async with http_session.get(
         "https://discord.com/api/users/@me/guilds", headers=auth_header
     ) as res:
-        data: list[data] = await res.json()
+        data: list[dict] = await res.json()
         return next(filter(lambda g: g["id"] == guild_id, data), None)
 
 

@@ -12,13 +12,13 @@ ENV PIP_NO_CACHE_DIR=false \
 # Get poetry
 RUN pip install -U poetry
 
-WORKDIR /web_config
+WORKDIR /api
 
 # Install deps
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main,webconfig
 
 COPY ./models ./models
-COPY ./web_config ./web_config
+COPY ./api ./api
 
-CMD [ "uvicorn", "web_config.main:app", "--host", "0.0.0.0", "--port", "80", "--log-config", "web_config/logging.conf" ]
+CMD [ "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "80", "--log-config", "api/logging.conf" ]
