@@ -1,0 +1,20 @@
+export const ssr = false;
+
+import { PUBLIC_API_URL } from "$env/static/public";
+import { error } from "@sveltejs/kit";
+
+export async function load(event) {
+	console.log("fetching userdata");
+
+	const user_data_res = await event.fetch(`${PUBLIC_API_URL}/me`, {
+		credentials: "include",
+	});
+
+	if (user_data_res.status == 401) {
+		return error(401, { message: "unauthorized" });
+	}
+
+	const user_data = await user_data_res.json();
+
+	return { user_data: user_data };
+}

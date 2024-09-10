@@ -65,10 +65,11 @@ services:
             dockerfile: Dockerfile.api
         container_name: freud_bot_api_dev
         restart: "no"
-        ports:
-          - "3000:80"
+        network_mode: "host"
+        # ports:
+        #   - "3000:80"
         environment:
-          - BASE_URL=http://localhost:3000
+          - BASE_URL=http://localhost:80
           - HOMEPAGE_URL=http://localhost:5173
           - SESSION_COOKIE_DOMAIN=.localhost
           - ACCESS_COOKIE_NAME=DISCORD_ACCESS_TOKEN

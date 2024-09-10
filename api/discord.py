@@ -49,6 +49,7 @@ def can_manage(guild: dict) -> bool:
 
     return (perms & ADMINISTRATOR_FLAG) != 0 or (perms & MANAGE_GUILD_FLAG) != 0
 
+
 def guild_icon_cdn_url(guild_id: str, icon_id: str | None) -> str | None:
     """Get the discord CDN url for a guild icon"""
 

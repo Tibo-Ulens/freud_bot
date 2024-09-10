@@ -18,13 +18,18 @@ class Config(Base, Model):
     __tablename__ = "config"
 
     guild_id = Column(BigInteger, primary_key=True)
+
     verified_role = Column(BigInteger, unique=True, nullable=True)
     admin_role = Column(BigInteger, unique=True, nullable=True)
+
     logging_channel = Column(BigInteger, unique=True, nullable=True)
     verification_logging_channel = Column(BigInteger, unique=True, nullable=True)
+
     confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
     confession_channel = Column(BigInteger, unique=True, nullable=True)
+
     pin_reaction_threshold = Column(Integer, FetchedValue(), nullable=False)
+
     verify_email_message = Column(Text, FetchedValue(), nullable=False)
     new_email_message = Column(Text, FetchedValue(), nullable=False)
     invalid_email_message = Column(Text, FetchedValue(), nullable=False)
@@ -33,7 +38,9 @@ class Config(Base, Model):
     invalid_code_message = Column(Text, FetchedValue(), nullable=False)
     already_verified_message = Column(Text, FetchedValue(), nullable=False)
     welcome_message = Column(Text, FetchedValue(), nullable=False)
+
     max_spendable_freudpoints = Column(Integer, FetchedValue(), nullable=False)
+
     verification_email_smtp_user = Column(Text, nullable=True)
     verification_email_smtp_password = Column(Text, nullable=True)
     verification_email_subject = Column(Text, FetchedValue(), nullable=False)

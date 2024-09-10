@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from api.config import Config
 from api.session import http_session
@@ -40,6 +41,8 @@ async def callback(code: str):
     async with http_session.post(
         "https://discord.com/api/oauth2/token", data=token_form
     ) as res:
+        res.raise_for_status()
+
         data = await res.json()
 
         access_token = data["access_token"]
@@ -50,7 +53,7 @@ async def callback(code: str):
         response.set_cookie(
             key=Config.access_cookie_name,
             value=access_token,
-            expires=datetime.now(timezone.utc) + timedelta(milliseconds=data["expires_in"]),
+            expires=datetime.now(timezone.utc) + timedelta(seconds=data["expires_in"]),
             path="/",
             secure=False,
             httponly=True,
@@ -60,7 +63,8 @@ async def callback(code: str):
         response.set_cookie(
             key=Config.refresh_cookie_name,
             value=refresh_token,
-            expires=datetime.now(timezone.utc) + timedelta(milliseconds=30 * 24 * 60 * 60 * 1000),
+            expires=datetime.now(timezone.utc)
+            + timedelta(milliseconds=30 * 24 * 60 * 60 * 1000),
             path="/",
             secure=False,
             httponly=True,
@@ -68,6 +72,7 @@ async def callback(code: str):
         )
 
         return response
+
 
 @router.get("/refresh")
 async def refresh(refresh_token: str):
@@ -75,25 +80,32 @@ async def refresh(refresh_token: str):
         "client_id": Config.discord_oauth_client_id,
         "client_secret": Config.discord_oauth_client_secret,
         "grant_type": "refresh_token",
-        "redirect_uri": f"{Config.base_url}/auth/callback",
         "refresh_token": refresh_token,
-        "scope": "identify guilds",
     }
 
     async with http_session.post(
         "https://discord.com/api/oauth2/token", data=token_form
     ) as res:
+        res.raise_for_status()
+
         data = await res.json()
 
         access_token = data["access_token"]
         refresh_token = data["refresh_token"]
 
-        response = RedirectResponse(Config.homepage_url, status_code=302)
+        response = JSONResponse(
+            content=jsonable_encoder(
+                {
+                    "discord_access_token": data["access_token"],
+                }
+            ),
+            status_code=200,
+        )
 
         response.set_cookie(
             key=Config.access_cookie_name,
             value=access_token,
-            expires=datetime.now(timezone.utc) + timedelta(milliseconds=data["expires_in"]),
+            expires=datetime.now(timezone.utc) + timedelta(seconds=data["expires_in"]),
             path="/",
             secure=False,
             httponly=True,
@@ -103,7 +115,8 @@ async def refresh(refresh_token: str):
         response.set_cookie(
             key=Config.refresh_cookie_name,
             value=refresh_token,
-            expires=datetime.now(timezone.utc) + timedelta(milliseconds=30 * 24 * 60 * 60 * 1000),
+            expires=datetime.now(timezone.utc)
+            + timedelta(milliseconds=30 * 24 * 60 * 60 * 1000),
             path="/",
             secure=False,
             httponly=True,
@@ -112,9 +125,26 @@ async def refresh(refresh_token: str):
 
         return response
 
+
 @router.get("/logout")
-async def logout():
-        response = RedirectResponse("/", status_code=302)
+async def logout(request: Request):
+    access_token = request.cookies.get("DISCORD_ACCESS_TOKEN")
+
+    token_form = {
+        "client_id": Config.discord_oauth_client_id,
+        "client_secret": Config.discord_oauth_client_secret,
+        "token": access_token,
+        "token_type_hint": "access_token",
+    }
+
+    async with http_session.post(
+        "https://discord.com/api/oauth2/token/revoke", data=token_form
+    ) as res:
+        res.raise_for_status()
+
+        response = RedirectResponse(Config.homepage_url, status_code=302)
 
         response.delete_cookie(Config.access_cookie_name, path="/")
         response.delete_cookie(Config.refresh_cookie_name, path="/")
+
+        return response
