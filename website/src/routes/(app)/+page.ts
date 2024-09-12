@@ -1,7 +1,7 @@
 export const ssr = false;
 
 import { PUBLIC_API_URL } from "$env/static/public";
-import { error } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 
 export async function load(event) {
 	console.log("fetching userdata");
@@ -11,7 +11,7 @@ export async function load(event) {
 	});
 
 	if (user_data_res.status == 401) {
-		return error(401, { message: "unauthorized" });
+		return redirect(302, "/login");
 	}
 
 	const user_data = await user_data_res.json();

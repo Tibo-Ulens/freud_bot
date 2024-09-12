@@ -1,5 +1,4 @@
-$background: #121212ff;
-$foreground: #ffffffff;
+@import "variables.scss";
 
 *,
 *::before,
@@ -30,6 +29,10 @@ body {
 
 	font-family: sans-serif;
 	letter-spacing: 0.5px;
+
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
 }
 
 h1,
