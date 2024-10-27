@@ -1,10 +1,10 @@
 .PHONY: all dev fmt lint setup dbd migrate psql chd redis down
 
 all:
-	docker compose up --build freud_bot freud_bot_webconfig
+	docker compose up --build freudbot freudbot_webconfig
 
 dev: fmt
-	docker compose up --build freud_bot_dev freud_bot_webconfig_dev
+	docker compose up --build freudbot_dev freudbot_webconfig_dev
 
 fmt:
 	black .
@@ -18,20 +18,20 @@ setup:
 	$(MAKE) migrate
 
 dbd:
-	docker compose up --build freud_bot_db --remove-orphans -d
+	docker compose up --build freudbot_db --remove-orphans -d
 
 migrate: dbd
 	PGPASSWORD=postgres_password alembic upgrade head
 	docker compose down
 
 psql: dbd
-	docker exec -it freud_bot_db psql -d freud_bot -h freud_bot_db -U postgres_user
+	docker exec -it freudbot_db psql -d freudbot -h freudbot_db -U postgres_user
 
 chd:
-	docker compose up --build freud_bot_cache --remove-orphans -d
+	docker compose up --build freudbot_cache --remove-orphans -d
 
 redis: chd
-	docker exec -it freud_bot_cache redis-cli -h freud_bot_cache -p 6379
+	docker exec -it freudbot_cache redis-cli -h freudbot_cache -p 6379
 
 down:
 	docker compose down

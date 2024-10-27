@@ -1,44 +1,44 @@
 services:
-    freud_bot:
-        image: ghcr.io/tibo-ulens/freud_bot:latest
-        container_name: freud_bot
+    freudbot:
+        image: ghcr.io/tibo-ulens/freudbot:latest
+        container_name: freudbot
         environment:
-          - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
+          - DB_URL=postgresql+asyncpg://postgres_user@freudbot_db/freudbot
           - PGPASSWORD=postgres_password
 
-          - CH_URL=redis://@freud_bot_cache:6379/0
+          - CH_URL=redis://@freudbot_cache:6379/0
         logging:
             options:
                 max-size: "4096m"
         secrets:
           - discord_token
         depends_on:
-          - freud_bot_db
-          - freud_bot_cache
+          - freudbot_db
+          - freudbot_cache
 
-    freud_bot_dev:
+    freudbot_dev:
         build:
             context: .
             dockerfile: Dockerfile.bot
-        container_name: freud_bot_dev
+        container_name: freudbot_dev
         restart: "no"
         environment:
-          - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
+          - DB_URL=postgresql+asyncpg://postgres_user@freudbot_db/freudbot
           - PGPASSWORD=postgres_password
 
-          - CH_URL=redis://@freud_bot_cache:6379/0
+          - CH_URL=redis://@freudbot_cache:6379/0
         logging:
             options:
                 max-size: "4096m"
         secrets:
           - discord_token
         depends_on:
-          - freud_bot_db
-          - freud_bot_cache
+          - freudbot_db
+          - freudbot_cache
 
-    freud_bot_api:
-        image: ghcr.io/tibo-ulens/freud_bot_api:latest
-        container_name: freud_bot_api
+    freudbot_api:
+        image: ghcr.io/tibo-ulens/freudbot_api:latest
+        container_name: freudbot_api
         ports:
           - "3000:80"
         environment:
@@ -48,7 +48,7 @@ services:
           - ACCESS_COOKIE_NAME=DISCORD_ACCESS_TOKEN
           - REFRESH_COOKIE_NAME=DISCORD_REFRESH_TOKEN
 
-          - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
+          - DB_URL=postgresql+asyncpg://postgres_user@freudbot_db/freudbot
           - PGPASSWORD=postgres_password
         logging:
             options:
@@ -57,26 +57,37 @@ services:
           - discord_oauth_credentials
           - discord_token
         depends_on:
-          - freud_bot
+          - freudbot
 
-    freud_bot_api_dev:
+    freudbot_api_dev:
         build:
-            context: .
-            dockerfile: Dockerfile.api
-        container_name: freud_bot_api_dev
+            context: ./api
+            args:
+                IS_RELEASE:
+        container_name: freudbot_api_dev
         restart: "no"
-        network_mode: "host"
-        # ports:
-        #   - "3000:80"
+        ports:
+          - "3000:80"
+          - "6669:6669"
         environment:
-          - BASE_URL=http://localhost:80
-          - HOMEPAGE_URL=http://localhost:5173
-          - SESSION_COOKIE_DOMAIN=.localhost
-          - ACCESS_COOKIE_NAME=DISCORD_ACCESS_TOKEN
-          - REFRESH_COOKIE_NAME=DISCORD_REFRESH_TOKEN
+          - DB_URL=postgres://postgres_user:postgres_password@freudbot_db/freudbot
+          - CACHE_URL=redis://@freudbot_cache:6379/0
 
-          - DB_URL=postgresql+asyncpg://postgres_user@freud_bot_db/freud_bot
-          - PGPASSWORD=postgres_password
+          - REDIRECT_URL=localhost:3000/auth/callback
+          - AUTH_URL=https://discord.com/api/oauth2/authorize?response_type=code
+          - TOKEN_URL=https://discord.com/api/oauth2/token
+
+          - FRONTEND_URL=http://localhost:5173
+
+          - COOKIE_DOMAIN=.localhost
+          - PKCE_VERIFIER_COOKIE_NAME=freudbot_pkce_uuid
+          - ACCESS_TOKEN_COOKIE_NAME=freudbot_discord_access_token
+          - REFRESH_TOKEN_COOKIE_NAME=freudbot_discord_refresh_token
+          - SESSION_DATA_COOKIE_NAME=freudbot_session_data
+          - PKCE_VERIFIER_COOKIE_LIFESPAN=60
+          - ACCESS_TOKEN_COOKIE_LIFESPAN=604800
+          - REFRESH_TOKEN_COOKIE_LIFESPAN=1814400
+          - SESSION_DATA_COOKIE_LIFESPAN=604800
         logging:
             options:
                 max-size: "4096m"
@@ -84,11 +95,12 @@ services:
           - discord_oauth_credentials
           - discord_token
         depends_on:
-          - freud_bot_dev
+          - freudbot_db
+          - freudbot_cache
 
-    freud_bot_db:
-        image: postgres:16.0-alpine
-        container_name: freud_bot_db
+    freudbot_db:
+        image: postgres:17-alpine
+        container_name: freudbot_db
         restart: unless-stopped
         logging:
             options:
@@ -96,20 +108,20 @@ services:
         environment:
           - POSTGRES_PASSWORD=postgres_password
           - POSTGRES_USER=postgres_user
-          - POSTGRES_DB=freud_bot
+          - POSTGRES_DB=freudbot
         ports:
           - "5432:5432"
         volumes:
-          - freud_bot_data:/var/lib/postgresql/data
+          - freudbot_data:/var/lib/postgresql/data
         healthcheck:
-            test: pg_isready -d freud_bot -h freud_bot_db -U postgres_user
+            test: pg_isready -d freudbot -h freudbot_db -U postgres_user
             interval: 10m
             timeout: 5s
             retries: 2
 
-    freud_bot_cache:
-        image: redis:7.2-alpine
-        container_name: freud_bot_cache
+    freudbot_cache:
+        image: redis:7-alpine
+        container_name: freudbot_cache
         restart: unless-stopped
         logging:
             options:
@@ -123,7 +135,7 @@ services:
             retries: 2
 
 volumes:
-    freud_bot_data:
+    freudbot_data:
         external: true
 
 secrets:
