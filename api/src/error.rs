@@ -16,11 +16,11 @@ pub enum Error {
 	AuthorizationError(#[from] AuthorizationError),
 }
 
-/// Details about internal errors should not be show to end users, so log an
-/// error and then generate an opaque type
+/// Details about internal errors should not be show to end users, so log a
+/// warning and then generate an opaque type
 impl From<InternalError> for Error {
-	fn from(err: InternalError) -> Self {
-		error!("internal error -- {}", err);
+	fn from(_: InternalError) -> Self {
+		error!("!!! internal error !!!");
 
 		Self::InternalError
 	}
@@ -34,7 +34,7 @@ impl IntoResponse for Error {
 
 		let status_code = match self {
 			Self::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
-			Self::AuthorizationError(_) => StatusCode::FORBIDDEN,
+			Self::AuthorizationError(_) => StatusCode::UNAUTHORIZED,
 		};
 
 		Response::builder()
@@ -58,6 +58,9 @@ pub enum InternalError {
 
 	#[error(transparent)]
 	UrlParseError(#[from] oauth2::url::ParseError),
+
+	#[error(transparent)]
+	SerdeJsonError(#[from] serde_json::Error),
 }
 
 impl From<reqwest::Error> for Error {
@@ -76,10 +79,17 @@ impl From<oauth2::url::ParseError> for Error {
 	fn from(value: oauth2::url::ParseError) -> Self { InternalError::UrlParseError(value).into() }
 }
 
+impl From<serde_json::Error> for Error {
+	fn from(value: serde_json::Error) -> Self { InternalError::SerdeJsonError(value).into() }
+}
+
 #[derive(Debug, Error)]
 pub enum AuthorizationError {
 	#[error("Missing PKCE verifier cookie")]
 	MissingPKCEVerifierCookie,
+
+	#[error("Missing access token cookie")]
+	MissingAccessTokenCookie,
 
 	#[error(transparent)]
 	RequestTokenError(#[from] anyhow::Error),

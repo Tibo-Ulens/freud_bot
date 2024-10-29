@@ -1,3 +1,12 @@
+//! ______                  _______       _
+//! |  ___|                | | ___ \     | |
+//! | |_ _ __ ___ _   _  __| | |_/ / ___ | |_
+//! |  _| '__/ _ \ | | |/ _` | ___ \/ _ \| __|
+//! | | | | |  __/ |_| | (_| | |_/ / (_) | |_
+//! \_| |_|  \___|\__,_|\__,_\____/ \___/ \__|
+//!
+//! FreudBot API
+
 #[macro_use]
 extern crate tracing;
 
@@ -47,6 +56,7 @@ pub struct AppState {
 	cache_pool:   CachePool,
 	cookie_key:   Key,
 	cookie_cfg:   CookieConfig,
+	frontend_url: String,
 }
 
 /// The config variables related to session cookies
@@ -57,12 +67,10 @@ pub struct CookieConfig {
 	pkce_verifier_cookie_name: String,
 	access_token_cookie_name:  String,
 	refresh_token_cookie_name: String,
-	session_data_cookie_name:  String,
 
 	pkce_verifier_cookie_lifespan: i64,
 	access_token_cookie_lifespan:  i64,
 	refresh_token_cookie_lifespan: i64,
-	session_data_cookie_lifespan:  i64,
 }
 
 impl FromRef<AppState> for BasicClient {
@@ -83,6 +91,10 @@ impl FromRef<AppState> for Key {
 
 impl FromRef<AppState> for CookieConfig {
 	fn from_ref(input: &AppState) -> Self { input.cookie_cfg.clone() }
+}
+
+impl FromRef<AppState> for String {
+	fn from_ref(input: &AppState) -> Self { input.frontend_url.clone() }
 }
 
 /// Attempt to get the value of an environment variable, panic if it doesn't exist
@@ -168,24 +180,29 @@ async fn main() -> Result<(), Error> {
 		pkce_verifier_cookie_name:     get_env_or_panic("PKCE_VERIFIER_COOKIE_NAME"),
 		access_token_cookie_name:      get_env_or_panic("ACCESS_TOKEN_COOKIE_NAME"),
 		refresh_token_cookie_name:     get_env_or_panic("REFRESH_TOKEN_COOKIE_NAME"),
-		session_data_cookie_name:      get_env_or_panic("SESSION_DATA_COOKIE_NAME"),
 		pkce_verifier_cookie_lifespan: get_env_or_panic("PKCE_VERIFIER_COOKIE_LIFESPAN"),
 		access_token_cookie_lifespan:  get_env_or_panic("ACCESS_TOKEN_COOKIE_LIFESPAN"),
 		refresh_token_cookie_lifespan: get_env_or_panic("REFRESH_TOKEN_COOKIE_LIFESPAN"),
-		session_data_cookie_lifespan:  get_env_or_panic("SESSION_DATA_COOKIE_LIFESPAN"),
 	};
 
+	let frontend_url = get_env_or_panic::<String>("FRONTEND_URL");
+
 	info!("creating HTTP server...");
-	let app_state = AppState { oauth_client, db_pool, cache_pool, cookie_key, cookie_cfg };
+	let app_state = AppState {
+		oauth_client,
+		db_pool,
+		cache_pool,
+		cookie_key,
+		cookie_cfg,
+		frontend_url: frontend_url.clone(),
+	};
 	let app = Router::new()
 		.route("/auth/login", get(login))
 		.route("/auth/callback", get(oauth_callback))
 		.route("/me", get(me))
 		.layer(
 			CorsLayer::new()
-				.allow_origin(
-					get_env_or_panic::<String>("FRONTEND_URL").parse::<HeaderValue>().unwrap(),
-				)
+				.allow_origin(frontend_url.parse::<HeaderValue>().unwrap())
 				.allow_methods([Method::GET, Method::POST, Method::PUT])
 				.allow_credentials(true),
 		)

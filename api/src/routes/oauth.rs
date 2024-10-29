@@ -1,4 +1,6 @@
 //! OAuth2 routes and datatypes
+//!
+//! TODO: add a route to exchange refresh tokens
 
 use axum::extract::{Query, State};
 use axum::response::{IntoResponse, Redirect};
@@ -15,23 +17,13 @@ use oauth2::{
 	TokenResponse,
 };
 use redis::AsyncCommands;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use time::Duration;
 use uuid::Uuid;
 
 use crate::error::{AuthorizationError, Error};
+use crate::routes::DiscordUser;
 use crate::{CachePool, CookieConfig};
-
-/// The user data that's returned from the Discord OAuth API and which is also
-/// needed within this application
-///
-/// TODO: write extractor that redirects if invalid cookies are detected
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct DiscordUser {
-	id:       String,
-	username: String,
-	avatar:   Option<String>,
-}
 
 fn make_cookie(name: String, value: String, domain: String, lifespan: Duration) -> Cookie<'static> {
 	let mut cookie = Cookie::new(name, value);
@@ -41,11 +33,12 @@ fn make_cookie(name: String, value: String, domain: String, lifespan: Duration) 
 	cookie.set_http_only(true);
 	cookie.set_secure(true);
 	cookie.set_same_site(SameSite::Lax);
+	cookie.set_path("/");
 
 	cookie
 }
 
-#[instrument]
+#[instrument(skip_all)]
 pub async fn login(
 	State(oauth_client): State<BasicClient>,
 	State(cache_pool): State<CachePool>,
@@ -91,23 +84,34 @@ pub struct AuthRequest {
 	state: String,
 }
 
-#[instrument]
+#[instrument(skip(oauth_client, cache_pool, cookie_cfg, frontend_url, jar))]
 pub async fn oauth_callback(
 	Query(query): Query<AuthRequest>,
 	State(oauth_client): State<BasicClient>,
 	State(cache_pool): State<CachePool>,
 	State(cookie_cfg): State<CookieConfig>,
+	State(frontend_url): State<String>,
 	jar: PrivateCookieJar,
 ) -> Result<impl IntoResponse, Error> {
 	// Read the PKCE verifier UUID from the cookie and use it to look up the
 	// verifier in redis
-	let pkce_verifier_cookie = jar
+	let mut pkce_verifier_cookie = jar
 		.get(&cookie_cfg.pkce_verifier_cookie_name)
 		.ok_or_else(|| AuthorizationError::MissingPKCEVerifierCookie)?;
 
 	let pkce_verifier_uuid = pkce_verifier_cookie.value().to_string();
 
 	// PKCE verifiers are single use so delete the cookie afterwards
+	//
+	// For some reason axum-extra decided that cookies that are retrieved from
+	// the jar don't need to retain their attributes, so these have to be
+	// re-added in order for the removal to actually work
+	pkce_verifier_cookie.set_domain(cookie_cfg.cookie_domain.clone());
+	pkce_verifier_cookie.set_http_only(true);
+	pkce_verifier_cookie.set_secure(true);
+	pkce_verifier_cookie.set_same_site(SameSite::Lax);
+	pkce_verifier_cookie.set_path("/");
+
 	let mut jar = jar.remove(pkce_verifier_cookie);
 
 	let pkce_verifier_secret: String = {
@@ -130,8 +134,12 @@ pub async fn oauth_callback(
 		.await
 		.map_err(|e| AuthorizationError::RequestTokenError(anyhow::Error::from(e)))?;
 
-	// Fetch user details from the discord API to store in the session data
-	// cookie
+	let access_token_expiry = token
+		.expires_in()
+		.map(|d| Duration::seconds(d.as_secs() as i64))
+		.unwrap_or(Duration::seconds(cookie_cfg.access_token_cookie_lifespan));
+
+	// Fetch user details from the discord API to store in the cache
 	let client = reqwest::Client::new();
 	let user_data: DiscordUser = client
 		.get("https://discordapp.com/api/users/@me")
@@ -141,14 +149,25 @@ pub async fn oauth_callback(
 		.json::<DiscordUser>()
 		.await?;
 
+	{
+		let mut conn = cache_pool.get().await?;
+
+		// Encode the user object as a json string because the redis json api
+		// inspires existential dread
+		let _: () =
+			conn.set(token.access_token().secret(), serde_json::to_string(&user_data)?).await?;
+
+		// Set the expiry equal to the access token expiry to ensure no user
+		// data is available once authentication has been lost
+		let _: () =
+			conn.expire(token.access_token().secret(), access_token_expiry.whole_seconds()).await?;
+	}
+
 	let access_cookie = make_cookie(
 		cookie_cfg.access_token_cookie_name.to_string(),
 		token.access_token().secret().to_string(),
 		cookie_cfg.cookie_domain.clone(),
-		token
-			.expires_in()
-			.map(|d| Duration::seconds(d.as_secs() as i64))
-			.unwrap_or(Duration::seconds(cookie_cfg.access_token_cookie_lifespan)),
+		access_token_expiry,
 	);
 
 	jar = jar.add(access_cookie);
@@ -164,14 +183,5 @@ pub async fn oauth_callback(
 		jar = jar.add(refresh_cookie)
 	}
 
-	let userdata_cookie = make_cookie(
-		cookie_cfg.session_data_cookie_name.to_string(),
-		serde_json::to_string(&user_data).unwrap(),
-		cookie_cfg.cookie_domain,
-		Duration::seconds(cookie_cfg.session_data_cookie_lifespan),
-	);
-
-	jar = jar.add(userdata_cookie);
-
-	Ok((jar, Redirect::to("/")))
+	Ok((jar, Redirect::to(&frontend_url)))
 }

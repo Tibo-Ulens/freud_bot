@@ -73,7 +73,7 @@ services:
           - DB_URL=postgres://postgres_user:postgres_password@freudbot_db/freudbot
           - CACHE_URL=redis://@freudbot_cache:6379/0
 
-          - REDIRECT_URL=localhost:3000/auth/callback
+          - REDIRECT_URL=http://localhost:3000/auth/callback
           - AUTH_URL=https://discord.com/api/oauth2/authorize?response_type=code
           - TOKEN_URL=https://discord.com/api/oauth2/token
 
@@ -83,11 +83,9 @@ services:
           - PKCE_VERIFIER_COOKIE_NAME=freudbot_pkce_uuid
           - ACCESS_TOKEN_COOKIE_NAME=freudbot_discord_access_token
           - REFRESH_TOKEN_COOKIE_NAME=freudbot_discord_refresh_token
-          - SESSION_DATA_COOKIE_NAME=freudbot_session_data
           - PKCE_VERIFIER_COOKIE_LIFESPAN=60
           - ACCESS_TOKEN_COOKIE_LIFESPAN=604800
           - REFRESH_TOKEN_COOKIE_LIFESPAN=1814400
-          - SESSION_DATA_COOKIE_LIFESPAN=604800
         logging:
             options:
                 max-size: "4096m"
