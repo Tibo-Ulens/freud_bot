@@ -2,6 +2,7 @@
 
 use axum::async_trait;
 use axum::extract::{FromRef, FromRequestParts};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum_extra::extract::cookie::Key;
 use axum_extra::extract::PrivateCookieJar;
 use http::request::Parts;
@@ -28,7 +29,7 @@ where
 	CachePool: FromRef<S>,
 	S: Send + Sync,
 {
-	type Rejection = Error;
+	type Rejection = Response;
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let cookie_cfg = CookieConfig::from_ref(state);
@@ -37,18 +38,33 @@ where
 
 		let jar = PrivateCookieJar::from_headers(&parts.headers, key);
 
-		// TODO: if no access token is found the refresh token (if present)
-		// should be consumed instead of just throwing an error
-		let access_token_cookie = jar
-			.get(&cookie_cfg.access_token_cookie_name)
-			.ok_or(AuthorizationError::MissingAccessTokenCookie)?;
+		let Some(access_token_cookie) = jar.get(&cookie_cfg.access_token_cookie_name) else {
+			match jar.get(&cookie_cfg.refresh_token_cookie_name) {
+				None => {
+					return Err(Error::AuthorizationError(
+						AuthorizationError::MissingAccessTokenCookie,
+					)
+					.into_response());
+				},
+				Some(_) => {
+					return Err(Redirect::temporary("/auth/refresh").into_response());
+				},
+			}
+		};
 
 		let user_data: Self = {
-			let mut conn = cache_pool.get().await?;
+			let mut conn =
+				cache_pool.get().await.map_err(Error::from).map_err(IntoResponse::into_response)?;
 
-			let json_str: String = conn.get(access_token_cookie.value()).await?;
+			let json_str: String = conn
+				.get(access_token_cookie.value())
+				.await
+				.map_err(Error::from)
+				.map_err(IntoResponse::into_response)?;
 
-			serde_json::from_str(&json_str)?
+			serde_json::from_str(&json_str)
+				.map_err(Error::from)
+				.map_err(IntoResponse::into_response)?
 		};
 
 		Ok(user_data)

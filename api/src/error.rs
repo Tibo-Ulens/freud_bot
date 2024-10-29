@@ -91,6 +91,9 @@ pub enum AuthorizationError {
 	#[error("Missing access token cookie")]
 	MissingAccessTokenCookie,
 
+	#[error("Missing refresh token cookie")]
+	MissingRefreshTokenCookie,
+
 	#[error(transparent)]
 	RequestTokenError(#[from] anyhow::Error),
 }

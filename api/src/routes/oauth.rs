@@ -13,6 +13,7 @@ use oauth2::{
 	CsrfToken,
 	PkceCodeChallenge,
 	PkceCodeVerifier,
+	RefreshToken,
 	Scope,
 	TokenResponse,
 };
@@ -183,5 +184,90 @@ pub async fn oauth_callback(
 		jar = jar.add(refresh_cookie)
 	}
 
+	Ok((jar, Redirect::to(&frontend_url)))
+}
+
+#[instrument(skip_all)]
+pub async fn oauth_refresh(
+	State(oauth_client): State<BasicClient>,
+	State(cookie_cfg): State<CookieConfig>,
+	State(cache_pool): State<CachePool>,
+	State(frontend_url): State<String>,
+	jar: PrivateCookieJar,
+) -> Result<impl IntoResponse, Error> {
+	let mut refresh_token_cookie = jar
+		.get(&cookie_cfg.refresh_token_cookie_name)
+		.ok_or_else(|| AuthorizationError::MissingRefreshTokenCookie)?;
+
+	let refresh_token = RefreshToken::new(refresh_token_cookie.value().to_string());
+
+	// For some reason axum-extra decided that cookies that are retrieved from
+	// the jar don't need to retain their attributes, so these have to be
+	// re-added in order for the removal to actually work
+	refresh_token_cookie.set_domain(cookie_cfg.cookie_domain.clone());
+	refresh_token_cookie.set_http_only(true);
+	refresh_token_cookie.set_secure(true);
+	refresh_token_cookie.set_same_site(SameSite::Lax);
+	refresh_token_cookie.set_path("/");
+
+	let mut jar = jar.remove(refresh_token_cookie);
+
+	let token = oauth_client
+		.exchange_refresh_token(&refresh_token)
+		.add_scope(Scope::new("identify".to_string()))
+		.request_async(async_http_client)
+		.await
+		.map_err(|e| AuthorizationError::RequestTokenError(anyhow::Error::from(e)))?;
+
+	let access_token_expiry = token
+		.expires_in()
+		.map(|d| Duration::seconds(d.as_secs() as i64))
+		.unwrap_or(Duration::seconds(cookie_cfg.access_token_cookie_lifespan));
+
+	// Fetch user details from the discord API to store in the cache
+	let client = reqwest::Client::new();
+	let user_data: DiscordUser = client
+		.get("https://discordapp.com/api/users/@me")
+		.bearer_auth(token.access_token().secret())
+		.send()
+		.await?
+		.json::<DiscordUser>()
+		.await?;
+
+	{
+		let mut conn = cache_pool.get().await?;
+
+		// Encode the user object as a json string because the redis json api
+		// inspires existential dread
+		let _: () =
+			conn.set(token.access_token().secret(), serde_json::to_string(&user_data)?).await?;
+
+		// Set the expiry equal to the access token expiry to ensure no user
+		// data is available once authentication has been lost
+		let _: () =
+			conn.expire(token.access_token().secret(), access_token_expiry.whole_seconds()).await?;
+	}
+
+	let access_cookie = make_cookie(
+		cookie_cfg.access_token_cookie_name.to_string(),
+		token.access_token().secret().to_string(),
+		cookie_cfg.cookie_domain.clone(),
+		access_token_expiry,
+	);
+
+	jar = jar.add(access_cookie);
+
+	if let Some(refresh_token) = token.refresh_token() {
+		let refresh_cookie = make_cookie(
+			cookie_cfg.refresh_token_cookie_name.to_string(),
+			refresh_token.secret().to_string(),
+			cookie_cfg.cookie_domain.clone(),
+			Duration::seconds(cookie_cfg.refresh_token_cookie_lifespan),
+		);
+
+		jar = jar.add(refresh_cookie)
+	}
+
+	todo!("this throws 500 errors client-side");
 	Ok((jar, Redirect::to(&frontend_url)))
 }

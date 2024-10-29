@@ -41,7 +41,7 @@ pub mod error;
 pub mod routes;
 
 use error::Error;
-use routes::{login, me, oauth_callback};
+use routes::{login, me, oauth_callback, oauth_refresh};
 
 type DbPool = Pool<AsyncDieselConnectionManager<AsyncPgConnection>>;
 type CachePool = Pool<RedisConnectionManager>;
@@ -199,6 +199,7 @@ async fn main() -> Result<(), Error> {
 	let app = Router::new()
 		.route("/auth/login", get(login))
 		.route("/auth/callback", get(oauth_callback))
+		.route("/auth/refresh", get(oauth_refresh))
 		.route("/me", get(me))
 		.layer(
 			CorsLayer::new()
