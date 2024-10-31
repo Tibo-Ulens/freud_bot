@@ -268,6 +268,6 @@ pub async fn oauth_refresh(
 		jar = jar.add(refresh_cookie)
 	}
 
-	todo!("this throws 500 errors client-side");
+	// TODO: this throws 500 errors client-side
 	Ok((jar, Redirect::to(&frontend_url)))
 }

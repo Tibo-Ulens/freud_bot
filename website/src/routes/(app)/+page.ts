@@ -1,4 +1,5 @@
 export const ssr = false;
+export const prerender = true;
 
 import { PUBLIC_API_URL } from "$env/static/public";
 import { redirect } from "@sveltejs/kit";
