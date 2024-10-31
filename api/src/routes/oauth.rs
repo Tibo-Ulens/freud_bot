@@ -1,13 +1,10 @@
-//! OAuth2 routes and datatypes
-//!
-//! TODO: add a route to exchange refresh tokens
+//! `OAuth2` routes and datatypes
 
 use axum::extract::{Query, State};
 use axum::response::{IntoResponse, Redirect};
-use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::PrivateCookieJar;
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
+use axum_extra::extract::cookie::{Cookie, SameSite};
+use oauth2::reqwest::{ClientBuilder, redirect};
 use oauth2::{
 	AuthorizationCode,
 	CsrfToken,
@@ -24,9 +21,14 @@ use uuid::Uuid;
 
 use crate::error::{AuthorizationError, Error};
 use crate::routes::DiscordUser;
-use crate::{CachePool, CookieConfig};
+use crate::{CachePool, CookieConfig, SetBasicClient};
 
-fn make_cookie(name: String, value: String, domain: String, lifespan: Duration) -> Cookie<'static> {
+fn make_cookie(
+	name: String,
+	value: String,
+	domain: String,
+	lifespan: Duration,
+) -> Cookie<'static> {
 	let mut cookie = Cookie::new(name, value);
 
 	cookie.set_domain(domain);
@@ -41,7 +43,7 @@ fn make_cookie(name: String, value: String, domain: String, lifespan: Duration) 
 
 #[instrument(skip_all)]
 pub async fn login(
-	State(oauth_client): State<BasicClient>,
+	State(oauth_client): State<SetBasicClient>,
 	State(cache_pool): State<CachePool>,
 	State(cookie_cfg): State<CookieConfig>,
 	jar: PrivateCookieJar,
@@ -49,7 +51,8 @@ pub async fn login(
 	// Generate a UUID alongside the PKCE codes so the verifier can be stored
 	// in redis to then be retrieved later in the callback route
 	// The UUID acts as a unique key to store the verifier
-	let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+	let (pkce_challenge, pkce_verifier) =
+		PkceCodeChallenge::new_random_sha256();
 	let pkce_verifier_uuid = Uuid::now_v7();
 
 	// TODO: figure out CSRF tokens
@@ -62,8 +65,12 @@ pub async fn login(
 	{
 		let mut conn = cache_pool.get().await?;
 
-		let _: () =
-			conn.set(pkce_verifier_uuid.to_string(), pkce_verifier.secret().to_string()).await?;
+		let _: () = conn
+			.set(
+				pkce_verifier_uuid.to_string(),
+				pkce_verifier.secret().to_string(),
+			)
+			.await?;
 	}
 
 	let pkce_verifier_uuid_cookie = make_cookie(
@@ -88,7 +95,7 @@ pub struct AuthRequest {
 #[instrument(skip(oauth_client, cache_pool, cookie_cfg, frontend_url, jar))]
 pub async fn oauth_callback(
 	Query(query): Query<AuthRequest>,
-	State(oauth_client): State<BasicClient>,
+	State(oauth_client): State<SetBasicClient>,
 	State(cache_pool): State<CachePool>,
 	State(cookie_cfg): State<CookieConfig>,
 	State(frontend_url): State<String>,
@@ -128,17 +135,23 @@ pub async fn oauth_callback(
 
 	let pkce_verifier = PkceCodeVerifier::new(pkce_verifier_secret);
 
+	let client =
+		ClientBuilder::new().redirect(redirect::Policy::none()).build()?;
+
 	let token = oauth_client
 		.exchange_code(AuthorizationCode::new(query.code))
 		.set_pkce_verifier(pkce_verifier)
-		.request_async(async_http_client)
+		.request_async(&client)
 		.await
-		.map_err(|e| AuthorizationError::RequestTokenError(anyhow::Error::from(e)))?;
+		.map_err(|e| {
+			AuthorizationError::RequestTokenError(anyhow::Error::from(e))
+		})?;
 
-	let access_token_expiry = token
-		.expires_in()
-		.map(|d| Duration::seconds(d.as_secs() as i64))
-		.unwrap_or(Duration::seconds(cookie_cfg.access_token_cookie_lifespan));
+	#[allow(clippy::cast_possible_wrap)]
+	let access_token_expiry = token.expires_in().map_or(
+		Duration::seconds(cookie_cfg.access_token_cookie_lifespan),
+		|d| Duration::seconds(d.as_secs() as i64),
+	);
 
 	// Fetch user details from the discord API to store in the cache
 	let client = reqwest::Client::new();
@@ -155,13 +168,21 @@ pub async fn oauth_callback(
 
 		// Encode the user object as a json string because the redis json api
 		// inspires existential dread
-		let _: () =
-			conn.set(token.access_token().secret(), serde_json::to_string(&user_data)?).await?;
+		let _: () = conn
+			.set(
+				token.access_token().secret(),
+				serde_json::to_string(&user_data)?,
+			)
+			.await?;
 
 		// Set the expiry equal to the access token expiry to ensure no user
 		// data is available once authentication has been lost
-		let _: () =
-			conn.expire(token.access_token().secret(), access_token_expiry.whole_seconds()).await?;
+		let _: () = conn
+			.expire(
+				token.access_token().secret(),
+				access_token_expiry.whole_seconds(),
+			)
+			.await?;
 	}
 
 	let access_cookie = make_cookie(
@@ -181,7 +202,7 @@ pub async fn oauth_callback(
 			Duration::seconds(cookie_cfg.refresh_token_cookie_lifespan),
 		);
 
-		jar = jar.add(refresh_cookie)
+		jar = jar.add(refresh_cookie);
 	}
 
 	Ok((jar, Redirect::to(&frontend_url)))
@@ -189,7 +210,7 @@ pub async fn oauth_callback(
 
 #[instrument(skip_all)]
 pub async fn oauth_refresh(
-	State(oauth_client): State<BasicClient>,
+	State(oauth_client): State<SetBasicClient>,
 	State(cookie_cfg): State<CookieConfig>,
 	State(cache_pool): State<CachePool>,
 	State(frontend_url): State<String>,
@@ -199,7 +220,8 @@ pub async fn oauth_refresh(
 		.get(&cookie_cfg.refresh_token_cookie_name)
 		.ok_or_else(|| AuthorizationError::MissingRefreshTokenCookie)?;
 
-	let refresh_token = RefreshToken::new(refresh_token_cookie.value().to_string());
+	let refresh_token =
+		RefreshToken::new(refresh_token_cookie.value().to_string());
 
 	// For some reason axum-extra decided that cookies that are retrieved from
 	// the jar don't need to retain their attributes, so these have to be
@@ -212,17 +234,23 @@ pub async fn oauth_refresh(
 
 	let mut jar = jar.remove(refresh_token_cookie);
 
+	let client =
+		ClientBuilder::new().redirect(redirect::Policy::none()).build()?;
+
 	let token = oauth_client
 		.exchange_refresh_token(&refresh_token)
 		.add_scope(Scope::new("identify".to_string()))
-		.request_async(async_http_client)
+		.request_async(&client)
 		.await
-		.map_err(|e| AuthorizationError::RequestTokenError(anyhow::Error::from(e)))?;
+		.map_err(|e| {
+			AuthorizationError::RequestTokenError(anyhow::Error::from(e))
+		})?;
 
-	let access_token_expiry = token
-		.expires_in()
-		.map(|d| Duration::seconds(d.as_secs() as i64))
-		.unwrap_or(Duration::seconds(cookie_cfg.access_token_cookie_lifespan));
+	#[allow(clippy::cast_possible_wrap)]
+	let access_token_expiry = token.expires_in().map_or(
+		Duration::seconds(cookie_cfg.access_token_cookie_lifespan),
+		|d| Duration::seconds(d.as_secs() as i64),
+	);
 
 	// Fetch user details from the discord API to store in the cache
 	let client = reqwest::Client::new();
@@ -239,13 +267,21 @@ pub async fn oauth_refresh(
 
 		// Encode the user object as a json string because the redis json api
 		// inspires existential dread
-		let _: () =
-			conn.set(token.access_token().secret(), serde_json::to_string(&user_data)?).await?;
+		let _: () = conn
+			.set(
+				token.access_token().secret(),
+				serde_json::to_string(&user_data)?,
+			)
+			.await?;
 
 		// Set the expiry equal to the access token expiry to ensure no user
 		// data is available once authentication has been lost
-		let _: () =
-			conn.expire(token.access_token().secret(), access_token_expiry.whole_seconds()).await?;
+		let _: () = conn
+			.expire(
+				token.access_token().secret(),
+				access_token_expiry.whole_seconds(),
+			)
+			.await?;
 	}
 
 	let access_cookie = make_cookie(
@@ -265,7 +301,7 @@ pub async fn oauth_refresh(
 			Duration::seconds(cookie_cfg.refresh_token_cookie_lifespan),
 		);
 
-		jar = jar.add(refresh_cookie)
+		jar = jar.add(refresh_cookie);
 	}
 
 	// TODO: this throws 500 errors client-side

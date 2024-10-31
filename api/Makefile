@@ -1,9 +1,10 @@
 .PHONY: all fmt lint
 
-CLIPPY_FLAGS = -D warnings -W unreachable-pub
+CLIPPY_ALLOW = -A clippy::wildcard-imports
+CLIPPY_FLAGS = -W clippy::pedantic $(CLIPPY_ALLOW) -D warnings
 
-lint: fmt
-	cargo +nightly clippy -- $(CLIPPY_FLAGS)
+lint:
+	cargo +nightly clippy --all-targets -- $(CLIPPY_FLAGS)
 
 fmt:
 	cargo +nightly fmt

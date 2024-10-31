@@ -1,60 +1,47 @@
-# ===============================
-#    BACKEND BUILD ENVIRONMENT
-# ===============================
+#
+# BUILD
+#
 
-FROM rust:latest AS backend_build
+FROM clux/muslrust:1.86.0-stable AS build
 
-# Install nightly
-RUN rustup default nightly
-RUN rustup update
+RUN cargo new --vcs none --bin --edition 2024 freudbot_api
+WORKDIR /volume/freudbot_api
 
-RUN USER=root cargo new --vcs none --bin freudbot_api
-WORKDIR /freudbot_api
-
-COPY ./Cargo.toml ./Cargo.toml
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./.cargo ./.cargo
-
-# "" -> debug compilation
-# "release" -> release compilation
-ARG IS_RELEASE=""
+COPY ./.cargo ./Cargo.toml ./Cargo.lock ./
 
 # Build and cache dependencies
-RUN cargo +nightly build --profile ${IS_RELEASE:-dev} --bin freudbot_api
-RUN rm ./src/*
-RUN rm ./target/${IS_RELEASE:-debug}/deps/freudbot_api*
+RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --release --bin freudbot_api
+
+RUN rm -r ./src
+RUN rm ./target/x86_64-unknown-linux-musl/release/deps/freudbot_api*
 
 # Copy over actual source code
 COPY ./src ./src
-COPY ./migrations ./migrations
 
 # Build source code (dependencies already built)
-RUN cargo +nightly build --profile ${IS_RELEASE:-dev} --bin freudbot_api
+RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --release --bin freudbot_api
 
-# ===============================
-#      EXECUTION ENVIRONMENT
-# ===============================
+#
+# EXECUTION
+#
 
-FROM debian:bookworm-slim
+FROM alpine:latest
 
-# Install dependency for postgres and healthcheck
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update \
-	&& apt install -y libpq5 curl \
-	&& rm -rf /var/lib/apt/lists/*
-
-WORKDIR /freudbot_api
-
-# Copy over the built binary
-COPY \
-	--from=backend_build \
-	/freudbot_api/target/${IS_RELEASE:-debug}/freudbot_api \
-	.
+RUN apk add --no-cache curl
 
 # Healthcheck:
 # Attempt to curl (fail silently) the service every 30s,
 # fail after 5s without a response,
 # retry twice before giving up
-HEALTHCHECK --interval=10m --timeout=5s --retries=2 CMD curl --fail http://localhost/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
+	CMD curl --fail http://localhost/ || exit 1
+
+WORKDIR /freudbot_api
+
+# Copy over the built binary
+COPY \
+	--from=build \
+	/volume/freudbot_api/target/x86_64-unknown-linux-musl/release/freudbot_api \
+	.
 
 CMD [ "./freudbot_api" ]

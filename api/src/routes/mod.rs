@@ -8,4 +8,5 @@ pub use discord::*;
 pub use oauth::*;
 
 #[instrument]
+#[allow(unused_braces)]
 pub async fn me(user: DiscordUser) -> impl IntoResponse { Json(user) }

@@ -2,7 +2,7 @@
 
 use axum::response::{IntoResponse, Response};
 use bb8::RunError;
-use http::{header, StatusCode};
+use http::{StatusCode, header};
 use redis::RedisError;
 use thiserror::Error;
 
@@ -64,23 +64,33 @@ pub enum InternalError {
 }
 
 impl From<reqwest::Error> for Error {
-	fn from(value: reqwest::Error) -> Self { InternalError::ReqwestError(value).into() }
+	fn from(value: reqwest::Error) -> Self {
+		InternalError::ReqwestError(value).into()
+	}
 }
 
 impl From<RunError<RedisError>> for Error {
-	fn from(value: RunError<RedisError>) -> Self { InternalError::Bb8RedisError(value).into() }
+	fn from(value: RunError<RedisError>) -> Self {
+		InternalError::Bb8RedisError(value).into()
+	}
 }
 
 impl From<RedisError> for Error {
-	fn from(value: RedisError) -> Self { InternalError::CacheError(value).into() }
+	fn from(value: RedisError) -> Self {
+		InternalError::CacheError(value).into()
+	}
 }
 
 impl From<oauth2::url::ParseError> for Error {
-	fn from(value: oauth2::url::ParseError) -> Self { InternalError::UrlParseError(value).into() }
+	fn from(value: oauth2::url::ParseError) -> Self {
+		InternalError::UrlParseError(value).into()
+	}
 }
 
 impl From<serde_json::Error> for Error {
-	fn from(value: serde_json::Error) -> Self { InternalError::SerdeJsonError(value).into() }
+	fn from(value: serde_json::Error) -> Self {
+		InternalError::SerdeJsonError(value).into()
+	}
 }
 
 #[derive(Debug, Error)]
