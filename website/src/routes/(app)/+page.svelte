@@ -1,7 +1,9 @@
-<script>
+<script lang="ts">
+	import type { PageProps } from "./$types";
+
 	import { PUBLIC_API_URL } from "$env/static/public";
 
-	export let data;
+	let { data }: PageProps = $props();
 	console.log(data);
 </script>
 

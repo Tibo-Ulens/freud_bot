@@ -1,21 +1,22 @@
 export const ssr = false;
-export const prerender = true;
+
+import type { PageLoad } from "./$types";
 
 import { PUBLIC_API_URL } from "$env/static/public";
 import { redirect } from "@sveltejs/kit";
 
-export async function load(event) {
+export const load: PageLoad = async ({ fetch }) => {
 	console.log("fetching userdata");
 
-	const user_data_res = await event.fetch(`${PUBLIC_API_URL}/me`, {
+	const user_data_res = await fetch(`${PUBLIC_API_URL}/me`, {
 		credentials: "include",
 	});
 
 	if (user_data_res.status == 401) {
-		return redirect(302, "/login");
+		return redirect(307, "/login");
 	}
 
 	const user_data = await user_data_res.json();
 
 	return { user_data: user_data };
-}
+};

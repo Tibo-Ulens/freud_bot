@@ -1,9 +1,10 @@
 node_modules
-!lib/
 
 # Output
 .output
 .vercel
+.netlify
+.wrangler
 /.svelte-kit
 /build
 

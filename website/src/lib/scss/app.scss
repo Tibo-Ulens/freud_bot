@@ -1,4 +1,4 @@
-@import "variables.scss";
+@use "variables.scss";
 
 *,
 *::before,
@@ -24,8 +24,8 @@ body {
 
 body {
 	position: absolute;
-	background-color: $background;
-	color: $foreground;
+	background-color: variables.$background;
+	color: variables.$foreground;
 
 	font-family: sans-serif;
 	letter-spacing: 0.5px;
