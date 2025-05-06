@@ -2,6 +2,7 @@
 # see https://diesel.rs/guides/configuring-diesel-cli
 
 [print_schema]
+file = "src/schema.rs"
 
 [migrations_directory]
 dir = "/home/tibo/projects/bois/freud_bot/api/migrations"

@@ -15,9 +15,9 @@ use crate::{CachePool, CookieConfig};
 /// needed within this application
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DiscordUser {
-	id:       String,
-	username: String,
-	avatar:   Option<String>,
+	pub id:       String,
+	pub username: String,
+	pub avatar:   Option<String>,
 }
 
 impl<S> FromRequestParts<S> for DiscordUser

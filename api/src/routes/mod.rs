@@ -1,11 +1,13 @@
+use axum::Json;
 use axum::response::IntoResponse;
 
 mod discord;
 mod oauth;
+mod verify;
 
-use axum::Json;
 pub use discord::*;
 pub use oauth::*;
+pub use verify::*;
 
 #[instrument]
 #[allow(unused_braces)]

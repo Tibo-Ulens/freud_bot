@@ -12,6 +12,7 @@ use bb8::Pool;
 use bb8_redis::RedisConnectionManager;
 use diesel_async::AsyncPgConnection;
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::pooled_connection::deadpool::{Object, Pool as DPool};
 use http::{HeaderValue, Method};
 use oauth2::basic::BasicClient;
 use oauth2::{
@@ -38,13 +39,17 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod error;
+pub mod models;
 pub mod routes;
+pub mod schema;
 
 use error::Error;
 use routes::{login, me, oauth_callback, oauth_refresh};
 
-type DbPool = Pool<AsyncDieselConnectionManager<AsyncPgConnection>>;
+type DbPool = DPool<AsyncPgConnection>;
 type CachePool = Pool<RedisConnectionManager>;
+
+type DbConn = Object<AsyncPgConnection>;
 
 type SetBasicClient = BasicClient<
 	EndpointSet,
@@ -55,7 +60,7 @@ type SetBasicClient = BasicClient<
 >;
 
 /// The internal state of the axum app
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AppState {
 	oauth_client: SetBasicClient,
 	db_pool:      DbPool,
@@ -138,9 +143,8 @@ async fn main() -> Result<(), Error> {
 				db_url.clone(),
 			);
 
-		Pool::builder()
-			.build(db_pool_config)
-			.await
+		DPool::builder(db_pool_config)
+			.build()
 			.expect("COULD NOT CREATE DATABASE CONNECTION POOL")
 	};
 
