@@ -16,26 +16,6 @@ services:
           - freudbot_db
           - freudbot_cache
 
-    freudbot_dev:
-        build:
-            context: .
-            dockerfile: Dockerfile.bot
-        container_name: freudbot_dev
-        restart: "no"
-        environment:
-          - DB_URL=postgresql+asyncpg://postgres_user@freudbot_db/freudbot
-          - PGPASSWORD=postgres_password
-
-          - CH_URL=redis://@freudbot_cache:6379/0
-        logging:
-            options:
-                max-size: "4096m"
-        secrets:
-          - discord_token
-        depends_on:
-          - freudbot_db
-          - freudbot_cache
-
     freudbot_api:
         image: ghcr.io/tibo-ulens/freudbot_api:latest
         container_name: freudbot_api
@@ -56,50 +36,14 @@ services:
         secrets:
           - discord_oauth_credentials
           - discord_token
+        healthcheck:
+            test: curl --fail http://localhost/ || exit 1
+            interval: 30s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
         depends_on:
           - freudbot
-
-    freudbot_api_dev:
-        build:
-            context: ./api
-        container_name: freudbot_api_dev
-        restart: "no"
-        ports:
-          - "3000:80"
-          - "6669:6669"
-        environment:
-          - DB_URL=postgres://postgres_user:postgres_password@freudbot_db/freudbot
-          - CACHE_URL=redis://@freudbot_cache:6379/0
-
-          - REDIRECT_URL=http://localhost:3000/auth/callback
-          - AUTH_URL=https://discord.com/api/oauth2/authorize?response_type=code
-          - TOKEN_URL=https://discord.com/api/oauth2/token
-
-          - FRONTEND_URL=http://localhost:5173
-
-          - COOKIE_DOMAIN=.localhost
-          - PKCE_VERIFIER_COOKIE_NAME=freudbot_pkce_uuid
-          - ACCESS_TOKEN_COOKIE_NAME=freudbot_discord_access_token
-          - REFRESH_TOKEN_COOKIE_NAME=freudbot_discord_refresh_token
-          - PKCE_VERIFIER_COOKIE_LIFESPAN=60
-          - ACCESS_TOKEN_COOKIE_LIFESPAN=604800
-          - REFRESH_TOKEN_COOKIE_LIFESPAN=1814400
-        logging:
-            options:
-                max-size: "100m"
-        secrets:
-          - discord_oauth_credentials
-          - discord_token
-        depends_on:
-          - freudbot_db
-          - freudbot_cache
-
-    freudbot_nginx:
-        image: nginx:alpine
-        ports:
-          - "4000:80"
-        volumes:
-          - ./website/build/:/usr/share/nginx/html
 
     freudbot_db:
         image: postgres:17-alpine
@@ -118,9 +62,10 @@ services:
           - freudbot_data:/var/lib/postgresql/data
         healthcheck:
             test: pg_isready -d freudbot -h freudbot_db -U postgres_user
-            interval: 10m
+            interval: 30s
             timeout: 5s
-            retries: 2
+            retries: 5
+            start_period: 10s
 
     freudbot_cache:
         image: redis:7-alpine
@@ -133,9 +78,10 @@ services:
           - "6379:6379"
         healthcheck:
             test: ["CMD", "redis-cli", "ping"]
-            interval: 10m
+            interval: 30s
             timeout: 5s
-            retries: 2
+            retries: 5
+            start_period: 10s
 
 volumes:
     freudbot_data:
@@ -146,3 +92,5 @@ secrets:
         file: ./secrets/discord_token.txt
     discord_oauth_credentials:
         file: ./secrets/discord_oauth_credentials.txt
+    gmail_smtp_credentials:
+        file: ./secrets/gmail_smtp_credentials.txt

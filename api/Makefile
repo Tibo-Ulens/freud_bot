@@ -1,6 +1,6 @@
 .PHONY: all fmt lint
 
-CLIPPY_ALLOW = -A clippy::wildcard-imports
+CLIPPY_ALLOW = -A clippy::wildcard-imports -A clippy::missing-errors-doc
 CLIPPY_FLAGS = -W clippy::pedantic $(CLIPPY_ALLOW) -D warnings
 
 lint:

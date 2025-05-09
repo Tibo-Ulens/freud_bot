@@ -1,4 +1,5 @@
-secrets/
+**/secrets/*
+!**/secrets/.gitkeep
 privacy-policy/*
 !privacy-policy/*.tex
 !privacy-policy/*.pdf
@@ -43,3 +44,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+*.pem
+*.crt
+*.key

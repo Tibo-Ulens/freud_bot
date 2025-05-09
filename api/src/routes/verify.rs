@@ -1,15 +1,13 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
-
 use axum::Json;
-use axum::extract::State;
-use axum::response::IntoResponse;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, NoContent, Response};
 use serde::{Deserialize, Serialize};
 
 use super::DiscordUser;
 use crate::DbPool;
 use crate::error::Error;
+use crate::mailer::Mailer;
 use crate::models::profile::PendingProfile;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -20,21 +18,37 @@ struct VerifyData {
 #[instrument(skip(pool))]
 pub async fn request_verify(
 	State(pool): State<DbPool>,
+	State(mailer): State<Mailer>,
+	State(base_url): State<String>,
 	Json(data): Json<VerifyData>,
 	user: DiscordUser,
 ) -> Result<impl IntoResponse, Error> {
 	let mut conn = pool.get().await?;
 
-	let pending_profile =
-		PendingProfile::new(user.id, data.email, &mut conn).await?;
+	let pending_profile = PendingProfile::new(user.id, data.email, &mut conn).await?;
 
-	let mut hasher = DefaultHasher::new();
-	pending_profile.hash(&mut hasher);
-	let confirmation_hash = hasher.finish();
-	let confirmation_code =
-		BASE64_STANDARD.encode(confirmation_hash.to_le_bytes());
+	mailer
+		.send_verification_link(&pending_profile, &pending_profile.confirmation_code, &base_url)
+		.await?;
 
-	todo!("send an email with the confirmation code");
+	Ok(NoContent)
+}
 
-	Ok(())
+#[instrument(skip(pool))]
+pub async fn confirm_verify(
+	State(pool): State<DbPool>,
+	Path(confirmation_code): Path<String>,
+	user: DiscordUser,
+) -> Result<Response, Error> {
+	let mut conn = pool.get().await?;
+
+	let pending_profile = PendingProfile::find(user.id, &mut conn).await?;
+
+	if confirmation_code != pending_profile.confirmation_code {
+		return Ok((StatusCode::UNAUTHORIZED, "invalid confirmation code").into_response());
+	}
+
+	pending_profile.verify(&mut conn).await?;
+
+	Ok(NoContent.into_response())
 }

@@ -8,30 +8,19 @@ use axum::Router;
 use axum::extract::FromRef;
 use axum::routing::get;
 use axum_extra::extract::cookie::Key;
-use bb8::Pool;
-use bb8_redis::RedisConnectionManager;
+use deadpool_redis::{Config, Connection, Pool as CPool, Runtime};
 use diesel_async::AsyncPgConnection;
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_async::pooled_connection::deadpool::{Object, Pool as DPool};
-use http::{HeaderValue, Method};
+use lettre::Address;
+use mailer::Mailer;
+use middleware::AuthLayer;
 use oauth2::basic::BasicClient;
-use oauth2::{
-	AuthUrl,
-	ClientId,
-	ClientSecret,
-	EndpointNotSet,
-	EndpointSet,
-	RedirectUrl,
-	TokenUrl,
-};
+use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use tokio::signal;
-use tower_http::cors::CorsLayer;
-use tower_http::trace::{
-	DefaultMakeSpan,
-	DefaultOnRequest,
-	DefaultOnResponse,
-	TraceLayer,
-};
+use tower_http::compression::CompressionLayer;
+use tower_http::timeout::TimeoutLayer;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::Layer;
@@ -39,35 +28,38 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod error;
+pub mod extractors;
+pub mod mailer;
+pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod schema;
 
 use error::Error;
-use routes::{login, me, oauth_callback, oauth_refresh};
+use routes::{login, me, oauth_callback};
 
 type DbPool = DPool<AsyncPgConnection>;
-type CachePool = Pool<RedisConnectionManager>;
+type CachePool = CPool;
 
 type DbConn = Object<AsyncPgConnection>;
+type CacheConn = Connection;
 
-type SetBasicClient = BasicClient<
-	EndpointSet,
-	EndpointNotSet,
-	EndpointNotSet,
-	EndpointNotSet,
-	EndpointSet,
->;
+type SetBasicClient =
+	BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
 
 /// The internal state of the axum app
 #[derive(Clone)]
 pub struct AppState {
 	oauth_client: SetBasicClient,
-	db_pool:      DbPool,
-	cache_pool:   CachePool,
-	cookie_key:   Key,
-	cookie_cfg:   CookieConfig,
-	frontend_url: String,
+	mailer:       Mailer,
+
+	db_pool:    DbPool,
+	cache_pool: CachePool,
+
+	cookie_key: Key,
+	cookie_cfg: CookieConfig,
+
+	base_url: String,
 }
 
 /// The config variables related to session cookies
@@ -88,6 +80,10 @@ impl FromRef<AppState> for SetBasicClient {
 	fn from_ref(input: &AppState) -> Self { input.oauth_client.clone() }
 }
 
+impl FromRef<AppState> for Mailer {
+	fn from_ref(input: &AppState) -> Self { input.mailer.clone() }
+}
+
 impl FromRef<AppState> for DbPool {
 	fn from_ref(input: &AppState) -> Self { input.db_pool.clone() }
 }
@@ -105,7 +101,7 @@ impl FromRef<AppState> for CookieConfig {
 }
 
 impl FromRef<AppState> for String {
-	fn from_ref(input: &AppState) -> Self { input.frontend_url.clone() }
+	fn from_ref(input: &AppState) -> Self { input.base_url.clone() }
 }
 
 /// Attempt to get the value of an environment variable, panic if it doesn't
@@ -125,48 +121,36 @@ where
 #[tokio::main]
 #[instrument]
 async fn main() -> Result<(), Error> {
-	let console_layer = console_subscriber::ConsoleLayer::builder()
-		.server_addr(([0, 0, 0, 0], 6669))
-		.spawn();
+	let console_layer =
+		console_subscriber::ConsoleLayer::builder().server_addr(([0, 0, 0, 0], 6669)).spawn();
 
-	let fmt_layer = tracing_subscriber::fmt::layer()
-		.pretty()
-		.with_filter(LevelFilter::INFO);
+	let fmt_layer = tracing_subscriber::fmt::layer().pretty().with_filter(LevelFilter::INFO);
 
 	tracing_subscriber::registry().with(console_layer).with(fmt_layer).init();
 
 	info!("creating database threadpool...");
 	let db_pool = {
 		let db_url = get_env_or_panic::<String>("DB_URL");
-		let db_pool_config =
-			AsyncDieselConnectionManager::<AsyncPgConnection>::new(
-				db_url.clone(),
-			);
+		let db_pool_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url.clone());
 
-		DPool::builder(db_pool_config)
-			.build()
-			.expect("COULD NOT CREATE DATABASE CONNECTION POOL")
+		DPool::builder(db_pool_config).build().expect("COULD NOT CREATE DATABASE CONNECTION POOL")
 	};
 
 	info!("creating cache threadpool...");
 	let cache_pool = {
 		let cache_url = get_env_or_panic::<String>("CACHE_URL");
-		let manager = RedisConnectionManager::new(cache_url)
-			.expect("COULD NOT CREATE CACHE CONNECTION MANAGER");
+		let cache_cfg = Config::from_url(cache_url);
 
-		Pool::builder()
-			.build(manager)
-			.await
+		cache_cfg
+			.create_pool(Some(Runtime::Tokio1))
 			.expect("COULD NOT CREATE CACHE CONNECTION POOL")
 	};
 
 	info!("creating OAuth2 client...");
 	let oauth_client = {
-		let oauth_credentials =
-			std::fs::read_to_string("/run/secrets/discord_oauth_credentials")
-				.expect("COULD NOT READ DISCORD OAUTH CREDENTIALS");
-		let oauth_credentials =
-			oauth_credentials.split('\n').collect::<Vec<&str>>();
+		let oauth_credentials = std::fs::read_to_string("/run/secrets/discord_oauth_credentials")
+			.expect("COULD NOT READ DISCORD OAUTH CREDENTIALS");
+		let oauth_credentials = oauth_credentials.split('\n').collect::<Vec<&str>>();
 
 		let client_id = oauth_credentials[0].to_string();
 		let client_secret = oauth_credentials[1].to_string();
@@ -182,78 +166,54 @@ async fn main() -> Result<(), Error> {
 			.set_redirect_uri(RedirectUrl::new(redirect_url)?)
 	};
 
+	info!("creating mailer...");
+	let mailer = {
+		let gmail_smtp_credentials = std::fs::read_to_string("/run/secrets/gmail_smtp_credentials")
+			.expect("COULD NOT READ GMAIL SMTP CREDENTIALS");
+		let gmail_smtp_credentials = gmail_smtp_credentials.split('\n').collect::<Vec<&str>>();
+
+		let sender = gmail_smtp_credentials[0].parse::<Address>().expect("INVALID EMAIL ADDRESS");
+		let password = gmail_smtp_credentials[1].to_string();
+
+		Mailer::new(sender, password)
+	};
+
 	let cookie_key = Key::generate();
 
 	let cookie_cfg = CookieConfig {
 		cookie_domain:                 get_env_or_panic("COOKIE_DOMAIN"),
-		pkce_verifier_cookie_name:     get_env_or_panic(
-			"PKCE_VERIFIER_COOKIE_NAME",
-		),
-		access_token_cookie_name:      get_env_or_panic(
-			"ACCESS_TOKEN_COOKIE_NAME",
-		),
-		refresh_token_cookie_name:     get_env_or_panic(
-			"REFRESH_TOKEN_COOKIE_NAME",
-		),
-		pkce_verifier_cookie_lifespan: get_env_or_panic(
-			"PKCE_VERIFIER_COOKIE_LIFESPAN",
-		),
-		access_token_cookie_lifespan:  get_env_or_panic(
-			"ACCESS_TOKEN_COOKIE_LIFESPAN",
-		),
-		refresh_token_cookie_lifespan: get_env_or_panic(
-			"REFRESH_TOKEN_COOKIE_LIFESPAN",
-		),
+		pkce_verifier_cookie_name:     get_env_or_panic("PKCE_VERIFIER_COOKIE_NAME"),
+		access_token_cookie_name:      get_env_or_panic("ACCESS_TOKEN_COOKIE_NAME"),
+		refresh_token_cookie_name:     get_env_or_panic("REFRESH_TOKEN_COOKIE_NAME"),
+		pkce_verifier_cookie_lifespan: get_env_or_panic("PKCE_VERIFIER_COOKIE_LIFESPAN"),
+		access_token_cookie_lifespan:  get_env_or_panic("ACCESS_TOKEN_COOKIE_LIFESPAN"),
+		refresh_token_cookie_lifespan: get_env_or_panic("REFRESH_TOKEN_COOKIE_LIFESPAN"),
 	};
 
-	let frontend_url = get_env_or_panic::<String>("FRONTEND_URL");
+	let base_url = get_env_or_panic::<String>("BASE_URL");
 
 	info!("creating HTTP server...");
-	let app_state = AppState {
-		oauth_client,
-		db_pool,
-		cache_pool,
-		cookie_key,
-		cookie_cfg,
-		frontend_url: frontend_url.clone(),
-	};
+	let app_state =
+		AppState { oauth_client, mailer, db_pool, cache_pool, cookie_key, cookie_cfg, base_url };
 	let app = Router::new()
 		.route("/auth/login", get(login))
 		.route("/auth/callback", get(oauth_callback))
-		.route("/auth/refresh", get(oauth_refresh))
-		.route("/me", get(me))
-		.layer(
-			CorsLayer::new()
-				.allow_origin(frontend_url.parse::<HeaderValue>().unwrap())
-				.allow_methods([Method::GET, Method::POST, Method::PUT])
-				.allow_credentials(true),
-		)
+		.merge(Router::new().route("/me", get(me)).route_layer(AuthLayer::new(app_state.clone())))
+		.layer(TimeoutLayer::new(std::time::Duration::from_secs(5)))
+		.layer(CompressionLayer::new())
 		.layer(
 			TraceLayer::new_for_http()
-				.make_span_with(
-					DefaultMakeSpan::new()
-						.include_headers(true)
-						.level(Level::INFO),
-				)
+				.make_span_with(DefaultMakeSpan::new().include_headers(true).level(Level::INFO))
 				.on_request(DefaultOnRequest::new().level(Level::INFO))
-				.on_response(
-					DefaultOnResponse::new()
-						.include_headers(true)
-						.level(Level::INFO),
-				),
+				.on_response(DefaultOnResponse::new().include_headers(true).level(Level::INFO)),
 		)
 		.with_state(app_state);
 
 	info!("starting HTTP server...");
 	let addr = SocketAddr::from(([0, 0, 0, 0], 80));
-	let listener = tokio::net::TcpListener::bind(addr)
-		.await
-		.expect("COULD NOT BIND TCP LISTENER");
+	let listener = tokio::net::TcpListener::bind(addr).await.expect("COULD NOT BIND TCP LISTENER");
 
-	axum::serve(listener, app)
-		.with_graceful_shutdown(shutdown_signal_handler())
-		.await
-		.unwrap();
+	axum::serve(listener, app).with_graceful_shutdown(shutdown_signal_handler()).await.unwrap();
 
 	Ok(())
 }

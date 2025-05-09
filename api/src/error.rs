@@ -4,12 +4,13 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use axum::response::{IntoResponse, Response};
-use bb8::RunError;
+use deadpool_redis::PoolError as CPoolError;
+use deadpool_redis::redis::RedisError;
 use diesel::result::DatabaseErrorKind;
-use diesel_async::pooled_connection::deadpool::PoolError;
+use diesel_async::pooled_connection::deadpool::PoolError as DPoolError;
 use http::{StatusCode, header};
-use redis::RedisError;
 use thiserror::Error;
+use tokio::sync::mpsc;
 
 /// Top level error type
 #[derive(Debug, Error)]
@@ -33,8 +34,8 @@ pub enum Error {
 /// Details about internal errors should not be show to end users, so log a
 /// warning and then generate an opaque type
 impl From<InternalError> for Error {
-	fn from(_: InternalError) -> Self {
-		error!("!!! internal error !!!");
+	fn from(e: InternalError) -> Self {
+		error!("INTERNAL ERROR -- {e}");
 
 		Self::InternalError
 	}
@@ -42,7 +43,7 @@ impl From<InternalError> for Error {
 
 impl IntoResponse for Error {
 	fn into_response(self) -> Response {
-		error!("{}", self);
+		warn!("response error -- {}", self);
 
 		let body = self.to_string();
 
@@ -64,26 +65,41 @@ impl IntoResponse for Error {
 
 #[derive(Debug, Error)]
 pub enum InternalError {
-	#[error("reqwest error -- {0:?}")]
-	ReqwestError(#[from] reqwest::Error),
-
-	#[error("database pool error -- {0:?}")]
-	PoolError(#[from] PoolError),
-
 	#[error("cache pool error -- {0:?}")]
-	Bb8RedisError(#[from] RunError<RedisError>),
+	CachePoolError(#[from] CPoolError),
 
 	#[error("cache error -- {0:?}")]
 	CacheError(#[from] RedisError),
 
-	#[error("url parsing error -- {0:?}")]
-	UrlParseError(#[from] oauth2::url::ParseError),
+	#[error("database error -- {0:?}")]
+	DatabaseError(diesel::result::Error),
+
+	/// Malformed email
+	#[error("invalid email -- {0:?}")]
+	InvalidEmail(lettre::address::AddressError),
+
+	/// Mailer stopped unexpectedly
+	#[error("mailer stopped -- {0:?}")]
+	MailerStopped(mpsc::error::SendError<lettre::Message>),
+
+	/// Mail queue is full
+	#[error("mail queue full -- {0:?}")]
+	MailQueueFull(mpsc::error::TrySendError<lettre::Message>),
+
+	#[error("mail error -- {0:?}")]
+	MailError(lettre::error::Error),
+
+	#[error("database pool error -- {0:?}")]
+	DatabasePoolError(#[from] DPoolError),
+
+	#[error("reqwest error -- {0:?}")]
+	ReqwestError(#[from] reqwest::Error),
 
 	#[error("JSON (de)serialization error -- {0:?}")]
 	SerdeJsonError(#[from] serde_json::Error),
 
-	#[error("database error -- {0:?}")]
-	DatabaseError(diesel::result::Error),
+	#[error("url parsing error -- {0:?}")]
+	UrlParseError(#[from] oauth2::url::ParseError),
 }
 
 #[derive(Debug, Error)]
@@ -102,88 +118,83 @@ pub enum AuthorizationError {
 }
 
 impl From<reqwest::Error> for Error {
-	fn from(value: reqwest::Error) -> Self {
-		InternalError::ReqwestError(value).into()
-	}
+	fn from(value: reqwest::Error) -> Self { InternalError::ReqwestError(value).into() }
 }
 
-impl From<PoolError> for Error {
-	fn from(value: PoolError) -> Self { InternalError::PoolError(value).into() }
+impl From<DPoolError> for Error {
+	fn from(value: DPoolError) -> Self { InternalError::DatabasePoolError(value).into() }
 }
 
-impl From<RunError<RedisError>> for Error {
-	fn from(value: RunError<RedisError>) -> Self {
-		InternalError::Bb8RedisError(value).into()
-	}
+impl From<CPoolError> for Error {
+	fn from(value: CPoolError) -> Self { InternalError::CachePoolError(value).into() }
 }
 
 impl From<RedisError> for Error {
-	fn from(value: RedisError) -> Self {
-		InternalError::CacheError(value).into()
-	}
+	fn from(value: RedisError) -> Self { InternalError::CacheError(value).into() }
 }
 
 impl From<oauth2::url::ParseError> for Error {
-	fn from(value: oauth2::url::ParseError) -> Self {
-		InternalError::UrlParseError(value).into()
-	}
+	fn from(value: oauth2::url::ParseError) -> Self { InternalError::UrlParseError(value).into() }
 }
 
 impl From<serde_json::Error> for Error {
-	fn from(value: serde_json::Error) -> Self {
-		InternalError::SerdeJsonError(value).into()
-	}
+	fn from(value: serde_json::Error) -> Self { InternalError::SerdeJsonError(value).into() }
 }
 
 /// Map of constraint names to column names.
-static CONSTRAINT_TO_COLUMN: LazyLock<HashMap<&str, &str>> =
-	LazyLock::new(|| {
-		HashMap::from([
-			("pending_profile_email_key", "email"),
-			("pending_profile_confirmation_code_key", "confirmation_code"),
-			("verified_profile_email_key", "email"),
-			("config_verified_role_key", "verified_role"),
-			("config_admin_role_key", "admin_role"),
-			("config_logging_channel_key", "logging_channel"),
-			(
-				"config_verification_logging_channel_key",
-				"verification_logging_channel",
-			),
-			(
-				"config_confession_approval_channel_key",
-				"confession_approval_channel",
-			),
-			("config_confession_channel_key", "confession_channel"),
-		])
-	});
+static CONSTRAINT_TO_COLUMN: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
+	HashMap::from([
+		("pending_profile_email_key", "email"),
+		("pending_profile_confirmation_code_key", "confirmation_code"),
+		("verified_profile_email_key", "email"),
+		("config_verified_role_key", "verified_role"),
+		("config_admin_role_key", "admin_role"),
+		("config_logging_channel_key", "logging_channel"),
+		("config_verification_logging_channel_key", "verification_logging_channel"),
+		("config_confession_approval_channel_key", "confession_approval_channel"),
+		("config_confession_channel_key", "confession_channel"),
+	])
+});
 
 impl From<diesel::result::Error> for Error {
 	fn from(err: diesel::result::Error) -> Self {
 		match &err {
 			// No rows returned by query that expected at least one
-			diesel::result::Error::NotFound => {
-				Self::NotFound("no context provided".to_string())
-			},
+			diesel::result::Error::NotFound => Self::NotFound("no context provided".to_string()),
 			// Unique constraint violation
-			diesel::result::Error::DatabaseError(
-				DatabaseErrorKind::UniqueViolation,
-				info,
-			) => {
+			diesel::result::Error::DatabaseError(DatabaseErrorKind::UniqueViolation, info) => {
 				let constraint_name = info.constraint_name().unwrap();
 
 				match CONSTRAINT_TO_COLUMN.get(constraint_name) {
-					Some(field) => {
-						Self::Duplicate(format!("{field} is already in use"))
-					},
+					Some(field) => Self::Duplicate(format!("{field} is already in use")),
 					None => InternalError::DatabaseError(err).into(),
 				}
 			},
 			// Foreign key constraint violation
-			diesel::result::Error::DatabaseError(
-				DatabaseErrorKind::ForeignKeyViolation,
-				info,
-			) => Error::ValidationError(info.message().to_string()),
+			diesel::result::Error::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, info) => {
+				Error::ValidationError(info.message().to_string())
+			},
 			_ => InternalError::DatabaseError(err).into(),
 		}
 	}
+}
+
+impl From<lettre::address::AddressError> for Error {
+	fn from(err: lettre::address::AddressError) -> Self { InternalError::InvalidEmail(err).into() }
+}
+
+impl From<mpsc::error::SendError<lettre::Message>> for Error {
+	fn from(err: mpsc::error::SendError<lettre::Message>) -> Self {
+		InternalError::MailerStopped(err).into()
+	}
+}
+
+impl From<mpsc::error::TrySendError<lettre::Message>> for Error {
+	fn from(err: mpsc::error::TrySendError<lettre::Message>) -> Self {
+		InternalError::MailQueueFull(err).into()
+	}
+}
+
+impl From<lettre::error::Error> for Error {
+	fn from(err: lettre::error::Error) -> Self { InternalError::MailError(err).into() }
 }

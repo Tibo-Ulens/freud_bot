@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS pending_profile (
 	discord_id        TEXT        PRIMARY KEY,
 	email             TEXT        NOT NULL UNIQUE,
-	confirmation_code UUID        NOT NULL UNIQUE,
+	confirmation_code TEXT        NOT NULL UNIQUE,
 	registered_at     TIMESTAMP   NOT NULL        DEFAULT NOW()
 );
 

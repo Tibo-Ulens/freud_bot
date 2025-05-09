@@ -13,8 +13,6 @@ diesel::table! {
 		verify_email_message -> Text,
 		already_verified_message -> Text,
 		welcome_message -> Text,
-		verification_email_smtp_user -> Nullable<Text>,
-		verification_email_smtp_password -> Nullable<Text>,
 	}
 }
 
@@ -22,7 +20,7 @@ diesel::table! {
 	pending_profile (discord_id) {
 		discord_id -> Text,
 		email -> Text,
-		confirmation_code -> Uuid,
+		confirmation_code -> Text,
 		registered_at -> Timestamp,
 	}
 }
@@ -35,8 +33,4 @@ diesel::table! {
 	}
 }
 
-diesel::allow_tables_to_appear_in_same_query!(
-	config,
-	pending_profile,
-	verified_profile,
-);
+diesel::allow_tables_to_appear_in_same_query!(config, pending_profile, verified_profile,);

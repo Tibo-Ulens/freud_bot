@@ -1,0 +1,12 @@
+FROM node:23-alpine
+
+WORKDIR /freudbot-website
+
+COPY package.json package-lock.json ./
+
+RUN npm install -g npm
+RUN npm install
+
+COPY . .
+
+CMD [ "npm", "run", "host" ]

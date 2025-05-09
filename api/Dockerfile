@@ -27,14 +27,8 @@ RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --release -
 
 FROM alpine:latest
 
+# Add curl for healthcheck
 RUN apk add --no-cache curl
-
-# Healthcheck:
-# Attempt to curl (fail silently) the service every 30s,
-# fail after 5s without a response,
-# retry twice before giving up
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
-	CMD curl --fail http://localhost/ || exit 1
 
 WORKDIR /freudbot_api
 

@@ -1,13 +1,13 @@
 use axum::Json;
 use axum::response::IntoResponse;
 
-mod discord;
 mod oauth;
 mod verify;
 
-pub use discord::*;
 pub use oauth::*;
 pub use verify::*;
+
+use crate::extractors::discord::DiscordUser;
 
 #[instrument]
 #[allow(unused_braces)]
