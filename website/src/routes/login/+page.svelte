@@ -11,14 +11,14 @@
 
 <style lang="scss">
 	@use "sass:color";
-	@use "../../lib/scss/variables.scss";
+	@use "../colors.scss";
 
 	a {
 		margin-top: 8rem;
 		text-decoration: none;
 		font-size: 2rem;
-		background-color: color.adjust(variables.$background, $lightness: 3%);
-		color: variables.$foreground;
+		background-color: color.adjust(colors.$background, $lightness: 3%);
+		color: colors.$foreground;
 
 		padding: 1rem 2rem;
 		border-radius: 8px;
@@ -29,7 +29,7 @@
 		align-items: center;
 
 		&:hover {
-			background-color: color.adjust(variables.$background, $lightness: 5%);
+			background-color: color.adjust(colors.$background, $lightness: 5%);
 		}
 
 		img {

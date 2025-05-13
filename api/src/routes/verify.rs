@@ -11,21 +11,21 @@ use crate::mailer::Mailer;
 use crate::models::profile::PendingProfile;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct VerifyData {
+pub struct VerifyData {
 	email: String,
 }
 
-#[instrument(skip(pool))]
+#[instrument(skip(pool, mailer, base_url))]
 pub async fn request_verify(
 	State(pool): State<DbPool>,
 	State(mailer): State<Mailer>,
 	State(base_url): State<String>,
-	Json(data): Json<VerifyData>,
 	user: DiscordUser,
+	Json(data): Json<VerifyData>,
 ) -> Result<impl IntoResponse, Error> {
 	let mut conn = pool.get().await?;
 
-	let pending_profile = PendingProfile::new(user.id, data.email, &mut conn).await?;
+	let pending_profile = PendingProfile::new_or_update(user.id, data.email, &mut conn).await?;
 
 	mailer
 		.send_verification_link(&pending_profile, &pending_profile.confirmation_code, &base_url)

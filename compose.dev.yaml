@@ -16,7 +16,6 @@ services:
           - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
           - ./nginx/certs:/etc/nginx/certs
         depends_on:
-          - freudbot-dev-bot
           - freudbot-dev-website
           - freudbot-dev-api
 
@@ -52,6 +51,8 @@ services:
           - PUBLIC_API_URL=https://freudbot.local/api
         volumes:
           - ./website:/freudbot-website
+        depends_on:
+            - freudbot-dev-api
 
     freudbot-dev-api:
         <<: *common-config

@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use axum::Router;
 use axum::extract::FromRef;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum_extra::extract::cookie::Key;
 use deadpool_redis::{Config, Connection, Pool as CPool, Runtime};
 use diesel_async::AsyncPgConnection;
@@ -36,7 +36,7 @@ pub mod routes;
 pub mod schema;
 
 use error::Error;
-use routes::{login, me, oauth_callback};
+use routes::{confirm_verify, login, me, oauth_callback, request_verify};
 
 type DbPool = DPool<AsyncPgConnection>;
 type CachePool = CPool;
@@ -198,7 +198,13 @@ async fn main() -> Result<(), Error> {
 	let app = Router::new()
 		.route("/auth/login", get(login))
 		.route("/auth/callback", get(oauth_callback))
-		.merge(Router::new().route("/me", get(me)).route_layer(AuthLayer::new(app_state.clone())))
+		.merge(
+			Router::new()
+				.route("/me", get(me))
+				.route("/request_verify", post(request_verify))
+				.route("/verify/{confirmation_code}", post(confirm_verify))
+				.route_layer(AuthLayer::new(app_state.clone())),
+		)
 		.layer(TimeoutLayer::new(std::time::Duration::from_secs(5)))
 		.layer(CompressionLayer::new())
 		.layer(

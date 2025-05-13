@@ -1,4 +1,4 @@
-@use "variables.scss";
+@use "colors.scss";
 
 *,
 *::before,
@@ -24,15 +24,16 @@ body {
 
 body {
 	position: absolute;
-	background-color: variables.$background;
-	color: variables.$foreground;
+	background-color: colors.$background;
+	color: colors.$foreground;
 
 	font-family: sans-serif;
 	letter-spacing: 0.5px;
 
 	display: flex;
-	justify-content: center;
-	align-items: flex-start;
+	flex-flow: column nowrap;
+	justify-content: flex-start;
+	align-items: center;
 }
 
 h1,

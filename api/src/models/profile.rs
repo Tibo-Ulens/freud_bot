@@ -33,7 +33,7 @@ pub struct VerifiedProfile {
 	pub verified_at: NaiveDateTime,
 }
 
-#[derive(Clone, Debug, Deserialize, Insertable, Serialize)]
+#[derive(AsChangeset, Clone, Debug, Deserialize, Insertable, Serialize)]
 #[diesel(table_name = pending_profile)]
 #[diesel(primary_key(discord_id))]
 struct NewPendingProfile {
@@ -65,14 +65,23 @@ impl From<PendingProfile> for NewVerifiedProfile {
 }
 
 impl PendingProfile {
-	/// Create and store a new [`PendingProfile`] for a given discord user
-	pub async fn new(discord_id: String, email: String, conn: &mut DbConn) -> QueryResult<Self> {
+	/// Create and store a new [`PendingProfile`] for a given discord user or
+	/// simply update the email if there is already a profile stored
+	#[instrument(skip_all)]
+	pub async fn new_or_update(
+		discord_id: String,
+		email: String,
+		conn: &mut DbConn,
+	) -> QueryResult<Self> {
 		let confirmation_code = BASE64_URL_SAFE.encode(Uuid::new_v4().as_bytes());
 
 		let new_profile = NewPendingProfile { discord_id, email, confirmation_code };
 
 		diesel::insert_into(pending_profile::dsl::pending_profile)
-			.values(new_profile)
+			.values(&new_profile)
+			.on_conflict(pending_profile::dsl::discord_id)
+			.do_update()
+			.set(&new_profile)
 			.returning(PendingProfile::as_returning())
 			.get_result(conn)
 			.await
@@ -89,21 +98,27 @@ impl PendingProfile {
 	///
 	/// The profile will be removed from the `pending_profile` table and added
 	/// to the `verified_profile` table
+	#[instrument(skip_all)]
 	pub async fn verify(self, conn: &mut DbConn) -> QueryResult<VerifiedProfile> {
 		let new_verified_profile: NewVerifiedProfile = self.clone().into();
 
-		conn.transaction(|conn| {
-			async move {
-				diesel::delete(&self).execute(conn).await?;
+		let res = conn
+			.transaction(|conn| {
+				async move {
+					diesel::delete(&self).execute(conn).await?;
 
-				diesel::insert_into(verified_profile::dsl::verified_profile)
-					.values(new_verified_profile)
-					.returning(VerifiedProfile::as_returning())
-					.get_result(conn)
-					.await
-			}
-			.scope_boxed()
-		})
-		.await
+					diesel::insert_into(verified_profile::dsl::verified_profile)
+						.values(new_verified_profile)
+						.returning(VerifiedProfile::as_returning())
+						.get_result(conn)
+						.await
+				}
+				.scope_boxed()
+			})
+			.await?;
+
+		info!("verified profile {} - {}", res.discord_id, res.email);
+
+		Ok(res)
 	}
 }

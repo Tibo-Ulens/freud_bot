@@ -100,7 +100,7 @@ impl Mailer {
 		confirmation_token: &str,
 		base_url: &str,
 	) -> Result<(), Error> {
-		let confirmation_url = format!("{base_url}/api/verify/{confirmation_token}");
+		let confirmation_url = format!("{base_url}/verify/{confirmation_token}");
 
 		let mail = self.try_build_message(
 			profile,
