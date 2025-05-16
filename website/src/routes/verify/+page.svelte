@@ -6,6 +6,8 @@
 	import * as Card from "$lib/components/ui/card";
 	import { Input } from "$lib/components/ui/input/index";
 	import { Button } from "$lib/components/ui/button/index";
+	import { Badge } from "$lib/components/ui/badge";
+	import * as Avatar from "$lib/components/ui/avatar";
 
 	let { data }: PageProps = $props();
 
@@ -40,7 +42,24 @@
 <Card.Root class="m-4 px-12">
 	<Card.Header>
 		<Card.Title class="font-normal text-2xl text-center">
-			Verify your email for the account {data.user_data.username}
+			Verify your email for the account
+			<Badge
+				variant="outline"
+				class="ml-2 px-4 py-2 font-normal text-2xl border-2 rounded-3xl"
+			>
+				{data.user_data.username}
+
+				<Avatar.Root class="ml-4 size-14">
+					<Avatar.Image
+						src="https://cdn.discordapp.com/avatars/{data.user_data.id}/{data.user_data
+							.avatar}.png"
+						alt="{data.user_data.username} avatar"
+					/>
+					<Avatar.Fallback>
+						{data.user_data.username} avatar
+					</Avatar.Fallback>
+				</Avatar.Root>
+			</Badge>
 		</Card.Title>
 	</Card.Header>
 
