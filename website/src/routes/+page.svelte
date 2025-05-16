@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { PageProps } from "./$types";
 
-	import { PUBLIC_API_URL } from "$env/static/public";
-
 	let { data }: PageProps = $props();
 	console.log(data);
 </script>
@@ -11,5 +9,3 @@
 	alt="{data.user_data.username} avatar"
 	src="https://cdn.discordapp.com/avatars/{data.user_data.id}/{data.user_data.avatar}.png"
 />
-
-<a href="{PUBLIC_API_URL}/auth/logout">LOGOUT</a>

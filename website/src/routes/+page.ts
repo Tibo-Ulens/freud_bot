@@ -1,6 +1,6 @@
 export const ssr = false;
 
-import type { PageLoad } from "./$types";
+import type { PageLoad } from "./(app)/$types";
 
 import { PUBLIC_API_URL } from "$env/static/public";
 import { redirect } from "@sveltejs/kit";

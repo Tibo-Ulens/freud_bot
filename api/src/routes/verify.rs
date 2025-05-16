@@ -45,7 +45,7 @@ pub async fn confirm_verify(
 	let pending_profile = PendingProfile::find(user.id, &mut conn).await?;
 
 	if confirmation_code != pending_profile.confirmation_code {
-		return Ok((StatusCode::UNAUTHORIZED, "invalid confirmation code").into_response());
+		return Ok((StatusCode::BAD_REQUEST, "invalid confirmation code").into_response());
 	}
 
 	pending_profile.verify(&mut conn).await?;
