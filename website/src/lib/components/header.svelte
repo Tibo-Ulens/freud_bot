@@ -8,6 +8,7 @@
 
 	import freud from "$lib/images/freud.png";
 	import Github from "$lib/components/icons/github.svelte";
+	import { PUBLIC_API_URL } from "$env/static/public";
 
 	const sidebar = useSidebar();
 </script>
@@ -51,7 +52,7 @@
 		<div class="flex flex-1 h-full items-center justify-end">
 			<a
 				class="focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded-md hidden md:inline hover:text-foreground hover:bg-accent text-foreground/80 h-full px-2 content-center"
-				href="/auth/logout">Logout</a
+				href="{PUBLIC_API_URL}/auth/logout">Logout</a
 			>
 
 			<Github />

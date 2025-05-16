@@ -36,7 +36,7 @@ pub mod routes;
 pub mod schema;
 
 use error::Error;
-use routes::{confirm_verify, login, me, oauth_callback, request_verify};
+use routes::{confirm_verify, login, logout, me, oauth_callback, request_verify};
 
 type DbPool = DPool<AsyncPgConnection>;
 type CachePool = CPool;
@@ -206,6 +206,7 @@ async fn main() -> Result<(), Error> {
 	let app = Router::new()
 		.route("/auth/login", get(login))
 		.route("/auth/callback", get(oauth_callback))
+		.route("/auth/logout", get(logout))
 		.merge(
 			Router::new()
 				.route("/me", get(me))

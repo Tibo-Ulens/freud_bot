@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PUBLIC_API_URL } from "$env/static/public";
 	import * as Sidebar from "$lib/components/ui/sidebar/index";
 
 	import freud from "$lib/images/freud.png";
@@ -63,7 +64,7 @@
 								hover:bg-accent text-foreground/80 h-8 p-6 content-center
 								flex w-full items-center overflow-hidden rounded-none
 							"
-							href="/logout"
+							href="{PUBLIC_API_URL}/auth/logout"
 						>
 							Logout
 						</a>

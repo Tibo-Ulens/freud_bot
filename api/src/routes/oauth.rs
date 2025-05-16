@@ -229,3 +229,21 @@ pub async fn oauth_callback(
 
 	Ok((jar, Redirect::to(&redirect)))
 }
+
+pub async fn logout(
+	State(cookie_cfg): State<CookieConfig>,
+	State(frontend_url): State<String>,
+	mut jar: PrivateCookieJar,
+) -> Result<impl IntoResponse, Error> {
+	if let Some(mut access_token_cookie) = jar.get(&cookie_cfg.access_token_cookie_name) {
+		normalise_cookie(&mut access_token_cookie, &cookie_cfg);
+		jar = jar.remove(access_token_cookie);
+	}
+
+	if let Some(mut refresh_token_cookie) = jar.get(&cookie_cfg.refresh_token_cookie_name) {
+		normalise_cookie(&mut refresh_token_cookie, &cookie_cfg);
+		jar = jar.remove(refresh_token_cookie);
+	}
+
+	Ok((jar, Redirect::to(&frontend_url)))
+}
