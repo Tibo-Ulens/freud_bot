@@ -103,8 +103,7 @@ pub async fn login(
 	let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 	let pkce_verifier_uuid = Uuid::now_v7();
 
-	// TODO: figure out CSRF tokens
-	let (auth_url, _csrf_token) = oauth_client
+	let (auth_url, csrf_token) = oauth_client
 		.authorize_url(CsrfToken::new_random)
 		.set_pkce_challenge(pkce_challenge)
 		.add_scope(Scope::new("identify".to_string()))
@@ -116,11 +115,19 @@ pub async fn login(
 	let pkce_verifier_uuid_cookie = make_cookie(
 		cookie_cfg.pkce_verifier_cookie_name,
 		pkce_verifier_uuid.to_string(),
-		cookie_cfg.cookie_domain,
+		cookie_cfg.cookie_domain.clone(),
 		Duration::seconds(cookie_cfg.pkce_verifier_cookie_lifespan),
 	);
 
+	let csrf_token_cookie = make_cookie(
+		cookie_cfg.csrf_token_cookie_name,
+		csrf_token.into_secret(),
+		cookie_cfg.cookie_domain,
+		Duration::seconds(cookie_cfg.csrf_token_cookie_lifespan),
+	);
+
 	let jar = jar.add(pkce_verifier_uuid_cookie);
+	let jar = jar.add(csrf_token_cookie);
 
 	Ok((jar, Redirect::to(auth_url.as_ref())))
 }
@@ -141,6 +148,19 @@ pub async fn oauth_callback(
 	State(frontend_url): State<String>,
 	jar: PrivateCookieJar,
 ) -> Result<impl IntoResponse, Error> {
+	let mut csrf_token_cookie = jar
+		.get(&cookie_cfg.csrf_token_cookie_name)
+		.ok_or_else(|| AuthorizationError::MissingCSRFTokenCookie)?;
+
+	let csrf_token = csrf_token_cookie.value();
+
+	if csrf_token != query.state {
+		return Err(AuthorizationError::IncorrectCSRFToken)?;
+	}
+
+	normalise_cookie(&mut csrf_token_cookie, &cookie_cfg);
+	let jar = jar.remove(csrf_token_cookie);
+
 	// Read the PKCE verifier UUID from the cookie and use it to look up the
 	// verifier in redis
 	let mut pkce_verifier_cookie = jar

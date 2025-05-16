@@ -77,9 +77,11 @@ services:
 
           - COOKIE_DOMAIN=freudbot.local
           - PKCE_VERIFIER_COOKIE_NAME=freudbot_pkce_uuid
+          - CSRF_TOKEN_COOKIE_NAME=freudbot_csrf
           - ACCESS_TOKEN_COOKIE_NAME=freudbot_discord_access_token
           - REFRESH_TOKEN_COOKIE_NAME=freudbot_discord_refresh_token
           - PKCE_VERIFIER_COOKIE_LIFESPAN=60
+          - CSRF_TOKEN_COOKIE_LIFESPAN=60
           - ACCESS_TOKEN_COOKIE_LIFESPAN=604800
           - REFRESH_TOKEN_COOKIE_LIFESPAN=1814400
         secrets:

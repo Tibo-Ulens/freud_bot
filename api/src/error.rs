@@ -107,6 +107,12 @@ pub enum AuthorizationError {
 	#[error("Missing PKCE verifier cookie")]
 	MissingPKCEVerifierCookie,
 
+	#[error("Missing CSRF Token cookie")]
+	MissingCSRFTokenCookie,
+
+	#[error("Incorrect CSRF Token")]
+	IncorrectCSRFToken,
+
 	#[error("Missing access token cookie")]
 	MissingAccessTokenCookie,
 
