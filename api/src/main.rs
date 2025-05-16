@@ -67,15 +67,17 @@ pub struct AppState {
 pub struct CookieConfig {
 	cookie_domain: String,
 
-	pkce_verifier_cookie_name: String,
-	csrf_token_cookie_name:    String,
-	access_token_cookie_name:  String,
-	refresh_token_cookie_name: String,
+	pkce_verifier_cookie_name:  String,
+	csrf_token_cookie_name:     String,
+	oauth_redirect_cookie_name: String,
+	access_token_cookie_name:   String,
+	refresh_token_cookie_name:  String,
 
-	pkce_verifier_cookie_lifespan: i64,
-	csrf_token_cookie_lifespan:    i64,
-	access_token_cookie_lifespan:  i64,
-	refresh_token_cookie_lifespan: i64,
+	pkce_verifier_cookie_lifespan:  i64,
+	csrf_token_cookie_lifespan:     i64,
+	oauth_redirect_cookie_lifespan: i64,
+	access_token_cookie_lifespan:   i64,
+	refresh_token_cookie_lifespan:  i64,
 }
 
 impl FromRef<AppState> for SetBasicClient {
@@ -183,15 +185,17 @@ async fn main() -> Result<(), Error> {
 	let cookie_key = Key::generate();
 
 	let cookie_cfg = CookieConfig {
-		cookie_domain:                 get_env_or_panic("COOKIE_DOMAIN"),
-		pkce_verifier_cookie_name:     get_env_or_panic("PKCE_VERIFIER_COOKIE_NAME"),
-		csrf_token_cookie_name:        get_env_or_panic("CSRF_TOKEN_COOKIE_NAME"),
-		access_token_cookie_name:      get_env_or_panic("ACCESS_TOKEN_COOKIE_NAME"),
-		refresh_token_cookie_name:     get_env_or_panic("REFRESH_TOKEN_COOKIE_NAME"),
-		pkce_verifier_cookie_lifespan: get_env_or_panic("PKCE_VERIFIER_COOKIE_LIFESPAN"),
-		csrf_token_cookie_lifespan:    get_env_or_panic("CSRF_TOKEN_COOKIE_LIFESPAN"),
-		access_token_cookie_lifespan:  get_env_or_panic("ACCESS_TOKEN_COOKIE_LIFESPAN"),
-		refresh_token_cookie_lifespan: get_env_or_panic("REFRESH_TOKEN_COOKIE_LIFESPAN"),
+		cookie_domain:                  get_env_or_panic("COOKIE_DOMAIN"),
+		pkce_verifier_cookie_name:      get_env_or_panic("PKCE_VERIFIER_COOKIE_NAME"),
+		csrf_token_cookie_name:         get_env_or_panic("CSRF_TOKEN_COOKIE_NAME"),
+		oauth_redirect_cookie_name:     get_env_or_panic("OAUTH_REDIRECT_COOKIE_NAME"),
+		access_token_cookie_name:       get_env_or_panic("ACCESS_TOKEN_COOKIE_NAME"),
+		refresh_token_cookie_name:      get_env_or_panic("REFRESH_TOKEN_COOKIE_NAME"),
+		pkce_verifier_cookie_lifespan:  get_env_or_panic("PKCE_VERIFIER_COOKIE_LIFESPAN"),
+		csrf_token_cookie_lifespan:     get_env_or_panic("CSRF_TOKEN_COOKIE_LIFESPAN"),
+		oauth_redirect_cookie_lifespan: get_env_or_panic("OAUTH_REDIRECT_COOKIE_LIFESPAN"),
+		access_token_cookie_lifespan:   get_env_or_panic("ACCESS_TOKEN_COOKIE_LIFESPAN"),
+		refresh_token_cookie_lifespan:  get_env_or_panic("REFRESH_TOKEN_COOKIE_LIFESPAN"),
 	};
 
 	let base_url = get_env_or_panic::<String>("BASE_URL");

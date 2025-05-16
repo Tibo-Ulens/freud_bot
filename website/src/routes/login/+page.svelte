@@ -3,11 +3,17 @@
 
 	import { PUBLIC_API_URL } from "$env/static/public";
 	import discord_logo from "$lib/images/discord-mark-white.svg";
+	import { page } from "$app/state";
+
+	const redirect_url = page.url.searchParams.get("redirect");
+	const auth_url = redirect_url
+		? `${PUBLIC_API_URL}/auth/login?redirect=${redirect_url}`
+		: `${PUBLIC_API_URL}/auth/login`;
 </script>
 
 <Button
 	variant="outline"
-	href="{PUBLIC_API_URL}/auth/login"
+	href={auth_url}
 	class="flex flex-row content-around items-center h-auto
 	pt-4 pb-4 pl-8 pr-8 mt-32 text-[2rem] border-2"
 >

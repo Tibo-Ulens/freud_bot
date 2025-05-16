@@ -5,7 +5,7 @@ import type { PageLoad } from "./$types";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { redirect } from "@sveltejs/kit";
 
-export const load: PageLoad = async ({ params, fetch }) => {
+export const load: PageLoad = async ({ params, url, fetch }) => {
 	console.log("verifying code");
 
 	const verify_res = await fetch(`${PUBLIC_API_URL}/verify/${params.code}`, {
@@ -14,7 +14,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
 	});
 
 	if (verify_res.status === 401) {
-		return redirect(307, "/login");
+		return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);
 	}
 
 	return { status: verify_res.status };

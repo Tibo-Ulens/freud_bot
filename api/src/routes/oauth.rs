@@ -1,5 +1,7 @@
 //! `OAuth2` routes and datatypes
 
+use std::collections::HashMap;
+
 use axum::extract::{Query, State};
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::PrivateCookieJar;
@@ -95,6 +97,8 @@ pub async fn login(
 	State(oauth_client): State<SetBasicClient>,
 	State(cache_pool): State<CachePool>,
 	State(cookie_cfg): State<CookieConfig>,
+	State(frontend_url): State<String>,
+	Query(params): Query<HashMap<String, String>>,
 	jar: PrivateCookieJar,
 ) -> Result<impl IntoResponse, Error> {
 	// Generate a UUID alongside the PKCE codes so the verifier can be stored
@@ -122,12 +126,21 @@ pub async fn login(
 	let csrf_token_cookie = make_cookie(
 		cookie_cfg.csrf_token_cookie_name,
 		csrf_token.into_secret(),
-		cookie_cfg.cookie_domain,
+		cookie_cfg.cookie_domain.clone(),
 		Duration::seconds(cookie_cfg.csrf_token_cookie_lifespan),
+	);
+
+	let redirect_uri = params.get("redirect").unwrap_or(&frontend_url);
+	let oauth_redirect_cookie = make_cookie(
+		cookie_cfg.oauth_redirect_cookie_name,
+		redirect_uri.to_string(),
+		cookie_cfg.cookie_domain,
+		Duration::seconds(cookie_cfg.oauth_redirect_cookie_lifespan),
 	);
 
 	let jar = jar.add(pkce_verifier_uuid_cookie);
 	let jar = jar.add(csrf_token_cookie);
+	let jar = jar.add(oauth_redirect_cookie);
 
 	Ok((jar, Redirect::to(auth_url.as_ref())))
 }
@@ -146,7 +159,7 @@ pub async fn oauth_callback(
 	State(cache_pool): State<CachePool>,
 	State(cookie_cfg): State<CookieConfig>,
 	State(frontend_url): State<String>,
-	jar: PrivateCookieJar,
+	mut jar: PrivateCookieJar,
 ) -> Result<impl IntoResponse, Error> {
 	let mut csrf_token_cookie = jar
 		.get(&cookie_cfg.csrf_token_cookie_name)
@@ -159,7 +172,7 @@ pub async fn oauth_callback(
 	}
 
 	normalise_cookie(&mut csrf_token_cookie, &cookie_cfg);
-	let jar = jar.remove(csrf_token_cookie);
+	jar = jar.remove(csrf_token_cookie);
 
 	// Read the PKCE verifier UUID from the cookie and use it to look up the
 	// verifier in redis
@@ -170,7 +183,7 @@ pub async fn oauth_callback(
 	let pkce_verifier_uuid = pkce_verifier_cookie.value().to_string();
 
 	normalise_cookie(&mut pkce_verifier_cookie, &cookie_cfg);
-	let jar = jar.remove(pkce_verifier_cookie);
+	jar = jar.remove(pkce_verifier_cookie);
 
 	let mut conn = cache_pool.get().await?;
 
@@ -198,7 +211,21 @@ pub async fn oauth_callback(
 
 	cache_user_data(token.access_token().secret(), access_token_expiry, &mut conn).await?;
 
-	let jar = store_token_cookies(&token, jar, &cookie_cfg, access_token_expiry);
+	jar = store_token_cookies(&token, jar, &cookie_cfg, access_token_expiry);
 
-	Ok((jar, Redirect::to(&frontend_url)))
+	let oauth_redirect_cookie = jar.get(&cookie_cfg.oauth_redirect_cookie_name);
+
+	let redirect = match oauth_redirect_cookie {
+		Some(mut c) => {
+			let redirect = c.value().to_string();
+
+			normalise_cookie(&mut c, &cookie_cfg);
+			jar = jar.remove(c);
+
+			redirect
+		},
+		None => frontend_url,
+	};
+
+	Ok((jar, Redirect::to(&redirect)))
 }
