@@ -122,3 +122,25 @@ impl PendingProfile {
 		Ok(res)
 	}
 }
+
+impl VerifiedProfile {
+	/// Try to find a [`VerifiedProfile`] with a given id
+	pub async fn exists(query_id: String, conn: &mut DbConn) -> QueryResult<bool> {
+		use crate::schema::verified_profile::dsl::*;
+
+		let count: i64 =
+			verified_profile.filter(discord_id.eq(query_id)).count().get_result(conn).await?;
+
+		Ok(count > 0)
+	}
+
+	/// Try to find a [`VerifiedProfile`] with a given email
+	pub async fn exists_email(query_email: String, conn: &mut DbConn) -> QueryResult<bool> {
+		use crate::schema::verified_profile::dsl::*;
+
+		let count: i64 =
+			verified_profile.filter(email.eq(query_email)).count().get_result(conn).await?;
+
+		Ok(count > 0)
+	}
+}

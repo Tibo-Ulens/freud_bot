@@ -230,6 +230,7 @@ pub async fn oauth_callback(
 	Ok((jar, Redirect::to(&redirect)))
 }
 
+#[instrument(skip_all)]
 pub async fn logout(
 	State(cookie_cfg): State<CookieConfig>,
 	State(frontend_url): State<String>,

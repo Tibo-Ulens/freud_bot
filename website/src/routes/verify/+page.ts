@@ -7,11 +7,17 @@ import { error } from "@sveltejs/kit";
 import { Api } from "$lib/api";
 
 export const load: PageLoad = async ({ fetch, url }) => {
-	const response = await Api.me(fetch, url);
+	const v_res = await Api.is_verified(fetch, url);
 
-	if (response.tag === "err") {
-		error(response.status);
+	if (v_res.tag === "err") {
+		error(v_res.status);
 	}
 
-	return { userdata: response.data };
+	const m_res = await Api.me(fetch, url);
+
+	if (m_res.tag === "err") {
+		error(m_res.status);
+	}
+
+	return { verified: v_res.data, userdata: m_res.data };
 };

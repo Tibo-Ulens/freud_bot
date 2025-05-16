@@ -7,7 +7,7 @@ use super::DiscordUser;
 use crate::DbPool;
 use crate::error::Error;
 use crate::mailer::Mailer;
-use crate::models::profile::PendingProfile;
+use crate::models::profile::{PendingProfile, VerifiedProfile};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VerifyData {
@@ -23,6 +23,14 @@ pub async fn request_verify(
 	Json(data): Json<VerifyData>,
 ) -> Result<impl IntoResponse, Error> {
 	let mut conn = pool.get().await?;
+
+	if VerifiedProfile::exists(user.id.clone(), &mut conn).await? {
+		return Err(Error::Duplicate("discord_id".to_string()));
+	}
+
+	if VerifiedProfile::exists_email(data.email.clone(), &mut conn).await? {
+		return Err(Error::Duplicate("email".to_string()));
+	}
 
 	let pending_profile = PendingProfile::new_or_update(user.id, data.email, &mut conn).await?;
 
@@ -50,4 +58,15 @@ pub async fn confirm_verify(
 	pending_profile.verify(&mut conn).await?;
 
 	Ok(NoContent.into_response())
+}
+
+#[instrument(skip_all)]
+pub async fn is_verified(State(pool): State<DbPool>, user: DiscordUser) -> Result<Response, Error> {
+	let mut conn = pool.get().await?;
+
+	if VerifiedProfile::exists(user.id, &mut conn).await? {
+		return Ok(Json(true).into_response());
+	}
+
+	Ok(Json(false).into_response())
 }

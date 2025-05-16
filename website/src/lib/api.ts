@@ -42,6 +42,35 @@ export class Api {
 		return error;
 	}
 
+	public static async request_verify(
+		fetch: Fetch,
+		data: string,
+		url: URL,
+	): Promise<ApiResponse<null>> {
+		console.log("requesting verification code");
+
+		const response = await fetch(`${PUBLIC_API_URL}/request_verify`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: data,
+		});
+
+		if (response.status === 401) {
+			return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);
+		}
+
+		if (response.status === 204) {
+			return { tag: "ok", data: null };
+		}
+
+		const error_data = await response.json();
+		const error = { tag: "err", status: response.status, ...error_data };
+
+		return error;
+	}
+
 	public static async verify_code(
 		fetch: Fetch,
 		code: string,
@@ -64,6 +93,27 @@ export class Api {
 
 		const error_data = await verify_res.json();
 		const error = { tag: "err", status: verify_res.status, ...error_data };
+
+		return error;
+	}
+
+	public static async is_verified(fetch: Fetch, url: URL): Promise<ApiResponse<boolean>> {
+		console.log("checking if verified");
+
+		const response = await fetch(`${PUBLIC_API_URL}/is_verified`);
+
+		if (response.status === 401) {
+			return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);
+		}
+
+		if (response.status === 200) {
+			const status = await response.json();
+
+			return { tag: "ok", data: status };
+		}
+
+		const error_data = await response.json();
+		const error = { tag: "err", status: response.status, ...error_data };
 
 		return error;
 	}

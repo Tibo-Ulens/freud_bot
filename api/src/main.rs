@@ -36,7 +36,7 @@ pub mod routes;
 pub mod schema;
 
 use error::Error;
-use routes::{confirm_verify, login, logout, me, oauth_callback, request_verify};
+use routes::{confirm_verify, is_verified, login, logout, me, oauth_callback, request_verify};
 
 type DbPool = DPool<AsyncPgConnection>;
 type CachePool = CPool;
@@ -212,6 +212,7 @@ async fn main() -> Result<(), Error> {
 				.route("/me", get(me))
 				.route("/request_verify", post(request_verify))
 				.route("/verify/{confirmation_code}", post(confirm_verify))
+				.route("/is_verified", get(is_verified))
 				.route_layer(AuthLayer::new(app_state.clone())),
 		)
 		.layer(TimeoutLayer::new(std::time::Duration::from_secs(5)))
