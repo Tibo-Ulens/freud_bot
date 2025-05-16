@@ -3,32 +3,69 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
+use axum::Json;
 use axum::response::{IntoResponse, Response};
 use deadpool_redis::PoolError as CPoolError;
 use deadpool_redis::redis::RedisError;
 use diesel::result::DatabaseErrorKind;
 use diesel_async::pooled_connection::deadpool::PoolError as DPoolError;
-use http::{StatusCode, header};
+use http::StatusCode;
+use serde_json::json;
 use thiserror::Error;
 use tokio::sync::mpsc;
 
 /// Top level error type
 #[derive(Debug, Error)]
 pub enum Error {
-	#[error("Internal Server Error")]
-	InternalError,
-
 	#[error(transparent)]
 	AuthorizationError(#[from] AuthorizationError),
 
-	#[error("{0}")]
+	#[error("Duplicate -- {0}")]
 	Duplicate(String),
 
-	#[error("not found - {0}")]
-	NotFound(String),
+	#[error("Internal Server Error")]
+	InternalError,
 
-	#[error("{0}")]
+	#[error("Invalid Confirmation Code")]
+	InvalidConfirmationCode,
+
+	#[error("Not Found")]
+	NotFound,
+
+	#[error("Invalid -- {0}")]
 	ValidationError(String),
+}
+
+impl Error {
+	#[allow(clippy::enum_glob_use)]
+	fn code(&self) -> u32 {
+		use AuthorizationError::*;
+
+		match self {
+			Self::AuthorizationError(MissingPKCEVerifierCookie) => 0,
+			Self::AuthorizationError(MissingCSRFTokenCookie) => 1,
+			Self::AuthorizationError(IncorrectCSRFToken) => 2,
+			Self::AuthorizationError(MissingAccessTokenCookie) => 3,
+			Self::AuthorizationError(MissingRefreshTokenCookie) => 4,
+			Self::AuthorizationError(RequestTokenError(_)) => 5,
+			Self::Duplicate(_) => 6,
+			Self::InternalError => 7,
+			Self::NotFound => 8,
+			Self::ValidationError(_) => 9,
+			Self::InvalidConfirmationCode => 10,
+		}
+	}
+
+	fn info(&self) -> Option<&str> {
+		match self {
+			Self::Duplicate(d) => Some(d),
+			Self::ValidationError(v) => Some(v),
+			Self::AuthorizationError(_)
+			| Self::InternalError
+			| Self::NotFound
+			| Self::InvalidConfirmationCode => None,
+		}
+	}
 }
 
 /// Details about internal errors should not be show to end users, so log a
@@ -45,22 +82,44 @@ impl IntoResponse for Error {
 	fn into_response(self) -> Response {
 		warn!("response error -- {}", self);
 
-		let body = self.to_string();
+		let data = json!({
+			"text": self.to_string(),
+			"code": self.code(),
+			"info": self.info(),
+		});
 
 		let status_code = match self {
 			Self::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
 			Self::AuthorizationError(_) => StatusCode::UNAUTHORIZED,
-			Self::NotFound(_) => StatusCode::NOT_FOUND,
+			Self::NotFound => StatusCode::NOT_FOUND,
 			Self::ValidationError(_) => StatusCode::UNPROCESSABLE_ENTITY,
 			Self::Duplicate(_) => StatusCode::CONFLICT,
+			Self::InvalidConfirmationCode => StatusCode::BAD_REQUEST,
 		};
 
-		Response::builder()
-			.header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
-			.status(status_code)
-			.body(body.into())
-			.unwrap()
+		(status_code, Json(data)).into_response()
 	}
+}
+
+#[derive(Debug, Error)]
+pub enum AuthorizationError {
+	#[error("Missing PKCE verifier cookie")]
+	MissingPKCEVerifierCookie,
+
+	#[error("Missing CSRF Token cookie")]
+	MissingCSRFTokenCookie,
+
+	#[error("Incorrect CSRF Token")]
+	IncorrectCSRFToken,
+
+	#[error("Missing access token cookie")]
+	MissingAccessTokenCookie,
+
+	#[error("Missing refresh token cookie")]
+	MissingRefreshTokenCookie,
+
+	#[error(transparent)]
+	RequestTokenError(#[from] anyhow::Error),
 }
 
 #[derive(Debug, Error)]
@@ -100,27 +159,6 @@ pub enum InternalError {
 
 	#[error("url parsing error -- {0:?}")]
 	UrlParseError(#[from] oauth2::url::ParseError),
-}
-
-#[derive(Debug, Error)]
-pub enum AuthorizationError {
-	#[error("Missing PKCE verifier cookie")]
-	MissingPKCEVerifierCookie,
-
-	#[error("Missing CSRF Token cookie")]
-	MissingCSRFTokenCookie,
-
-	#[error("Incorrect CSRF Token")]
-	IncorrectCSRFToken,
-
-	#[error("Missing access token cookie")]
-	MissingAccessTokenCookie,
-
-	#[error("Missing refresh token cookie")]
-	MissingRefreshTokenCookie,
-
-	#[error(transparent)]
-	RequestTokenError(#[from] anyhow::Error),
 }
 
 impl From<reqwest::Error> for Error {
@@ -166,13 +204,13 @@ impl From<diesel::result::Error> for Error {
 	fn from(err: diesel::result::Error) -> Self {
 		match &err {
 			// No rows returned by query that expected at least one
-			diesel::result::Error::NotFound => Self::NotFound("no context provided".to_string()),
+			diesel::result::Error::NotFound => Self::NotFound,
 			// Unique constraint violation
 			diesel::result::Error::DatabaseError(DatabaseErrorKind::UniqueViolation, info) => {
 				let constraint_name = info.constraint_name().unwrap();
 
 				match CONSTRAINT_TO_COLUMN.get(constraint_name) {
-					Some(field) => Self::Duplicate(format!("{field} is already in use")),
+					Some(field) => Self::Duplicate((*field).to_string()),
 					None => InternalError::DatabaseError(err).into(),
 				}
 			},

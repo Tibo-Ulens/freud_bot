@@ -47,16 +47,16 @@
 				variant="outline"
 				class="ml-2 px-4 py-2 font-normal text-2xl border-2 rounded-3xl"
 			>
-				{data.user_data.username}
+				{data.userdata.username}
 
 				<Avatar.Root class="ml-4 size-14">
 					<Avatar.Image
-						src="https://cdn.discordapp.com/avatars/{data.user_data.id}/{data.user_data
+						src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data.userdata
 							.avatar}.png"
-						alt="{data.user_data.username} avatar"
+						alt="{data.userdata.username} avatar"
 					/>
 					<Avatar.Fallback>
-						{data.user_data.username} avatar
+						{data.userdata.username} avatar
 					</Avatar.Fallback>
 				</Avatar.Root>
 			</Badge>
@@ -84,6 +84,8 @@
 	<Card.Footer class="justify-center text-center">
 		{#if verify_state === "success"}
 			An email has been sent, make sure to check your spam
+			<br />
+			It could take a few minutes for the email to arrive
 		{:else if verify_state === "failure"}
 			{error_message}
 		{/if}

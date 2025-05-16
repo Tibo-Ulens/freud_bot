@@ -2,20 +2,17 @@ export const ssr = false;
 
 import type { PageLoad } from "./$types";
 
-import { PUBLIC_API_URL } from "$env/static/public";
-import { redirect } from "@sveltejs/kit";
+import { Api } from "$lib/api";
+import { error } from "@sveltejs/kit";
 
 export const load: PageLoad = async ({ params, url, fetch }) => {
-	console.log("verifying code");
+	const me_response = await Api.me(fetch, url);
 
-	const verify_res = await fetch(`${PUBLIC_API_URL}/verify/${params.code}`, {
-		credentials: "include",
-		method: "POST",
-	});
-
-	if (verify_res.status === 401) {
-		return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);
+	if (me_response.tag === "err") {
+		error(me_response.status);
 	}
 
-	return { status: verify_res.status };
+	const code_response = await Api.verify_code(fetch, params.code, url);
+
+	return { userdata: me_response.data, code_response: code_response };
 };

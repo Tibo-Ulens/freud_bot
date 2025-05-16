@@ -1,6 +1,5 @@
 use axum::Json;
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, NoContent, Response};
 use serde::{Deserialize, Serialize};
 
@@ -45,7 +44,7 @@ pub async fn confirm_verify(
 	let pending_profile = PendingProfile::find(user.id, &mut conn).await?;
 
 	if confirmation_code != pending_profile.confirmation_code {
-		return Ok((StatusCode::BAD_REQUEST, "invalid confirmation code").into_response());
+		return Err(Error::InvalidConfirmationCode);
 	}
 
 	pending_profile.verify(&mut conn).await?;
