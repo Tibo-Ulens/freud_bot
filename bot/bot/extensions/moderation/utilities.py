@@ -1,6 +1,6 @@
 from discord import app_commands, Interaction, Member, Embed
 
-from models.profile import Profile
+from models.profile import VerifiedProfile
 
 from bot.bot import Bot
 from bot.decorators import check_user_has_admin_role
@@ -13,7 +13,7 @@ class Utilities(ErrorHandledCog):
     @app_commands.guild_only()
     @check_user_has_admin_role()
     async def get_user_info(self, ia: Interaction, user: Member):
-        profile = await Profile.find_by_discord_id(user.id)
+        profile = await VerifiedProfile.find_by_discord_id(user.id)
         if not profile:
             return await ia.response.send_message(
                 f"No info for {user.mention} was found", ephemeral=True

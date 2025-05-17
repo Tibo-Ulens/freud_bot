@@ -1,16 +1,14 @@
 CREATE TABLE IF NOT EXISTS config (
-	guild_id SERIAL PRIMARY KEY,
+	guild_id TEXT PRIMARY KEY,
 
-	verified_role                BIGINT UNIQUE,
-	admin_role                   BIGINT UNIQUE,
-	logging_channel              BIGINT UNIQUE,
-	verification_logging_channel BIGINT UNIQUE,
-	confession_approval_channel  BIGINT UNIQUE,
-	confession_channel           BIGINT UNIQUE,
+	verified_role                TEXT UNIQUE,
+	admin_role                   TEXT UNIQUE,
+	logging_channel              TEXT UNIQUE,
+	verification_logging_channel TEXT UNIQUE,
+	confession_approval_channel  TEXT UNIQUE,
+	confession_channel           TEXT UNIQUE,
 
 	pin_reaction_threshold INTEGER NOT NULL DEFAULT 5,
 
-	verify_email_message     TEXT NOT NULL DEFAULT 'Please go to https://freudbot.org/verify to verify your email',
-	already_verified_message TEXT NOT NULL DEFAULT 'You are already verified',
-	welcome_message          TEXT NOT NULL DEFAULT 'Welcome to {guild_name}'
+	request_verification_message TEXT NOT NULL DEFAULT 'Please go to https://freudbot.org/verify to verify your email'
 );

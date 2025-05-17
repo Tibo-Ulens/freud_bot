@@ -6,6 +6,8 @@ from logging import Logger
 import os
 from typing import Sequence
 
+import aio_pika
+from aio_pika.abc import AbstractRobustConnection
 import discord
 from discord.abc import Snowflake
 from discord.ext import commands
@@ -21,15 +23,19 @@ logger = logging.getLogger("bot")
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, pika: AbstractRobustConnection, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.logger: Logger = None
         self.discord_logger: GuildAdapter = None
         self.loop = asyncio.get_running_loop()
 
-        self.redis = redis.Redis.from_url(os.environ["CH_URL"], decode_responses=True)
+        self.redis = redis.Redis.from_url(
+            os.environ["CACHE_URL"], decode_responses=True
+        )
         logger.info("cache connected")
+
+        self.pika = pika
 
     @classmethod
     async def create(cls) -> "Bot":
@@ -48,7 +54,10 @@ class Bot(commands.Bot):
         intents.voice_states = False
         intents.webhooks = False
 
-        return cls(command_prefix="$", intents=intents)
+        pika = await aio_pika.connect_robust(os.environ["AMQP_URL"])
+        logger.info("queue connected")
+
+        return cls(pika=pika, command_prefix="$", intents=intents)
 
     async def load_extensions(self) -> None:
         """Load all enabled extensions"""
@@ -116,6 +125,9 @@ class Bot(commands.Bot):
 
         await super().close()
         logger.info("client closed")
+
+        await self.pika.close()
+        logger.info("queue closed")
 
         await self.redis.aclose()
         logger.info("cache closed")

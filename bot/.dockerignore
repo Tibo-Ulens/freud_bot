@@ -4,5 +4,4 @@ venv/
 .gitignore
 .pylintrc
 
-alembic.ini
 Dockerfile

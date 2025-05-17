@@ -16,7 +16,6 @@ from discord.ui import View, Button
 from redis.asyncio import Redis
 
 from models.config import Config
-from models.profile_statistics import ProfileStatistics
 
 from bot.bot import Bot
 from bot.decorators import (
@@ -135,8 +134,6 @@ class PendingApprovalView(View):
         actual_confession.colour = Colour.random()
 
         if self.chance is not None and random.random() <= self.chance:
-            await ProfileStatistics.increment_exposed_count(self.poster.id, ia.guild_id)
-
             actual_confession.add_field(name="Sent By", value=self.poster.mention)
 
         if self.reply is not None:

@@ -42,7 +42,7 @@ class ModLogging(ErrorHandledCog):
     @ErrorHandledCog.listener()
     async def on_guild_join(self, guild: Guild):
         logger.info(f"joined guild {util.render_guild(guild)}")
-        await Config.create(guild_id=guild.id)
+        await Config.create(guild_id=str(guild.id))
         logger.info(f"created config for guild {util.render_guild(guild)}")
 
 
