@@ -1,0 +1,8 @@
+venv/
+
+.dockerignore
+.gitignore
+.pylintrc
+
+alembic.ini
+Dockerfile

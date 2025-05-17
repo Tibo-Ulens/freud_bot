@@ -1,4 +1,4 @@
-FROM python:3.11.5-slim
+FROM python:3.13.3-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update \
@@ -16,7 +16,7 @@ WORKDIR /freud_bot
 
 # Install deps
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --only main,bot
+RUN poetry install --only main
 
 COPY ./models ./models
 COPY ./bot ./bot

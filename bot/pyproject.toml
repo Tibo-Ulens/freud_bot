@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "freud_bot"
+version = "5.0.0"
+description = "UGent discord bot"
+authors = ["Tibo Ulens <ulens.tibo@gmail.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "=3.13.3"
+
+alembic = "^1.15.2"
+asyncpg = "^0.30.0"
+"discord.py" = "^2.5.2"
+redis = {extras = ["hiredis"], version = "^6.1.0"}
+SQLAlchemy = "^2.0.41"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

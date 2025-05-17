@@ -38,6 +38,7 @@ services:
         depends_on:
           - freudbot-dev-database
           - freudbot-dev-cache
+          - freudbot-dev-queue
 
     freudbot-dev-website:
         <<: *common-config
@@ -95,6 +96,7 @@ services:
         depends_on:
           - freudbot-dev-database
           - freudbot-dev-cache
+          - freudbot-dev-queue
 
     freudbot-dev-database:
         <<: *common-config
