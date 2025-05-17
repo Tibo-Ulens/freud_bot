@@ -1,15 +1,13 @@
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::response::{IntoResponse, NoContent, Response};
-use deadpool_lapin::lapin::BasicProperties;
-use deadpool_lapin::lapin::options::{BasicPublishOptions, QueueDeclareOptions};
-use deadpool_lapin::lapin::types::FieldTable;
 use serde::{Deserialize, Serialize};
 
 use super::DiscordUser;
 use crate::error::Error;
 use crate::mailer::Mailer;
-use crate::models::profile::{PendingProfile, VerifiedProfile};
+use crate::models::database::{PendingProfile, VerifiedProfile};
+use crate::models::queue::VerificationCommand;
 use crate::{AmqpPool, DbPool};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -61,20 +59,9 @@ pub async fn confirm_verify(
 	pending_profile.verify(&mut dconn).await?;
 
 	let qconn = qpool.get().await?;
-	let channel = qconn.create_channel().await?;
-	channel
-		.queue_declare("verification", QueueDeclareOptions::default(), FieldTable::default())
-		.await?;
 
-	channel
-		.basic_publish(
-			"",
-			"verification",
-			BasicPublishOptions::default(),
-			user.id.as_bytes(),
-			BasicProperties::default(),
-		)
-		.await?;
+	let command = VerificationCommand::new(user.id.as_bytes());
+	command.send(&qconn).await?;
 
 	Ok(NoContent.into_response())
 }

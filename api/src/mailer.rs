@@ -4,7 +4,7 @@ use lettre::{Address, Message, SmtpTransport, Transport};
 use tokio::sync::mpsc;
 
 use crate::Error;
-use crate::models::profile::PendingProfile;
+use crate::models::database::PendingProfile;
 
 /// A basic interface to send email messages
 #[derive(Clone, Debug)]
