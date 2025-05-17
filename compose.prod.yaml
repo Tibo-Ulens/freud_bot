@@ -1,91 +1,106 @@
-services:
-    freudbot:
-        image: ghcr.io/tibo-ulens/freudbot:latest
-        container_name: freudbot
-        environment:
-          - DB_URL=postgresql+asyncpg://postgres_user@freudbot_db/freudbot
-          - PGPASSWORD=postgres_password
+x-common-config: &common-config
+    restart: "unless-stopped"
+    networks:
+      - freudbot-prod-network
 
-          - CH_URL=redis://@freudbot_cache:6379/0
+services:
+    freudbot-prod-bot:
+        <<: *common-config
+        image: ghcr.io/tibo-ulens/freudbot-bot:latest
+        container_name: freudbot-prod-bot
+        restart: on-failure
         logging:
             options:
-                max-size: "4096m"
+                max-size: "100m"
+        environment:
+          - DB_URL=postgresql+asyncpg://freudbot@freudbot-prod-database/freudbot
+          - PGPASSWORD=freudbot
+
+          - CACHE_URL=redis://@freudbot_cache:6379/0
+          - AMQP_URL=amqp://freudbot-prod-queue:5672/%2f
         secrets:
           - discord_token
         depends_on:
-          - freudbot_db
-          - freudbot_cache
+          - freudbot-prod-database
+          - freudbot-prod-cache
+          - freudbot-prod-queue
 
-    freudbot_api:
-        image: ghcr.io/tibo-ulens/freudbot_api:latest
-        container_name: freudbot_api
-        ports:
-          - "3000:80"
-        environment:
-          - BASE_URL=http://localhost:3000
-          - HOMEPAGE_URL=http://localhost:5173
-          - SESSION_COOKIE_DOMAIN=.localhost
-          - ACCESS_COOKIE_NAME=DISCORD_ACCESS_TOKEN
-          - REFRESH_COOKIE_NAME=DISCORD_REFRESH_TOKEN
-
-          - DB_URL=postgresql+asyncpg://postgres_user@freudbot_db/freudbot
-          - PGPASSWORD=postgres_password
+    freudbot-prod-api:
+        <<: *common-config
+        image: ghcr.io/tibo-ulens/freudbot-api:latest
+        container_name: freudbot-prod-api
         logging:
             options:
-                max-size: "4096m"
+                max-size: "100m"
+        ports:
+          - "4000:80"
+          - "6669:6669"
+        environment:
+          - DB_URL=postgres://freudbot:freudbot@freudbot-prod-database/freudbot
+          - CACHE_URL=redis://@freudbot-prod-cache:6379/0
+          - AMQP_URL=amqp://freudbot-prod-queue:5672/%2f
+
+          - REDIRECT_URL=https://freudbot.org/api/auth/callback
+          - AUTH_URL=https://discord.com/api/oauth2/authorize?response_type=code
+          - TOKEN_URL=https://discord.com/api/oauth2/token
+
+          - BASE_URL=https://freudbot.org
+
+          - COOKIE_DOMAIN=freudbot.org
+          - PKCE_VERIFIER_COOKIE_NAME=freudbot_pkce_uuid
+          - CSRF_TOKEN_COOKIE_NAME=freudbot_csrf
+          - OAUTH_REDIRECT_COOKIE_NAME=freudbot_oauth_redirect
+          - ACCESS_TOKEN_COOKIE_NAME=freudbot_discord_access_token
+          - REFRESH_TOKEN_COOKIE_NAME=freudbot_discord_refresh_token
+
+          - PKCE_VERIFIER_COOKIE_LIFESPAN=60
+          - CSRF_TOKEN_COOKIE_LIFESPAN=60
+          - OAUTH_REDIRECT_COOKIE_LIFESPAN=60
+          - ACCESS_TOKEN_COOKIE_LIFESPAN=604800
+          - REFRESH_TOKEN_COOKIE_LIFESPAN=1814400
         secrets:
           - discord_oauth_credentials
           - discord_token
-        healthcheck:
-            test: curl --fail http://localhost/ || exit 1
-            interval: 30s
-            timeout: 5s
-            retries: 5
-            start_period: 10s
+          - gmail_smtp_credentials
         depends_on:
-          - freudbot
+          - freudbot-prod-database
+          - freudbot-prod-cache
+          - freudbot-prod-queue
 
-    freudbot_db:
+    freudbot-prod-database:
+        <<: *common-config
         image: postgres:17-alpine
-        container_name: freudbot_db
-        restart: unless-stopped
+        container_name: freudbot-prod-database
         logging:
             options:
-                max-size: "4096m"
-        environment:
-          - POSTGRES_PASSWORD=postgres_password
-          - POSTGRES_USER=postgres_user
-          - POSTGRES_DB=freudbot
+                max-size: "100m"
         ports:
           - "5432:5432"
-        volumes:
-          - freudbot_data:/var/lib/postgresql/data
-        healthcheck:
-            test: pg_isready -d freudbot -h freudbot_db -U postgres_user
-            interval: 30s
-            timeout: 5s
-            retries: 5
-            start_period: 10s
+        environment:
+          - POSTGRES_PASSWORD=freudbot
+          - POSTGRES_USER=freudbot
+          - POSTGRES_DB=freudbot
 
-    freudbot_cache:
+    freudbot-prod-cache:
+        <<: *common-config
         image: redis:7-alpine
-        container_name: freudbot_cache
-        restart: unless-stopped
+        container_name: freudbot-prod-cache
         logging:
             options:
-                max-size: "4096m"
+                max-size: "100m"
         ports:
           - "6379:6379"
-        healthcheck:
-            test: ["CMD", "redis-cli", "ping"]
-            interval: 30s
-            timeout: 5s
-            retries: 5
-            start_period: 10s
 
-volumes:
-    freudbot_data:
-        external: true
+    freudbot-prod-queue:
+        <<: *common-config
+        image: rabbitmq:4-management-alpine
+        container_name: freudbot-prod-queue
+        logging:
+            options:
+                max-size: "100m"
+        ports:
+          - "5672:5672"
+          - "15672:15672"
 
 secrets:
     discord_token:
@@ -94,3 +109,8 @@ secrets:
         file: ./secrets/discord_oauth_credentials.txt
     gmail_smtp_credentials:
         file: ./secrets/gmail_smtp_credentials.txt
+
+networks:
+    freudbot-prod-network:
+        name: freudbot-prod-network
+        driver: bridge
