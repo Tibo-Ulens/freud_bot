@@ -1,0 +1,11 @@
+.svelte-kit/
+build/
+node_modules/
+
+.dockerignore
+.gitignore
+.prettierignore
+.prettierrc
+
+Dockerfile.dev
+esling.config.js

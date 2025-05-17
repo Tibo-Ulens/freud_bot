@@ -16,6 +16,7 @@ base64 = "0.22.1"
 chrono = { version="0.4.41", features=["serde"] }
 console-subscriber = "0.4.1"
 deadpool-redis = "0.20.0"
+deadpool-lapin = "0.12.1"
 diesel = { version="2.2.10", features=["chrono", "uuid"] }
 diesel-async = { version="0.5.2", features=["postgres", "deadpool", "async-connection-wrapper"] }
 http = "1.3.1"

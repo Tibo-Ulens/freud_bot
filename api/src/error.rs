@@ -5,6 +5,8 @@ use std::sync::LazyLock;
 
 use axum::Json;
 use axum::response::{IntoResponse, Response};
+use deadpool_lapin::PoolError as QPoolError;
+use deadpool_lapin::lapin::Error as LapinError;
 use deadpool_redis::PoolError as CPoolError;
 use deadpool_redis::redis::RedisError;
 use diesel::result::DatabaseErrorKind;
@@ -133,6 +135,9 @@ pub enum InternalError {
 	#[error("database error -- {0:?}")]
 	DatabaseError(diesel::result::Error),
 
+	#[error("database pool error -- {0:?}")]
+	DatabasePoolError(#[from] DPoolError),
+
 	/// Malformed email
 	#[error("invalid email -- {0:?}")]
 	InvalidEmail(lettre::address::AddressError),
@@ -148,8 +153,11 @@ pub enum InternalError {
 	#[error("mail error -- {0:?}")]
 	MailError(lettre::error::Error),
 
-	#[error("database pool error -- {0:?}")]
-	DatabasePoolError(#[from] DPoolError),
+	#[error("queue pool error -- {0:?}")]
+	QueuePoolError(#[from] QPoolError),
+
+	#[error("queue error -- {0:?}")]
+	QueueError(#[from] LapinError),
 
 	#[error("reqwest error -- {0:?}")]
 	ReqwestError(#[from] reqwest::Error),
@@ -171,6 +179,14 @@ impl From<DPoolError> for Error {
 
 impl From<CPoolError> for Error {
 	fn from(value: CPoolError) -> Self { InternalError::CachePoolError(value).into() }
+}
+
+impl From<QPoolError> for Error {
+	fn from(value: QPoolError) -> Self { InternalError::QueuePoolError(value).into() }
+}
+
+impl From<LapinError> for Error {
+	fn from(value: LapinError) -> Self { InternalError::QueueError(value).into() }
 }
 
 impl From<RedisError> for Error {

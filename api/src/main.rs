@@ -8,10 +8,8 @@ use axum::Router;
 use axum::extract::FromRef;
 use axum::routing::{get, post};
 use axum_extra::extract::cookie::Key;
-use deadpool_redis::{Config, Connection, Pool as CPool, Runtime};
 use diesel_async::AsyncPgConnection;
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
-use diesel_async::pooled_connection::deadpool::{Object, Pool as DPool};
 use lettre::Address;
 use mailer::Mailer;
 use middleware::AuthLayer;
@@ -38,11 +36,13 @@ pub mod schema;
 use error::Error;
 use routes::{confirm_verify, is_verified, login, logout, me, oauth_callback, request_verify};
 
-type DbPool = DPool<AsyncPgConnection>;
-type CachePool = CPool;
+type DbPool = diesel_async::pooled_connection::deadpool::Pool<AsyncPgConnection>;
+type CachePool = deadpool_redis::Pool;
+type AmqpPool = deadpool_lapin::Pool;
 
-type DbConn = Object<AsyncPgConnection>;
-type CacheConn = Connection;
+type DbConn = diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection>;
+type CacheConn = deadpool_redis::Connection;
+type AmqpConn = deadpool_lapin::Connection;
 
 type SetBasicClient =
 	BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
@@ -55,6 +55,7 @@ pub struct AppState {
 
 	db_pool:    DbPool,
 	cache_pool: CachePool,
+	amqp_pool:  AmqpPool,
 
 	cookie_key: Key,
 	cookie_cfg: CookieConfig,
@@ -94,6 +95,10 @@ impl FromRef<AppState> for DbPool {
 
 impl FromRef<AppState> for CachePool {
 	fn from_ref(input: &AppState) -> Self { input.cache_pool.clone() }
+}
+
+impl FromRef<AppState> for AmqpPool {
+	fn from_ref(input: &AppState) -> Self { input.amqp_pool.clone() }
 }
 
 impl FromRef<AppState> for Key {
@@ -137,17 +142,31 @@ async fn main() -> Result<(), Error> {
 		let db_url = get_env_or_panic::<String>("DB_URL");
 		let db_pool_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url.clone());
 
-		DPool::builder(db_pool_config).build().expect("COULD NOT CREATE DATABASE CONNECTION POOL")
+		diesel_async::pooled_connection::deadpool::Pool::builder(db_pool_config)
+			.build()
+			.expect("COULD NOT CREATE DATABASE CONNECTION POOL")
 	};
 
 	info!("creating cache threadpool...");
 	let cache_pool = {
 		let cache_url = get_env_or_panic::<String>("CACHE_URL");
-		let cache_cfg = Config::from_url(cache_url);
+		let cache_cfg = deadpool_redis::Config::from_url(cache_url);
 
 		cache_cfg
-			.create_pool(Some(Runtime::Tokio1))
+			.create_pool(Some(deadpool_redis::Runtime::Tokio1))
 			.expect("COULD NOT CREATE CACHE CONNECTION POOL")
+	};
+
+	info!("creating AMQP threadpool...");
+	let amqp_pool = {
+		let amqp_cfg = deadpool_lapin::Config {
+			url: Some(get_env_or_panic("AMQP_URL")),
+			..Default::default()
+		};
+
+		amqp_cfg
+			.create_pool(Some(deadpool_lapin::Runtime::Tokio1))
+			.expect("COULD NOT CREATE AMQP POOL")
 	};
 
 	info!("creating OAuth2 client...");
@@ -201,8 +220,16 @@ async fn main() -> Result<(), Error> {
 	let base_url = get_env_or_panic::<String>("BASE_URL");
 
 	info!("creating HTTP server...");
-	let app_state =
-		AppState { oauth_client, mailer, db_pool, cache_pool, cookie_key, cookie_cfg, base_url };
+	let app_state = AppState {
+		oauth_client,
+		mailer,
+		db_pool,
+		cache_pool,
+		amqp_pool,
+		cookie_key,
+		cookie_cfg,
+		base_url,
+	};
 	let app = Router::new()
 		.route("/auth/login", get(login))
 		.route("/auth/callback", get(oauth_callback))

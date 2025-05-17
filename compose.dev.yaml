@@ -68,6 +68,7 @@ services:
         environment:
           - DB_URL=postgres://freudbot:freudbot@freudbot-dev-database/freudbot
           - CACHE_URL=redis://@freudbot-dev-cache:6379/0
+          - AMQP_URL=amqp://freudbot-dev-queue:5672/%2f
 
           - REDIRECT_URL=https://freudbot.local/api/auth/callback
           - AUTH_URL=https://discord.com/api/oauth2/authorize?response_type=code
@@ -118,6 +119,16 @@ services:
                 max-size: "100m"
         ports:
           - "6379:6379"
+
+    freudbot-dev-queue:
+        <<: *common-config
+        image: rabbitmq:4-alpine
+        container_name: freudbot-dev-queue
+        logging:
+            options:
+                max-size: "100m"
+        ports:
+          - "5672:5672"
 
 secrets:
     discord_token:

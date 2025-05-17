@@ -88,7 +88,7 @@ impl PendingProfile {
 	}
 
 	/// Find a [`PendingProfile`] by its discord ID
-	pub async fn find(query_id: String, conn: &mut DbConn) -> QueryResult<Self> {
+	pub async fn find(query_id: &str, conn: &mut DbConn) -> QueryResult<Self> {
 		use crate::schema::pending_profile::dsl::*;
 
 		pending_profile.find(query_id).get_result(conn).await
@@ -125,7 +125,7 @@ impl PendingProfile {
 
 impl VerifiedProfile {
 	/// Try to find a [`VerifiedProfile`] with a given id
-	pub async fn exists(query_id: String, conn: &mut DbConn) -> QueryResult<bool> {
+	pub async fn exists(query_id: &str, conn: &mut DbConn) -> QueryResult<bool> {
 		use crate::schema::verified_profile::dsl::*;
 
 		let count: i64 =
@@ -135,7 +135,7 @@ impl VerifiedProfile {
 	}
 
 	/// Try to find a [`VerifiedProfile`] with a given email
-	pub async fn exists_email(query_email: String, conn: &mut DbConn) -> QueryResult<bool> {
+	pub async fn exists_email(query_email: &str, conn: &mut DbConn) -> QueryResult<bool> {
 		use crate::schema::verified_profile::dsl::*;
 
 		let count: i64 =

@@ -2,9 +2,9 @@ target/
 
 .dockerignore
 .gitignore
-.rustfmt.toml
 
 diesel.toml
 Dockerfile
 Makefile
-rust-toolchain
+rust-toolchain.toml
+rustfmt.toml

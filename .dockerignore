@@ -12,10 +12,10 @@ venv/
 .pylintrc
 .tool-versions
 alembic.ini
+compose.dev.yaml
+compose.prod.yaml
 CONTRIBUTING.md
-docker-compose.yaml
 Dockerfile.bot
-Dockerfile.webconfig
 LICENSE
 Makefile
 README.md
