@@ -58,7 +58,7 @@
 		<Card.Content>
 			<form
 				method="POST"
-				action="{PUBLIC_API_URL}/request_verify"
+				action="{PUBLIC_API_URL}/verify/request"
 				onsubmit={verify}
 				class="flex flex-col content-start items-center"
 			>

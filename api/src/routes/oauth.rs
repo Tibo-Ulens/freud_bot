@@ -110,7 +110,7 @@ pub async fn login(
 	let (auth_url, csrf_token) = oauth_client
 		.authorize_url(CsrfToken::new_random)
 		.set_pkce_challenge(pkce_challenge)
-		.add_scope(Scope::new("identify".to_string()))
+		.add_scopes([Scope::new("identify".to_string()), Scope::new("guilds".to_string())])
 		.url();
 
 	let mut conn = cache_pool.get().await?;

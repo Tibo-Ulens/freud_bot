@@ -1,9 +1,11 @@
 use axum::Json;
 use axum::response::IntoResponse;
 
+mod config;
 mod oauth;
 mod verify;
 
+pub use config::*;
 pub use oauth::*;
 pub use verify::*;
 

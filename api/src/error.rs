@@ -165,6 +165,9 @@ pub enum InternalError {
 	#[error("JSON (de)serialization error -- {0:?}")]
 	SerdeJsonError(#[from] serde_json::Error),
 
+	#[error("Serenity Discord API error -- {0:?}")]
+	SerenityError(#[from] serenity::Error),
+
 	#[error("url parsing error -- {0:?}")]
 	UrlParseError(#[from] oauth2::url::ParseError),
 }
@@ -199,6 +202,10 @@ impl From<oauth2::url::ParseError> for Error {
 
 impl From<serde_json::Error> for Error {
 	fn from(value: serde_json::Error) -> Self { InternalError::SerdeJsonError(value).into() }
+}
+
+impl From<serenity::Error> for Error {
+	fn from(value: serenity::Error) -> Self { InternalError::SerenityError(value).into() }
 }
 
 /// Map of constraint names to column names.

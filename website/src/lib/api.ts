@@ -49,7 +49,7 @@ export class Api {
 	): Promise<ApiResponse<null>> {
 		console.log("requesting verification code");
 
-		const response = await fetch(`${PUBLIC_API_URL}/request_verify`, {
+		const response = await fetch(`${PUBLIC_API_URL}/verify/request`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -100,7 +100,7 @@ export class Api {
 	public static async is_verified(fetch: Fetch, url: URL): Promise<ApiResponse<boolean>> {
 		console.log("checking if verified");
 
-		const response = await fetch(`${PUBLIC_API_URL}/is_verified`);
+		const response = await fetch(`${PUBLIC_API_URL}/verify/check`);
 
 		if (response.status === 401) {
 			return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);

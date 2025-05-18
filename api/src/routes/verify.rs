@@ -12,7 +12,7 @@ use crate::{AmqpPool, DbPool};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VerifyData {
-	email: String,
+	pub email: String,
 }
 
 #[instrument(skip(pool, mailer, base_url))]
@@ -23,9 +23,11 @@ pub async fn request_verify(
 	user: DiscordUser,
 	Json(data): Json<VerifyData>,
 ) -> Result<impl IntoResponse, Error> {
+	let user_id = user.0.id.to_string();
+
 	let mut conn = pool.get().await?;
 
-	if VerifiedProfile::exists(&user.id, &mut conn).await? {
+	if VerifiedProfile::exists(&user_id, &mut conn).await? {
 		return Err(Error::Duplicate("discord_id".to_string()));
 	}
 
@@ -33,7 +35,7 @@ pub async fn request_verify(
 		return Err(Error::Duplicate("email".to_string()));
 	}
 
-	let pending_profile = PendingProfile::new_or_update(user.id, data.email, &mut conn).await?;
+	let pending_profile = PendingProfile::new_or_update(user_id, data.email, &mut conn).await?;
 
 	mailer
 		.send_verification_link(&pending_profile, &pending_profile.confirmation_code, &base_url)
@@ -49,8 +51,10 @@ pub async fn confirm_verify(
 	Path(confirmation_code): Path<String>,
 	user: DiscordUser,
 ) -> Result<Response, Error> {
+	let user_id = user.0.id.to_string();
+
 	let mut dconn = dpool.get().await?;
-	let pending_profile = PendingProfile::find(&user.id, &mut dconn).await?;
+	let pending_profile = PendingProfile::find(&user_id, &mut dconn).await?;
 
 	if confirmation_code != pending_profile.confirmation_code {
 		return Err(Error::InvalidConfirmationCode);
@@ -60,7 +64,7 @@ pub async fn confirm_verify(
 
 	let qconn = qpool.get().await?;
 
-	let command = VerificationCommand::new(user.id.as_bytes());
+	let command = VerificationCommand::new(user_id.as_bytes());
 	command.send(&qconn).await?;
 
 	Ok(NoContent.into_response())
@@ -70,7 +74,7 @@ pub async fn confirm_verify(
 pub async fn is_verified(State(pool): State<DbPool>, user: DiscordUser) -> Result<Response, Error> {
 	let mut conn = pool.get().await?;
 
-	if VerifiedProfile::exists(&user.id, &mut conn).await? {
+	if VerifiedProfile::exists(&user.0.id.to_string(), &mut conn).await? {
 		return Ok(Json(true).into_response());
 	}
 

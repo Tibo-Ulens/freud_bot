@@ -6,6 +6,7 @@ use deadpool_redis::redis::AsyncCommands;
 use http::request::Parts;
 use oauth2::AccessToken;
 use serde::{Deserialize, Serialize};
+use serenity::all::{Http, LightMethod, Request, Route, User};
 use time::Duration;
 
 use crate::error::{AuthorizationError, Error};
@@ -14,10 +15,11 @@ use crate::{CacheConn, CachePool, CookieConfig};
 /// The user data that's returned from the Discord OAuth API and which is also
 /// needed within this application
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct DiscordUser {
-	pub id:       String,
-	pub username: String,
-	pub avatar:   Option<String>,
+#[repr(transparent)]
+pub struct DiscordUser(pub User);
+
+impl AsRef<User> for DiscordUser {
+	fn as_ref(&self) -> &User { &self.0 }
 }
 
 impl<S> FromRequestParts<S> for DiscordUser
@@ -70,34 +72,26 @@ where
 
 /// Fetch data about the current user from the discord API and store it in the
 /// cache
-pub async fn cache_user_data<T>(
-	token: T,
+pub async fn cache_user_data(
+	token: &str,
 	lifetime: Duration,
 	conn: &mut CacheConn,
-) -> Result<(), Error>
-where
-	T: std::fmt::Display + deadpool_redis::redis::ToRedisArgs + Sync,
-{
+) -> Result<(), Error> {
 	debug!("Caching user data...");
 
-	let client = reqwest::Client::new();
-	let user_data: DiscordUser = client
-		.get("https://discordapp.com/api/users/@me")
-		.bearer_auth(&token)
-		.send()
-		.await?
-		.json::<DiscordUser>()
-		.await?;
+	let http = Http::new(&format!("Bearer {token}"));
+	let request = Request::new(Route::UserMe, LightMethod::Get);
+	let user_data = http.fire::<User>(request).await?;
 
 	// Encode the user object as a json string because the redis json api
 	// inspires existential dread
 	let data_str = serde_json::to_string(&user_data)?;
 
-	let _: () = conn.set(&token, data_str).await?;
+	let _: () = conn.set(token, data_str).await?;
 
 	// Set the expiry equal to the access token expiry to ensure no user
 	// data is available once authentication has been lost
-	let _: () = conn.expire(&token, lifetime.whole_seconds()).await?;
+	let _: () = conn.expire(token, lifetime.whole_seconds()).await?;
 
 	debug!("Cached user data");
 

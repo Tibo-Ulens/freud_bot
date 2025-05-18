@@ -34,7 +34,17 @@ pub mod routes;
 pub mod schema;
 
 use error::Error;
-use routes::{confirm_verify, is_verified, login, logout, me, oauth_callback, request_verify};
+use routes::{
+	confirm_verify,
+	get_guild_info,
+	get_manageable_guilds,
+	is_verified,
+	login,
+	logout,
+	me,
+	oauth_callback,
+	request_verify,
+};
 
 type DbPool = diesel_async::pooled_connection::deadpool::Pool<AsyncPgConnection>;
 type CachePool = deadpool_redis::Pool;
@@ -47,11 +57,23 @@ type AmqpConn = deadpool_lapin::Connection;
 type SetBasicClient =
 	BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
 
+#[derive(Clone)]
+pub struct DiscordToken(pub String);
+
+impl From<String> for DiscordToken {
+	fn from(value: String) -> Self { Self(value) }
+}
+
+impl From<DiscordToken> for String {
+	fn from(value: DiscordToken) -> Self { value.0 }
+}
+
 /// The internal state of the axum app
 #[derive(Clone)]
 pub struct AppState {
-	oauth_client: SetBasicClient,
-	mailer:       Mailer,
+	oauth_client:  SetBasicClient,
+	discord_token: DiscordToken,
+	mailer:        Mailer,
 
 	db_pool:    DbPool,
 	cache_pool: CachePool,
@@ -83,6 +105,10 @@ pub struct CookieConfig {
 
 impl FromRef<AppState> for SetBasicClient {
 	fn from_ref(input: &AppState) -> Self { input.oauth_client.clone() }
+}
+
+impl FromRef<AppState> for DiscordToken {
+	fn from_ref(input: &AppState) -> Self { input.discord_token.clone() }
 }
 
 impl FromRef<AppState> for Mailer {
@@ -219,9 +245,14 @@ async fn main() -> Result<(), Error> {
 
 	let base_url = get_env_or_panic::<String>("BASE_URL");
 
+	let discord_token = std::fs::read_to_string("/run/secrets/discord_token")
+		.expect("COULD NOT READ DISCORD BOT TOKEN")
+		.into();
+
 	info!("creating HTTP server...");
 	let app_state = AppState {
 		oauth_client,
+		discord_token,
 		mailer,
 		db_pool,
 		cache_pool,
@@ -230,18 +261,30 @@ async fn main() -> Result<(), Error> {
 		cookie_cfg,
 		base_url,
 	};
+
+	let auth_routes = Router::new()
+		.route("/login", get(login))
+		.route("/callback", get(oauth_callback))
+		.route("/logout", get(logout));
+
+	let verify_routes = Router::new()
+		.route("/request", post(request_verify))
+		.route("/{confirmation_code}", post(confirm_verify))
+		.route("/check", get(is_verified));
+
+	let config_routes = Router::new()
+		.route("/guilds", get(get_manageable_guilds))
+		.route("/guild/{guild_id}", get(get_guild_info));
+
+	let protected_routes = Router::new()
+		.route("/me", get(me))
+		.nest("/verify", verify_routes)
+		.nest("/config", config_routes)
+		.route_layer(AuthLayer::new(app_state.clone()));
+
 	let app = Router::new()
-		.route("/auth/login", get(login))
-		.route("/auth/callback", get(oauth_callback))
-		.route("/auth/logout", get(logout))
-		.merge(
-			Router::new()
-				.route("/me", get(me))
-				.route("/request_verify", post(request_verify))
-				.route("/verify/{confirmation_code}", post(confirm_verify))
-				.route("/is_verified", get(is_verified))
-				.route_layer(AuthLayer::new(app_state.clone())),
-		)
+		.nest("/auth", auth_routes)
+		.merge(protected_routes)
 		.layer(TimeoutLayer::new(std::time::Duration::from_secs(5)))
 		.layer(CompressionLayer::new())
 		.layer(
