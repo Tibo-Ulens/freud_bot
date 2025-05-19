@@ -19,7 +19,7 @@ async def verify_member_in_guild(user_id: Snowflake, guild: Guild, bot: Bot):
     if verified_role_id is None:
         return
 
-    verified_role = guild.get_role(int(verified_role_id))
+    verified_role = guild.get_role(verified_role_id)
     if verified_role is None:
         return
 
@@ -47,9 +47,7 @@ async def verify_listener(bot: Bot):
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
             async with message.process():
-                body = message.body.decode()
-
-                user_id = int(body)
+                user_id = int.from_bytes(message.body, "little")
 
                 logger.info(f"got verification command for user {user_id}")
 

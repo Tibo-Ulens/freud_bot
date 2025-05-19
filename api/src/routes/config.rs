@@ -36,12 +36,7 @@ pub async fn get_manageable_guilds(
 	let (user_guilds, configs) =
 		join!(http.fire::<Vec<GuildInfo>>(request), Config::all(&mut conn));
 
-	// Unwrap is safe because discord IDs are always valid u64s despite the
-	// fact that the API actually returns them as strings
-	//
-	// discord devs if i ever get my hands on you istfg
-	let config_ids =
-		configs?.iter().map(|c| c.guild_id.parse::<u64>().unwrap()).collect::<Vec<_>>();
+	let config_ids = configs?.iter().map(|c| c.guild_id.0).collect::<Vec<_>>();
 
 	let manageable_guilds = user_guilds?
 		.into_iter()
@@ -124,14 +119,17 @@ pub async fn get_guild_channels(
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PatchConfigData {
-	pub guild_id:                     String,
-	pub verified_role:                Option<String>,
-	pub admin_role:                   Option<String>,
-	pub logging_channel:              Option<String>,
-	pub verification_logging_channel: Option<String>,
-	pub confession_approval_channel:  Option<String>,
-	pub confession_channel:           Option<String>,
-	pub pin_reaction_threshold:       Option<i32>,
+	pub guild_id: u64,
+
+	pub verified_role:                Option<u64>,
+	pub admin_role:                   Option<u64>,
+	pub logging_channel:              Option<u64>,
+	pub verification_logging_channel: Option<u64>,
+	pub confession_approval_channel:  Option<u64>,
+	pub confession_channel:           Option<u64>,
+
+	pub pin_reaction_threshold: Option<i32>,
+
 	pub request_verification_message: Option<String>,
 }
 
