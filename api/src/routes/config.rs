@@ -21,7 +21,7 @@ use tokio::join;
 
 use crate::error::Error;
 use crate::extractors::discord::DiscordUser;
-use crate::models::database::{Config, PgU64};
+use crate::models::database::Config;
 use crate::{DbPool, DiscordToken};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -45,7 +45,12 @@ pub async fn get_manageable_guilds(
 	let (user_guilds, configs) =
 		join!(http.fire::<Vec<GuildInfo>>(request), Config::all(&mut conn));
 
-	let config_ids = configs?.iter().map(|c| c.guild_id.0).collect::<Vec<_>>();
+	// Unwrap is safe because discord IDs are always valid u64s despite the
+	// fact that the API actually returns them as strings
+	//
+	// discord devs if i ever get my hands on you istfg
+	let config_ids =
+		configs?.iter().map(|c| c.guild_id.parse::<u64>().unwrap()).collect::<Vec<_>>();
 
 	let manageable_guilds = user_guilds?
 		.into_iter()
@@ -154,12 +159,12 @@ pub async fn get_guild_channels(
 #[derive(AsChangeset, Clone, Debug, Deserialize, Serialize)]
 #[diesel(table_name = crate::schema::config)]
 pub struct PatchConfigData {
-	pub admin_role:                   Option<PgU64>,
-	pub logging_channel:              Option<PgU64>,
-	pub verified_role:                Option<PgU64>,
-	pub verification_logging_channel: Option<PgU64>,
-	pub confession_approval_channel:  Option<PgU64>,
-	pub confession_channel:           Option<PgU64>,
+	pub verified_role:                Option<String>,
+	pub admin_role:                   Option<String>,
+	pub logging_channel:              Option<String>,
+	pub verification_logging_channel: Option<String>,
+	pub confession_approval_channel:  Option<String>,
+	pub confession_channel:           Option<String>,
 	pub pin_reaction_threshold:       Option<i32>,
 	pub request_verification_message: Option<String>,
 }
@@ -167,7 +172,7 @@ pub struct PatchConfigData {
 #[instrument(skip(pool))]
 pub async fn patch_config(
 	State(pool): State<DbPool>,
-	Path(guild_id): Path<u64>,
+	Path(guild_id): Path<String>,
 	user: DiscordUser,
 	Json(data): Json<PatchConfigData>,
 ) -> Result<impl IntoResponse, Error> {

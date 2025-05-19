@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS config (
-	guild_id BIGINT PRIMARY KEY,
+	guild_id TEXT PRIMARY KEY,
 
-	verified_role                BIGINT UNIQUE,
-	admin_role                   BIGINT UNIQUE,
-	logging_channel              BIGINT UNIQUE,
-	verification_logging_channel BIGINT UNIQUE,
-	confession_approval_channel  BIGINT UNIQUE,
-	confession_channel           BIGINT UNIQUE,
+	verified_role                TEXT UNIQUE,
+	admin_role                   TEXT UNIQUE,
+	logging_channel              TEXT UNIQUE,
+	verification_logging_channel TEXT UNIQUE,
+	confession_approval_channel  TEXT UNIQUE,
+	confession_channel           TEXT UNIQUE,
 
 	pin_reaction_threshold INTEGER NOT NULL DEFAULT 5,
 

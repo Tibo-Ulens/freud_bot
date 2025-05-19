@@ -2,7 +2,6 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 
-use super::PgU64;
 use crate::DbConn;
 use crate::routes::PatchConfigData;
 use crate::schema::config;
@@ -11,13 +10,13 @@ use crate::schema::config;
 #[diesel(table_name = config)]
 #[diesel(primary_key(guild_id))]
 pub struct Config {
-	pub guild_id:                     PgU64,
-	pub verified_role:                Option<PgU64>,
-	pub admin_role:                   Option<PgU64>,
-	pub logging_channel:              Option<PgU64>,
-	pub verification_logging_channel: Option<PgU64>,
-	pub confession_approval_channel:  Option<PgU64>,
-	pub confession_channel:           Option<PgU64>,
+	pub guild_id:                     String,
+	pub verified_role:                Option<String>,
+	pub admin_role:                   Option<String>,
+	pub logging_channel:              Option<String>,
+	pub verification_logging_channel: Option<String>,
+	pub confession_approval_channel:  Option<String>,
+	pub confession_channel:           Option<String>,
 	pub pin_reaction_threshold:       i32,
 	pub request_verification_message: String,
 }
@@ -32,12 +31,12 @@ impl Config {
 
 	/// Apply a [`Patch`](PatchConfigData) to a row
 	pub async fn patch(
-		query_id: u64,
+		query_id: String,
 		patch: PatchConfigData,
 		conn: &mut DbConn,
 	) -> QueryResult<Self> {
 		use crate::schema::config::dsl::*;
 
-		diesel::update(config.find(PgU64(query_id))).set(patch).get_result(conn).await
+		diesel::update(config.find(query_id)).set(patch).get_result(conn).await
 	}
 }

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, TIMESTAMP, Text, select, BigInteger
+from sqlalchemy import Column, TIMESTAMP, Text, select
 from sqlalchemy.engine import Result
 
 from models import Base, Model, session_factory
@@ -10,7 +10,7 @@ from models import Base, Model, session_factory
 class PendingProfile(Base, Model):
     __tablename__ = "pending_profile"
 
-    discord_id = Column(BigInteger, primary_key=True)
+    discord_id = Column(Text, primary_key=True)
     email = Column(Text, nullable=False, unique=True)
     confirmation_code = Column(Text, nullable=False, unique=True)
     registered_at = Column(TIMESTAMP, nullable=False)
@@ -35,7 +35,7 @@ class PendingProfile(Base, Model):
 
         async with session_factory() as session:
             result: Result = await session.execute(
-                select(cls).where(cls.discord_id == discord_id)
+                select(cls).where(cls.discord_id == str(discord_id))
             )
 
             r = result.first()
@@ -63,7 +63,7 @@ class PendingProfile(Base, Model):
 class VerifiedProfile(Base, Model):
     __tablename__ = "verified_profile"
 
-    discord_id = Column(BigInteger, primary_key=True)
+    discord_id = Column(Text, primary_key=True)
     email = Column(Text, nullable=False, unique=True)
     verified_at = Column(TIMESTAMP, nullable=False)
 
@@ -87,7 +87,7 @@ class VerifiedProfile(Base, Model):
 
         async with session_factory() as session:
             result: Result = await session.execute(
-                select(cls).where(cls.discord_id == discord_id)
+                select(cls).where(cls.discord_id == str(discord_id))
             )
 
             r = result.first()

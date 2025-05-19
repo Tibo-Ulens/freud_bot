@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from sqlalchemy import Column, Integer, Text, select, BigInteger
+from sqlalchemy import Column, Integer, Text, select
 from sqlalchemy.engine import Result
 from sqlalchemy.schema import FetchedValue
 
@@ -16,16 +16,16 @@ logger = logging.getLogger("models")
 class Config(Base, Model):
     __tablename__ = "config"
 
-    guild_id = Column(BigInteger, primary_key=True)
+    guild_id = Column(Text, primary_key=True)
 
-    verified_role = Column(BigInteger, unique=True, nullable=True)
-    admin_role = Column(BigInteger, unique=True, nullable=True)
+    verified_role = Column(Text, unique=True, nullable=True)
+    admin_role = Column(Text, unique=True, nullable=True)
 
-    logging_channel = Column(BigInteger, unique=True, nullable=True)
-    verification_logging_channel = Column(BigInteger, unique=True, nullable=True)
+    logging_channel = Column(Text, unique=True, nullable=True)
+    verification_logging_channel = Column(Text, unique=True, nullable=True)
 
-    confession_approval_channel = Column(BigInteger, unique=True, nullable=True)
-    confession_channel = Column(BigInteger, unique=True, nullable=True)
+    confession_approval_channel = Column(Text, unique=True, nullable=True)
+    confession_channel = Column(Text, unique=True, nullable=True)
 
     pin_reaction_threshold = Column(Integer, FetchedValue(), nullable=False)
 
@@ -37,7 +37,7 @@ class Config(Base, Model):
 
         async with session_factory() as session:
             result: Result = await session.execute(
-                select(cls).where(cls.guild_id == guild_id)
+                select(cls).where(cls.guild_id == str(guild_id))
             )
 
             r = result.first()
@@ -52,11 +52,11 @@ class Config(Base, Model):
 
         async with session_factory() as session:
             result: Result = await session.execute(
-                select(cls).where(cls.guild_id == guild.id)
+                select(cls).where(cls.guild_id == str(guild.id))
             )
 
             r = result.first()
             if r is None:
-                return await Config.create(guild_id=guild.id)
+                return await Config.create(guild_id=str(guild.id))
 
             return r[0]

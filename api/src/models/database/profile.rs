@@ -8,7 +8,6 @@ use lettre::message::Mailbox;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::PgU64;
 use crate::DbConn;
 use crate::error::Error;
 use crate::schema::{pending_profile, verified_profile};
@@ -19,7 +18,7 @@ use crate::schema::{pending_profile, verified_profile};
 #[diesel(table_name = pending_profile)]
 #[diesel(primary_key(discord_id))]
 pub struct PendingProfile {
-	pub discord_id:        PgU64,
+	pub discord_id:        String,
 	pub email:             String,
 	pub confirmation_code: String,
 	pub registered_at:     NaiveDateTime,
@@ -29,7 +28,7 @@ pub struct PendingProfile {
 #[diesel(table_name = verified_profile)]
 #[diesel(primary_key(discord_id))]
 pub struct VerifiedProfile {
-	pub discord_id:  PgU64,
+	pub discord_id:  String,
 	pub email:       String,
 	pub verified_at: NaiveDateTime,
 }
@@ -38,7 +37,7 @@ pub struct VerifiedProfile {
 #[diesel(table_name = pending_profile)]
 #[diesel(primary_key(discord_id))]
 struct NewPendingProfile {
-	discord_id:        PgU64,
+	discord_id:        String,
 	email:             String,
 	confirmation_code: String,
 }
@@ -47,7 +46,7 @@ struct NewPendingProfile {
 #[diesel(table_name = verified_profile)]
 #[diesel(primary_key(discord_id))]
 struct NewVerifiedProfile {
-	discord_id: PgU64,
+	discord_id: String,
 	email:      String,
 }
 
@@ -70,14 +69,13 @@ impl PendingProfile {
 	/// simply update the email if there is already a profile stored
 	#[instrument(skip_all)]
 	pub async fn new_or_update(
-		discord_id: u64,
+		discord_id: String,
 		email: String,
 		conn: &mut DbConn,
 	) -> QueryResult<Self> {
 		let confirmation_code = BASE64_URL_SAFE.encode(Uuid::new_v4().as_bytes());
 
-		let new_profile =
-			NewPendingProfile { discord_id: discord_id.into(), email, confirmation_code };
+		let new_profile = NewPendingProfile { discord_id, email, confirmation_code };
 
 		diesel::insert_into(pending_profile::dsl::pending_profile)
 			.values(&new_profile)
@@ -90,10 +88,10 @@ impl PendingProfile {
 	}
 
 	/// Find a [`PendingProfile`] by its discord ID
-	pub async fn find(query_id: u64, conn: &mut DbConn) -> QueryResult<Self> {
+	pub async fn find(query_id: &str, conn: &mut DbConn) -> QueryResult<Self> {
 		use crate::schema::pending_profile::dsl::*;
 
-		pending_profile.find(PgU64(query_id)).get_result(conn).await
+		pending_profile.find(query_id).get_result(conn).await
 	}
 
 	/// Verify this [`PendingProfile`] and turn it into a [`VerifiedProfile`]
@@ -127,14 +125,11 @@ impl PendingProfile {
 
 impl VerifiedProfile {
 	/// Try to find a [`VerifiedProfile`] with a given id
-	pub async fn exists(query_id: u64, conn: &mut DbConn) -> QueryResult<bool> {
+	pub async fn exists(query_id: &str, conn: &mut DbConn) -> QueryResult<bool> {
 		use crate::schema::verified_profile::dsl::*;
 
-		let count: i64 = verified_profile
-			.filter(discord_id.eq(PgU64(query_id)))
-			.count()
-			.get_result(conn)
-			.await?;
+		let count: i64 =
+			verified_profile.filter(discord_id.eq(query_id)).count().get_result(conn).await?;
 
 		Ok(count > 0)
 	}
