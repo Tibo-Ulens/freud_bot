@@ -43,6 +43,7 @@ use routes::{
 	logout,
 	me,
 	oauth_callback,
+	patch_config,
 	request_verify,
 };
 
@@ -274,7 +275,7 @@ async fn main() -> Result<(), Error> {
 
 	let config_routes = Router::new()
 		.route("/guilds", get(get_manageable_guilds))
-		.route("/guild/{guild_id}", get(get_guild_info));
+		.route("/guild/{guild_id}", get(get_guild_info).patch(patch_config));
 
 	let protected_routes = Router::new()
 		.route("/me", get(me))

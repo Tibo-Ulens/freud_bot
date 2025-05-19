@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::PgU64;
 use crate::DbConn;
+use crate::routes::PatchConfigData;
 use crate::schema::config;
 
 #[derive(Clone, Debug, Deserialize, Identifiable, Insertable, Queryable, Selectable, Serialize)]
@@ -27,5 +28,16 @@ impl Config {
 		use crate::schema::config::dsl::*;
 
 		config.load(conn).await
+	}
+
+	/// Apply a [`Patch`](PatchConfigData) to a row
+	pub async fn patch(
+		query_id: u64,
+		patch: PatchConfigData,
+		conn: &mut DbConn,
+	) -> QueryResult<Self> {
+		use crate::schema::config::dsl::*;
+
+		diesel::update(config.find(PgU64(query_id))).set(patch).get_result(conn).await
 	}
 }

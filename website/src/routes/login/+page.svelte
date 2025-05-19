@@ -14,10 +14,10 @@
 <Button
 	variant="outline"
 	href={auth_url}
-	class="flex flex-row content-around items-center h-auto
-	pt-4 pb-4 pl-8 pr-8 mt-32 text-[2rem] border-2"
+	class="flex flex-row flex-wrap content-around items-center h-auto
+	mx-4 py-1 px-2 md:px-8 mt-32 text-[2rem] border-2"
 >
 	Log in with Discord
 
-	<img src={discord_logo} alt="Discord logo" class="w-20 h-20 m-4 p-2 rounded-lg bg-[#5865f2]" />
+	<img src={discord_logo} alt="Discord logo" class="size-20 m-1 md:m-4 p-2 rounded-lg bg-[#5865f2]" />
 </Button>

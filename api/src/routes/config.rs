@@ -1,6 +1,7 @@
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
+use diesel::prelude::*;
 use http::StatusCode;
 use oauth2::AccessToken;
 use serde::{Deserialize, Serialize};
@@ -20,7 +21,7 @@ use tokio::join;
 
 use crate::error::Error;
 use crate::extractors::discord::DiscordUser;
-use crate::models::database::Config;
+use crate::models::database::{Config, PgU64};
 use crate::{DbPool, DiscordToken};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -150,29 +151,29 @@ pub async fn get_guild_channels(
 	Ok((StatusCode::OK, Json(guild_channels)))
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(AsChangeset, Clone, Debug, Deserialize, Serialize)]
+#[diesel(table_name = crate::schema::config)]
 pub struct PatchConfigData {
-	pub guild_id: String,
-
-	pub verified_role:                Option<String>,
-	pub admin_role:                   Option<String>,
-	pub logging_channel:              Option<String>,
-	pub verification_logging_channel: Option<String>,
-	pub confession_approval_channel:  Option<String>,
-	pub confession_channel:           Option<String>,
-
-	pub pin_reaction_threshold: Option<i32>,
-
+	pub admin_role:                   Option<PgU64>,
+	pub logging_channel:              Option<PgU64>,
+	pub verified_role:                Option<PgU64>,
+	pub verification_logging_channel: Option<PgU64>,
+	pub confession_approval_channel:  Option<PgU64>,
+	pub confession_channel:           Option<PgU64>,
+	pub pin_reaction_threshold:       Option<i32>,
 	pub request_verification_message: Option<String>,
 }
 
-// #[instrument(skip(token))]
-// pub async fn patch_config(
-// 	Extension(token): Extension<AccessToken>,
-// 	user: DiscordUser,
-// 	Json(data): Json<PatchConfigData>
-// ) -> Result<impl IntoResponse, Error> {
-// 	let http = Http::new(&format!("Bearer {}", token.secret()));
+#[instrument(skip(pool))]
+pub async fn patch_config(
+	State(pool): State<DbPool>,
+	Path(guild_id): Path<u64>,
+	user: DiscordUser,
+	Json(data): Json<PatchConfigData>,
+) -> Result<impl IntoResponse, Error> {
+	let mut conn = pool.get().await?;
 
-// 	Ok(NoContent)
-// }
+	let new_config = Config::patch(guild_id, data, &mut conn).await?;
+
+	Ok((StatusCode::OK, Json(new_config)))
+}

@@ -56,6 +56,10 @@ impl From<PgU64> for u64 {
 	fn from(value: PgU64) -> Self { value.0 }
 }
 
+impl From<String> for PgU64 {
+	fn from(value: String) -> Self { Self(value.parse::<u64>().unwrap()) }
+}
+
 impl<DB> FromSql<BigInt, DB> for PgU64
 where
 	DB: Backend,
