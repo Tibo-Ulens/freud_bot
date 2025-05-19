@@ -47,9 +47,6 @@
 								.userdata.avatar}.png"
 							alt="{data.userdata.username} avatar"
 						/>
-						<Avatar.Fallback>
-							{data.userdata.username} avatar
-						</Avatar.Fallback>
 					</Avatar.Root>
 				</Badge>
 			</Card.Title>

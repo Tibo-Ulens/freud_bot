@@ -14,15 +14,34 @@ export type ApiError = {
 export type ApiResponse<T> = ApiData<T> | ApiError;
 
 export type UserData = {
-	id: number;
+	id: string;
 	username: string;
 	avatar: string;
 };
 
 export type Guild = {
-	id: number;
+	id: string;
 	name: string;
 	icon_url: string | null;
+};
+
+export type GuildInfo = {
+	id: string;
+	name: string;
+	icon_url: string | null;
+	channels: Array<Channel>;
+	roles: Array<Role>;
+};
+
+export type Channel = {
+	id: string;
+	name: string;
+};
+
+export type Role = {
+	id: string;
+	name: string;
+	color: string;
 };
 
 export class Api {
@@ -52,6 +71,32 @@ export class Api {
 		console.log("fetching manageable guilds");
 
 		const guild_res = await fetch(`${PUBLIC_API_URL}/config/guilds`, {
+			credentials: "include",
+		});
+
+		if (guild_res.status === 401) {
+			return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);
+		}
+
+		if (guild_res.status === 200) {
+			const guild_data = await guild_res.json();
+			return { tag: "ok", data: guild_data };
+		}
+
+		const error_data = await guild_res.json();
+		const error = { tag: "err", status: guild_res.status, ...error_data };
+
+		return error;
+	}
+
+	public static async get_guild_info(
+		id: string,
+		fetch: Fetch,
+		url: URL,
+	): Promise<ApiResponse<GuildInfo>> {
+		console.log("fetching guild info");
+
+		const guild_res = await fetch(`${PUBLIC_API_URL}/config/guild/${id}`, {
 			credentials: "include",
 		});
 
