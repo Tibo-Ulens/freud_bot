@@ -73,11 +73,19 @@ pub async fn get_manageable_guilds(
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SimpleGuildInfo {
-	id:       String,
-	name:     String,
-	icon_url: Option<String>,
-	channels: Vec<SimpleChannel>,
-	roles:    Vec<SimpleRole>,
+	id:                           String,
+	name:                         String,
+	icon_url:                     Option<String>,
+	channels:                     Vec<SimpleChannel>,
+	roles:                        Vec<SimpleRole>,
+	verified_role:                Option<String>,
+	admin_role:                   Option<String>,
+	logging_channel:              Option<String>,
+	verification_logging_channel: Option<String>,
+	confession_approval_channel:  Option<String>,
+	confession_channel:           Option<String>,
+	pin_reaction_threshold:       i32,
+	request_verification_message: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -93,12 +101,16 @@ pub struct SimpleRole {
 	color: String,
 }
 
-#[instrument(skip(token))]
+#[instrument(skip(pool, token))]
 pub async fn get_guild_info(
+	State(pool): State<DbPool>,
 	State(token): State<DiscordToken>,
 	Path(guild_id): Path<u64>,
 	user: DiscordUser,
 ) -> Result<impl IntoResponse, Error> {
+	let mut conn = pool.get().await?;
+	let config_future = Config::get(guild_id.to_string(), &mut conn);
+
 	// Have to use a bot token here because apparently users have no need for
 	// guild information
 	//
@@ -112,13 +124,15 @@ pub async fn get_guild_info(
 	let roles_request =
 		Request::new(Route::GuildRoles { guild_id: guild_id.into() }, LightMethod::Get);
 
-	let (guild, channels, roles) = join!(
+	let (guild, channels, roles, config) = join!(
 		http.fire::<GuildPreview>(guild_request),
 		http.fire::<Vec<GuildChannel>>(channels_request),
 		http.fire::<Vec<Role>>(roles_request),
+		config_future,
 	);
 
 	let guild = guild?;
+	let config = config?;
 
 	let channels = channels?
 		.into_iter()
@@ -136,8 +150,21 @@ pub async fn get_guild_info(
 		None => None,
 	};
 
-	let guild =
-		SimpleGuildInfo { id: guild.id.to_string(), name: guild.name, icon_url, channels, roles };
+	let guild = SimpleGuildInfo {
+		id: guild.id.to_string(),
+		name: guild.name,
+		icon_url,
+		channels,
+		roles,
+		verified_role: config.verified_role,
+		admin_role: config.admin_role,
+		logging_channel: config.logging_channel,
+		verification_logging_channel: config.verification_logging_channel,
+		confession_approval_channel: config.confession_approval_channel,
+		confession_channel: config.confession_channel,
+		pin_reaction_threshold: config.pin_reaction_threshold,
+		request_verification_message: config.request_verification_message,
+	};
 
 	Ok((StatusCode::OK, Json(guild)))
 }
@@ -170,7 +197,7 @@ pub struct PatchConfigData {
 }
 
 #[instrument(skip(pool))]
-pub async fn patch_config(
+pub async fn update_config(
 	State(pool): State<DbPool>,
 	Path(guild_id): Path<String>,
 	user: DiscordUser,
@@ -178,7 +205,7 @@ pub async fn patch_config(
 ) -> Result<impl IntoResponse, Error> {
 	let mut conn = pool.get().await?;
 
-	let new_config = Config::patch(guild_id, data, &mut conn).await?;
+	let new_config = Config::patch(&guild_id, data, &mut conn).await?;
 
 	Ok((StatusCode::OK, Json(new_config)))
 }

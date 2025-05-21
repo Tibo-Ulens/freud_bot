@@ -24,20 +24,14 @@
 
 {#if collapsible === "none"}
 	<div
-		class={cn(
-			"bg-sidebar text-sidebar-foreground w-(--sidebar-width) flex h-full flex-col",
-			className,
-		)}
+		class={cn("bg-sidebar text-sidebar-foreground w-(--sidebar-width) flex h-full flex-col", className)}
 		bind:this={ref}
 		{...restProps}
 	>
 		{@render children?.()}
 	</div>
 {:else if sidebar.isMobile}
-	<Sheet.Root
-		bind:open={() => sidebar.openMobile, (v) => sidebar.setOpenMobile(v)}
-		{...restProps}
-	>
+	<Sheet.Root bind:open={() => sidebar.openMobile, (v) => sidebar.setOpenMobile(v)} {...restProps}>
 		<Sheet.Content
 			data-sidebar="sidebar"
 			data-slot="sidebar"

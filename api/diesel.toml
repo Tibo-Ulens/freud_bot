@@ -5,4 +5,4 @@
 file = "src/schema.rs"
 
 [migrations_directory]
-dir = "/home/tibo/projects/bois/freud_bot/api/migrations"
+dir = "./migrations"

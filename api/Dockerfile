@@ -10,16 +10,16 @@ WORKDIR /volume/freudbot_api
 COPY ./.cargo ./Cargo.toml ./Cargo.lock ./
 
 # Build and cache dependencies
-RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --release --bin freudbot_api
+RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --bin freudbot_api
 
 RUN rm -r ./src
-RUN rm ./target/x86_64-unknown-linux-musl/release/deps/freudbot_api*
+RUN rm ./target/x86_64-unknown-linux-musl/debug/deps/freudbot_api*
 
 # Copy over actual source code
 COPY ./src ./src
 
 # Build source code (dependencies already built)
-RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --release --bin freudbot_api
+RUN RUSTFLAGS="-Ctarget-cpu=native --cfg tokio_unstable" cargo build --bin freudbot_api
 
 #
 # EXECUTION
@@ -35,7 +35,7 @@ WORKDIR /freudbot_api
 # Copy over the built binary
 COPY \
 	--from=build \
-	/volume/freudbot_api/target/x86_64-unknown-linux-musl/release/freudbot_api \
+	/volume/freudbot_api/target/x86_64-unknown-linux-musl/debug/freudbot_api \
 	.
 
 CMD [ "./freudbot_api" ]

@@ -31,16 +31,13 @@
 		<Card.Footer class="flex flex-col items-center justify-center p-6">
 			{#if data.code_response.code === 8}
 				<div class="flex flex-row items-center justify-center">
-					<Badge
-						variant="outline"
-						class="mr-2 px-2 py-1 font-normal text-md border-2 rounded-3xl"
-					>
+					<Badge variant="outline" class="mr-2 px-2 py-1 font-normal text-md border-2 rounded-3xl">
 						{data.userdata.username}
 
 						<Avatar.Root class="ml-2 size-8">
 							<Avatar.Image
-								src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data
-									.userdata.avatar}.png"
+								src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data.userdata
+									.avatar}.png"
 								alt="{data.userdata.username} avatar"
 							/>
 							<Avatar.Fallback>
@@ -61,16 +58,13 @@
 				<div class="flex flex-row items-center justify-center">
 					This confirmation code is not valid for
 
-					<Badge
-						variant="outline"
-						class="ml-2 px-2 py-1 font-normal text-md border-2 rounded-3xl"
-					>
+					<Badge variant="outline" class="ml-2 px-2 py-1 font-normal text-md border-2 rounded-3xl">
 						{data.userdata.username}
 
 						<Avatar.Root class="ml-2 size-8">
 							<Avatar.Image
-								src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data
-									.userdata.avatar}.png"
+								src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data.userdata
+									.avatar}.png"
 								alt="{data.userdata.username} avatar"
 							/>
 							<Avatar.Fallback>

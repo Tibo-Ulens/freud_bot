@@ -31,6 +31,14 @@ export type GuildInfo = {
 	icon_url: string | null;
 	channels: Array<Channel>;
 	roles: Array<Role>;
+	verified_role: string | undefined;
+	admin_role: string | undefined;
+	logging_channel: string | undefined;
+	verification_logging_channel: string | undefined;
+	confession_approval_channel: string | undefined;
+	confession_channel: string | undefined;
+	pin_reaction_threshold: number;
+	request_verification_message: string;
 };
 
 export type Channel = {
@@ -42,6 +50,18 @@ export type Role = {
 	id: string;
 	name: string;
 	color: string;
+};
+
+export type GuildConfig = {
+	guild_id: string;
+	verified_role: string | null;
+	admin_role: string | null;
+	logging_channel: string | null;
+	verification_logging_channel: string | null;
+	confession_approval_channel: string | null;
+	confession_channel: string | null;
+	pin_reaction_threshold: number;
+	request_verification_message: string;
 };
 
 export class Api {
@@ -89,11 +109,7 @@ export class Api {
 		return error;
 	}
 
-	public static async get_guild_info(
-		id: string,
-		fetch: Fetch,
-		url: URL,
-	): Promise<ApiResponse<GuildInfo>> {
+	public static async get_guild_info(id: string, fetch: Fetch, url: URL): Promise<ApiResponse<GuildInfo>> {
 		console.log("fetching guild info");
 
 		const guild_res = await fetch(`${PUBLIC_API_URL}/config/guild/${id}`, {
@@ -115,11 +131,38 @@ export class Api {
 		return error;
 	}
 
-	public static async request_verify(
-		fetch: Fetch,
+	public static async update_guild(
+		id: string,
 		data: string,
+		fetch: Fetch,
 		url: URL,
-	): Promise<ApiResponse<null>> {
+	): Promise<ApiResponse<GuildConfig>> {
+		console.log("updating guild config");
+
+		const response = await fetch(`${PUBLIC_API_URL}/config/guild/${id}`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: data,
+		});
+
+		if (response.status === 401) {
+			return redirect(307, `/login?redirect=${encodeURIComponent(url.href)}`);
+		}
+
+		if (response.status === 204) {
+			const config_data = await response.json();
+			return { tag: "ok", data: config_data };
+		}
+
+		const error_data = await response.json();
+		const error = { tag: "err", status: response.status, ...error_data };
+
+		return error;
+	}
+
+	public static async request_verify(fetch: Fetch, data: string, url: URL): Promise<ApiResponse<null>> {
 		console.log("requesting verification code");
 
 		const response = await fetch(`${PUBLIC_API_URL}/verify/request`, {
@@ -144,11 +187,7 @@ export class Api {
 		return error;
 	}
 
-	public static async verify_code(
-		fetch: Fetch,
-		code: string,
-		url: URL,
-	): Promise<ApiResponse<null>> {
+	public static async verify_code(fetch: Fetch, code: string, url: URL): Promise<ApiResponse<null>> {
 		console.log("verifying code");
 
 		const verify_res = await fetch(`${PUBLIC_API_URL}/verify/${code}`, {

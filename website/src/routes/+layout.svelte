@@ -16,9 +16,7 @@
 <Sidebar.Provider class="flex flex-col flex-nowrap w-full h-full items-center content-start">
 	<Header />
 
-	<main
-		class="max-w-screen-xl w-full h-full flex flex-col flex-nowrap items-center content-start"
-	>
+	<main class="max-w-screen-xl w-full h-full flex flex-col flex-nowrap items-center content-start">
 		{@render children()}
 	</main>
 

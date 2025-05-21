@@ -14,7 +14,7 @@
 </script>
 
 <header
-	class="sticky top-0 z-50 w-full border-b border-border flex flex-row flex-nowrap justify-center"
+	class="sticky top-0 z-50 w-full bg-background border-b border-border flex flex-row flex-nowrap justify-center"
 >
 	<div class="flex px-2 md:px-4 h-14 w-full max-w-screen-xl items-center content-center">
 		<div class="hidden md:flex h-full">

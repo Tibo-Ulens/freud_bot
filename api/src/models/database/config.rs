@@ -29,14 +29,25 @@ impl Config {
 		config.load(conn).await
 	}
 
+	/// Get a [`Config`] given its guild id
+	pub async fn get(query_id: String, conn: &mut DbConn) -> QueryResult<Self> {
+		use crate::schema::config::dsl::*;
+
+		config.find(query_id).first(conn).await
+	}
+
 	/// Apply a [`Patch`](PatchConfigData) to a row
 	pub async fn patch(
-		query_id: String,
+		query_id: &str,
 		patch: PatchConfigData,
 		conn: &mut DbConn,
 	) -> QueryResult<Self> {
 		use crate::schema::config::dsl::*;
 
-		diesel::update(config.find(query_id)).set(patch).get_result(conn).await
+		let res = diesel::update(config.find(query_id)).set(patch).get_result(conn).await?;
+
+		info!("Updated config for guild {query_id}");
+
+		Ok(res)
 	}
 }

@@ -35,16 +35,13 @@
 		<Card.Header>
 			<Card.Title class="font-normal text-2xl text-center">
 				Verify your email for the account
-				<Badge
-					variant="outline"
-					class="ml-2 px-4 py-2 font-normal text-2xl border-2 rounded-3xl"
-				>
+				<Badge variant="outline" class="ml-2 px-4 py-2 font-normal text-2xl border-2 rounded-3xl">
 					{data.userdata.username}
 
 					<Avatar.Root class="ml-4 size-14">
 						<Avatar.Image
-							src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data
-								.userdata.avatar}.png"
+							src="https://cdn.discordapp.com/avatars/{data.userdata.id}/{data.userdata
+								.avatar}.png"
 							alt="{data.userdata.username} avatar"
 						/>
 					</Avatar.Root>
@@ -61,10 +58,7 @@
 			>
 				<Input type="email" name="email" id="email" placeholder="bob@ugent.be" />
 
-				<Button
-					type="submit"
-					class="w-32 p-4 my-4 hover:cursor-pointer uppercase tracking-[1px]"
-				>
+				<Button type="submit" class="w-32 p-4 my-4 hover:cursor-pointer uppercase tracking-[1px]">
 					Send Email
 				</Button>
 			</form>

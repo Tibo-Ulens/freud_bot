@@ -43,8 +43,8 @@ use routes::{
 	logout,
 	me,
 	oauth_callback,
-	patch_config,
 	request_verify,
+	update_config,
 };
 
 type DbPool = diesel_async::pooled_connection::deadpool::Pool<AsyncPgConnection>;
@@ -275,7 +275,7 @@ async fn main() -> Result<(), Error> {
 
 	let config_routes = Router::new()
 		.route("/guilds", get(get_manageable_guilds))
-		.route("/guild/{guild_id}", get(get_guild_info).patch(patch_config));
+		.route("/guild/{guild_id}", get(get_guild_info).post(update_config));
 
 	let protected_routes = Router::new()
 		.route("/me", get(me))
