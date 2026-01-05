@@ -3,6 +3,7 @@ name = "freud_bot"
 version = "4.3.1"
 description = "UGent discord bot"
 authors = ["Tibo Ulens <ulens.tibo@gmail.com>"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "=3.11.5"
@@ -12,7 +13,7 @@ asyncpg = "^0.28.0"
 "discord.py" = "^2.3.2"
 
 [tool.poetry.group.bot.dependencies]
-redis = {extras = ["hiredis"], version = "^5.0.1"}
+redis = { extras = ["hiredis"], version = "^5.0.1" }
 
 [tool.poetry.group.webconfig.dependencies]
 fastapi = "^0.97.0"
