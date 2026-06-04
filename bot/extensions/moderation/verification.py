@@ -70,6 +70,12 @@ class VerifyEmailModal(Modal):
             raise MissingConfig(self.guild)
 
         email = self.email.value.lower()
+        # Removing subaddressing to prevent users from creating multiple accounts with the same email
+        if "@" in email:
+                    local_part, domain = email.split("@", 1)
+                    if "+" in local_part:
+                        local_part = local_part.split("+", 1)[0]
+                    email = f"{local_part}@{domain}"
 
         if not EMAIL_REGEX.match(email):
             self.bot.discord_logger.warning(
