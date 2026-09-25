@@ -37,8 +37,10 @@ class Bot(commands.Bot):
 
         intents = discord.Intents.default()
         intents.members = True
-        intents.message_content = True
 
+        # Privileged, and not needed: Discord still sends the content of
+        # messages that mention the bot, which is all we use it for
+        intents.message_content = False
         intents.auto_moderation = False
         intents.emojis_and_stickers = False
         intents.integrations = False
@@ -48,7 +50,7 @@ class Bot(commands.Bot):
         intents.voice_states = False
         intents.webhooks = False
 
-        return cls(command_prefix="$", intents=intents)
+        return cls(command_prefix=commands.when_mentioned, intents=intents)
 
     async def load_extensions(self) -> None:
         """Load all enabled extensions"""

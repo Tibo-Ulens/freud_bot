@@ -28,7 +28,7 @@ Unless stated otherwise all commands are slash commands
 ***The configuration commands are largely deprecated and have been replaced by the config website
 https://freudbot.org***
 
- - `$freud_sync` \
+ - `@Freudbot freudsync` \
  (MESSAGE COMMAND) \
  (MANAGE GUILD) \
  force-syncs the bot's slash commands to
