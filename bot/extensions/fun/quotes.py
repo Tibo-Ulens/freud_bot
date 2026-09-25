@@ -17,6 +17,11 @@ class Quotes(ErrorHandledCog):
         if msg.author.bot:
             return
 
+        # Mentions are also the command prefix, don't reply to commands
+        ctx = await self.bot.get_context(msg)
+        if ctx.valid:
+            return
+
         if self.bot.user in msg.mentions:
             quote = random.choice(constants.FREUD_QUOTES)
             await msg.reply(quote)
