@@ -37,13 +37,14 @@ class Bot(commands.Bot):
 
         intents = discord.Intents.default()
         intents.members = True
+        # Ban events, to blacklist the emails of banned members
+        intents.moderation = True
         intents.message_content = True
 
         intents.auto_moderation = False
         intents.emojis_and_stickers = False
         intents.integrations = False
         intents.invites = False
-        intents.moderation = False
         intents.typing = False
         intents.voice_states = False
         intents.webhooks = False

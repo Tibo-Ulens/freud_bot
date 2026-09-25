@@ -224,6 +224,26 @@
 								</ul>
 							</div>
 						</span>
+
+						<label for="blacklisted_email_message">
+							Blacklisted Email Message - A message informing the user their provided email
+							is not allowed to verify in this server
+						</label>
+						<span class="interpolated-message-wrapper">
+							<textarea
+								name="blacklisted_email_message"
+								id="blacklisted_email_message"
+								cols="40"
+								rows="6"
+							>{{blacklisted_email_message}}</textarea>
+
+							<div class="interpolation-legend">
+								<h3>Variables</h3>
+								<ul>
+									<li>{email}: The email that was provided</li>
+								</ul>
+							</div>
+						</span>
 					</fieldset>
 
 					<fieldset>

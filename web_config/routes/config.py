@@ -108,6 +108,7 @@ async def show_config(request: Request, guild_id: str):
             "invalid_code_message": str(config.invalid_code_message),
             "already_verified_message": str(config.already_verified_message),
             "welcome_message": str(config.welcome_message),
+            "blacklisted_email_message": str(config.blacklisted_email_message),
         },
     )
 

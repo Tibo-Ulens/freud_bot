@@ -17,6 +17,12 @@ Unless stated otherwise all commands are slash commands
  - new member joins: Sends the member a DM with verification instructions or verifies them
  automatically if they are already verified in another Freud-enabled server
 
+ - member leaves: Once a member has left every Freud-enabled server their email and statistics are
+ deleted, so they can verify again later (e.g. with a new account)
+
+ - member banned: Their email is blacklisted in the server they were banned from, unbanning them
+ lifts it again
+
  - 📌 emoji reaction: If enough people react to a message with this emoji it will be pinned
  automatically.
  The amount of reactions needed for this is configurable on the website.
@@ -63,6 +69,24 @@ https://freudbot.org***
 
  - `/verify` - Sends a DM to the user with verification instructions, this can be used in case the
  user didn't receive a DM or if the previous messsages buttons have expired.
+
+#### Blacklist
+
+Blacklists are per server. A blacklisted email can still verify through other servers, it just
+never gets the verified role in the server that blacklisted it.
+
+ - `/blacklist add <email>` \
+ (ADMIN) \
+ Prevent an email from verifying in this server, and remove the verified role from whoever is
+ currently using it here
+
+ - `/blacklist remove <email>` \
+ (ADMIN) \
+ Allow a blacklisted email to verify in this server again
+
+ - `/blacklist list` \
+ (ADMIN) \
+ Show all emails blacklisted in this server
 
 #### Confessions
 

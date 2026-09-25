@@ -38,6 +38,7 @@ class Config(Base, Model):
     verification_email_smtp_password = Column(Text, nullable=True)
     verification_email_subject = Column(Text, FetchedValue(), nullable=False)
     verification_email_body = Column(Text, FetchedValue(), nullable=False)
+    blacklisted_email_message = Column(Text, FetchedValue(), nullable=False)
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, verified_role={self.verified_role}, admin_role={self.admin_role}, logging_channel={self.logging_channel}, confession_approval_channel={self.confession_approval_channel}, confession_channel={self.confession_channel})"

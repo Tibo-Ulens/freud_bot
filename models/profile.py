@@ -1,7 +1,7 @@
 from typing import Optional
 
 from discord import Guild
-from sqlalchemy import Column, Text, BigInteger, select
+from sqlalchemy import Column, Text, BigInteger, delete, exists, select
 from sqlalchemy.engine import Result
 from sqlalchemy.schema import FetchedValue
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -106,12 +106,23 @@ class Profile(Base, Model):
 
     @classmethod
     async def find_verified_in_guild(cls, guild: Guild) -> list["Profile"]:
-        """Find all profiles in a specific guild that are verified"""
+        """
+        Find all profiles in a specific guild that are verified, excluding the
+        ones whose email is blacklisted there
+        """
+
+        from models.email_blacklist import EmailBlacklist
+
+        blacklisted = exists().where(
+            EmailBlacklist.guild_id == guild.id, EmailBlacklist.email == cls.email
+        )
 
         async with session_factory() as session:
             result: Result = await session.execute(
                 select(cls).where(
-                    cls.confirmation_code.is_(None), cls.email.is_not(None)
+                    cls.confirmation_code.is_(None),
+                    cls.email.is_not(None),
+                    ~blacklisted,
                 )
             )
 
@@ -121,6 +132,19 @@ class Profile(Base, Model):
             lambda p: guild.get_member(p.discord_id) is not None, profiles
         )
         return list(profiles)
+
+    @classmethod
+    async def purge(cls, discord_id: int):
+        """Delete a profile together with all of its statistics"""
+
+        async with session_factory() as session:
+            await session.execute(
+                delete(ProfileStatistics).where(
+                    ProfileStatistics.profile_discord_id == discord_id
+                )
+            )
+            await session.execute(delete(cls).where(cls.discord_id == discord_id))
+            await session.commit()
 
     async def get_freudpoint_rank(self, guild_id: int) -> int:
         """Get a profiles FreudPoint score rank in a given guild"""
