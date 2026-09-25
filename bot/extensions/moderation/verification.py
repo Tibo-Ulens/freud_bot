@@ -5,11 +5,20 @@ import smtplib
 import uuid
 
 import discord
-from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
+from discord import (
+    app_commands,
+    Interaction,
+    Member,
+    User,
+    Locale,
+    ButtonStyle,
+    Guild,
+)
 from discord.ui import View, Button, Modal, TextInput
 
-from models.profile import Profile, normalize_email
 from models.config import Config
+from models.email_blacklist import EmailBlacklist
+from models.profile import Profile, normalize_email
 
 from bot.bot import Bot
 from bot.decorators import (
@@ -28,6 +37,49 @@ EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: {subject}\n\n{body}"
 
 
 email_logger = logging.getLogger("email")
+
+
+# How long to wait after a member leaves their last server before deleting
+# their profile. Discord doesn't guarantee that a ban arrives before the
+# matching leave, and blacklisting a banned member needs their profile
+UNVERIFY_GRACE_PERIOD = 60
+
+
+def in_any_guild(bot: Bot, discord_id: int) -> bool:
+    """Check if a user is a member of any guild the bot is in"""
+
+    return any(guild.get_member(discord_id) is not None for guild in bot.guilds)
+
+
+async def grant_verified_role(
+    bot: Bot, guild: Guild, member: Member, profile: Profile
+) -> bool:
+    """
+    Give a verified member the verified role in a guild, unless their email is
+    blacklisted there
+
+    Returns False if the role wasn't given
+    """
+
+    guild_config = await Config.get(guild.id)
+    if guild_config is None or guild_config.verified_role is None:
+        return False
+
+    if await EmailBlacklist.is_blacklisted(guild.id, profile.email):
+        bot.discord_logger.warning(
+            f"{member.mention} is verified but their email '{profile.email}' is blacklisted here, they did not get the verified role",
+            guild=guild,
+            log_type="verification",
+        )
+
+        return False
+
+    await member.add_roles(guild.get_role(guild_config.verified_role))
+
+    # Members that left and came back already have statistics here
+    await ProfileStatistics.get(member.id, guild.id)
+
+    return True
 
 
 def send_confirmation_email(
@@ -82,6 +134,17 @@ class VerifyEmailModal(Modal):
                 str(guild_config.invalid_email_message).format(email=email),
             )
 
+        if await EmailBlacklist.is_blacklisted(self.guild.id, email):
+            self.bot.discord_logger.warning(
+                f"user {ia.user.mention} attempted to verify with blacklisted email '{email}'",
+                guild=self.guild,
+                log_type="verification",
+            )
+
+            return await ia.response.send_message(
+                str(guild_config.blacklisted_email_message).format(email=email)
+            )
+
         author_id = ia.user.id
         verification_code = str(uuid.uuid4().hex)
 
@@ -98,7 +161,21 @@ class VerifyEmailModal(Modal):
         # Check this before updating an existing profile as well, otherwise
         # re-requesting a code could claim an email that's already in use
         other = await Profile.find_by_email(email)
-        if other is not None and other.discord_id != author_id:
+        if (
+            other is not None
+            and other.discord_id != author_id
+            and not in_any_guild(self.bot, other.discord_id)
+        ):
+            # Profiles are deleted when their member leaves every server, but
+            # that's missed if the bot was offline at the time
+            await Profile.purge(other.discord_id)
+
+            self.bot.discord_logger.info(
+                f"'{email}' was released from <@{other.discord_id}>, who is no longer in any server",
+                guild=self.guild,
+                log_type="verification",
+            )
+        elif other is not None and other.discord_id != author_id:
             self.bot.discord_logger.warning(
                 f"user {ia.user.mention} attempted to verify with duplicate email '{email}'\ntheir other account is <@{other.discord_id}>",
                 guild=self.guild,
@@ -246,43 +323,8 @@ class VerifyCodeModal(Modal):
                 str(guild_config.invalid_code_message).format(code=code)
             )
 
-        async def verify_member_in_guild(guild: Guild):
-            guild_config = await Config.get(guild.id)
-            if guild_config is None:
-                return
-
-            verified_role = guild_config.verified_role
-            if verified_role is None:
-                return
-
-            member = guild.get_member(ia.user.id)
-            if member is None:
-                return
-
-            await member.add_roles(guild.get_role(verified_role))
-
-            await ProfileStatistics.create(
-                profile_discord_id=ia.user.id, config_guild_id=guild.id
-            )
-
-            self.bot.discord_logger.info(
-                f"{ia.user.mention} verified succesfully with email {profile.email} from within server '{self.guild.name}'",
-                guild=guild,
-                log_type="verification",
-            )
-
-        # Verify the user in the guild they used the command in
-        verified_role = guild_config.verified_role
-        member = self.guild.get_member(ia.user.id)
-
-        await member.add_roles(self.guild.get_role(verified_role))
-
         profile.confirmation_code = None
         await profile.save()
-
-        await ProfileStatistics.create(
-            profile_discord_id=ia.user.id, config_guild_id=self.guild.id
-        )
 
         self.bot.discord_logger.info(
             f"{ia.user.mention} verified succesfully with email '{profile.email}'",
@@ -290,10 +332,30 @@ class VerifyCodeModal(Modal):
             log_type="verification",
         )
 
+        async def verify_member_in_guild(guild: Guild):
+            member = guild.get_member(ia.user.id)
+            if member is None:
+                return
+
+            if await grant_verified_role(self.bot, guild, member, profile):
+                self.bot.discord_logger.info(
+                    f"{ia.user.mention} verified succesfully with email {profile.email} from within server '{self.guild.name}'",
+                    guild=guild,
+                    log_type="verification",
+                )
+
         # Verify the user in any other freud-enabled guilds
         other_guilds = list(filter(lambda g: g.id != self.guild.id, self.bot.guilds))
         other_guild_coroutines = [verify_member_in_guild(g) for g in other_guilds]
         await asyncio.gather(*other_guild_coroutines)
+
+        # Their email may have been blacklisted here after they requested their
+        # code, they're still verified for the other servers
+        member = self.guild.get_member(ia.user.id)
+        if not await grant_verified_role(self.bot, self.guild, member, profile):
+            return await ia.followup.send(
+                str(guild_config.blacklisted_email_message).format(email=profile.email)
+            )
 
         return await ia.followup.send(
             str(guild_config.welcome_message).format(guild_name=self.guild.name)
@@ -391,6 +453,14 @@ class Verification(ErrorHandledCog):
                 log_type="verification",
             )
 
+            # Give them the role in case they're missing it here
+            if not await grant_verified_role(self.bot, ia.guild, ia.user, profile):
+                return await ia.followup.send(
+                    str(guild_config.blacklisted_email_message).format(
+                        email=profile.email
+                    )
+                )
+
             return await ia.followup.send(guild_config.already_verified_message)
 
         verify_email_view = View(timeout=None)
@@ -431,13 +501,7 @@ class Verification(ErrorHandledCog):
 
         await ia.response.defer(ephemeral=True, thinking=True)
 
-        profile_statistics = await ProfileStatistics.get_all_for_user(user.id)
-        stat_futures = [stat.delete() for stat in profile_statistics]
-        await asyncio.gather(*stat_futures)
-
-        profile = await Profile.find_by_discord_id(user.id)
-        if profile:
-            await profile.delete()
+        await Profile.purge(user.id)
 
         if guild_config.verified_role:
             verified_role = discord.utils.get(
@@ -466,11 +530,11 @@ class Verification(ErrorHandledCog):
         if guild_config is None:
             raise MissingConfig(guild)
         if guild_config.verified_role is None:
-            raise MissingConfigOption("verified_role")
+            raise MissingConfigOption(guild, "verified_role")
         if guild_config.verification_email_smtp_user is None:
-            raise MissingConfigOption("verification_email_smtp_user")
+            raise MissingConfigOption(guild, "verification_email_smtp_user")
         if guild_config.verification_email_smtp_password is None:
-            raise MissingConfigOption("verification_email_smtp_password")
+            raise MissingConfigOption(guild, "verification_email_smtp_password")
 
         profile = await Profile.find_by_discord_id(member.id)
 
@@ -481,19 +545,12 @@ class Verification(ErrorHandledCog):
             and profile.email is not None
             and profile.confirmation_code is None
         ):
-            await member.add_roles(
-                discord.utils.get(guild.roles, id=guild_config.verified_role)
-            )
-
-            await ProfileStatistics.create(
-                profile_discord_id=member.id, config_guild_id=guild.id
-            )
-
-            self.bot.discord_logger.info(
-                f"{member.mention} has been automatically verified, their email is {profile.email}",
-                guild=guild,
-                log_type="verification",
-            )
+            if await grant_verified_role(self.bot, guild, member, profile):
+                self.bot.discord_logger.info(
+                    f"{member.mention} has been automatically verified, their email is {profile.email}",
+                    guild=guild,
+                    log_type="verification",
+                )
 
             return
 
@@ -518,6 +575,51 @@ class Verification(ErrorHandledCog):
             ),
             view=verify_email_view,
         )
+
+    @ErrorHandledCog.listener("on_member_remove")
+    async def handle_member_remove(self, member: Member):
+        if member.bot or in_any_guild(self.bot, member.id):
+            return
+
+        # Give a ban that arrives after this leave the chance to blacklist
+        # their email first, and let people that left by accident rejoin
+        await asyncio.sleep(UNVERIFY_GRACE_PERIOD)
+        if in_any_guild(self.bot, member.id):
+            return
+
+        profile = await Profile.find_by_discord_id(member.id)
+        if profile is None:
+            return
+
+        await Profile.purge(member.id)
+
+        self.bot.discord_logger.info(
+            f"{member.mention} left every server, their profile and email '{profile.email}' were removed",
+            guild=member.guild,
+            log_type="verification",
+        )
+
+    @ErrorHandledCog.listener("on_member_ban")
+    async def handle_member_ban(self, guild: Guild, user: User | Member):
+        profile = await Profile.find_by_discord_id(user.id)
+        if profile is None:
+            return
+
+        if await EmailBlacklist.add(guild.id, profile.email, banned_discord_id=user.id):
+            self.bot.discord_logger.info(
+                f"{user.mention} was banned, their email '{profile.email}' is now blacklisted here",
+                guild=guild,
+                log_type="verification",
+            )
+
+    @ErrorHandledCog.listener("on_member_unban")
+    async def handle_member_unban(self, guild: Guild, user: User):
+        for email in await EmailBlacklist.remove_ban(guild.id, user.id):
+            self.bot.discord_logger.info(
+                f"{user.mention} was unbanned, their email '{email}' is no longer blacklisted here",
+                guild=guild,
+                log_type="verification",
+            )
 
 
 async def setup(bot: Bot):
