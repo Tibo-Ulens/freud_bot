@@ -18,6 +18,24 @@ from bot.log.guild_adapter import GuildAdapter
 logger = logging.getLogger("bot")
 
 
+async def members_intent_enabled(token: str) -> bool:
+    """
+    Check if the server members intent is enabled for this application
+
+    Discord refuses the connection when asking for a privileged intent that
+    isn't enabled, so this has to be checked before connecting
+    """
+
+    client = discord.Client(intents=discord.Intents.none())
+    try:
+        await client.login(token)
+        flags = (await client.application_info()).flags
+    finally:
+        await client.close()
+
+    return flags.gateway_guild_members or flags.gateway_guild_members_limited
+
+
 class Bot(commands.Bot):
     """Custom discord bot class"""
 
@@ -32,11 +50,18 @@ class Bot(commands.Bot):
         logger.info("cache connected")
 
     @classmethod
-    async def create(cls) -> "Bot":
+    async def create(cls, token: str) -> "Bot":
         """Create and return a new bot instance"""
 
         intents = discord.Intents.default()
-        intents.members = True
+
+        # Privileged and only granted after Discord reviews the bot. Without
+        # it new members aren't greeted and have to use /verify themselves
+        intents.members = await members_intent_enabled(token)
+        if not intents.members:
+            logger.warning(
+                "the server members intent is not enabled, running without it"
+            )
 
         # Privileged, and not needed: Discord still sends the content of
         # messages that mention the bot, which is all we use it for

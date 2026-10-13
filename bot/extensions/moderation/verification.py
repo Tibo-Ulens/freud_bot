@@ -30,6 +30,23 @@ EMAIL_MESSAGE = "From: {from_}\nTo: {to}\nSubject: {subject}\n\n{body}"
 email_logger = logging.getLogger("email")
 
 
+async def get_member(guild: Guild, user_id: int) -> Member | None:
+    """
+    Get a member of a guild, fetching them if they aren't cached
+
+    Without the server members intent the member cache stays (almost) empty
+    """
+
+    member = guild.get_member(user_id)
+    if member is not None:
+        return member
+
+    try:
+        return await guild.fetch_member(user_id)
+    except discord.NotFound:
+        return None
+
+
 def send_confirmation_email(
     from_: str, password: str, to: str, subject: str, body: str, code: str
 ):
@@ -255,7 +272,7 @@ class VerifyCodeModal(Modal):
             if verified_role is None:
                 return
 
-            member = guild.get_member(ia.user.id)
+            member = await get_member(guild, ia.user.id)
             if member is None:
                 return
 
@@ -273,7 +290,7 @@ class VerifyCodeModal(Modal):
 
         # Verify the user in the guild they used the command in
         verified_role = guild_config.verified_role
-        member = self.guild.get_member(ia.user.id)
+        member = await get_member(self.guild, ia.user.id)
 
         await member.add_roles(self.guild.get_role(verified_role))
 
