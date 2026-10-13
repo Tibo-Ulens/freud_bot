@@ -2,6 +2,7 @@ import asyncio
 import logging
 from signal import SIGTERM
 import sys
+import time
 
 import bot
 from bot.bot import Bot
@@ -9,6 +10,12 @@ from bot.constants import DISCORD_TOKEN
 
 
 logger = logging.getLogger("main")
+
+
+# Docker restarts the bot within a minute after it exits, and Discord resets
+# the token of a bot that logs in more than 1000 times a day. Waiting this
+# long after a fatal error keeps a restart loop well below that
+FATAL_ERROR_DELAY = 600
 
 
 async def main():
@@ -49,6 +56,12 @@ if __name__ == "__main__":
     except Exception as err:
         logger.fatal("Fatal startup error")
         logger.fatal(err)
+
+        # Let SIGTERM stop the bot right away instead of being swallowed
+        loop.remove_signal_handler(SIGTERM)
+
+        logger.fatal(f"waiting {FATAL_ERROR_DELAY}s before exiting")
+        time.sleep(FATAL_ERROR_DELAY)
     finally:
         loop.close()
         sys.exit(69)
