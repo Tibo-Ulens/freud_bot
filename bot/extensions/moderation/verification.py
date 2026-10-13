@@ -408,6 +408,18 @@ class Verification(ErrorHandledCog):
                 log_type="verification",
             )
 
+            # Without the server members intent joining doesn't give them the
+            # role, so give it here if they're missing it
+            if ia.user.get_role(guild_config.verified_role) is None:
+                await ia.user.add_roles(ia.guild.get_role(guild_config.verified_role))
+                await ProfileStatistics.get(ia.user.id, ia.guild.id)
+
+                self.bot.discord_logger.info(
+                    f"{ia.user.mention} was already verified and got the verified role, their email is {profile.email}",
+                    guild=ia.guild,
+                    log_type="verification",
+                )
+
             return await ia.followup.send(guild_config.already_verified_message)
 
         verify_email_view = View(timeout=None)
@@ -441,6 +453,7 @@ class Verification(ErrorHandledCog):
     )
     @app_commands.describe(user="The user to unverify")
     @app_commands.guild_only()
+    @check_user_has_admin_role()
     async def unverify(self, ia: Interaction, user: Member):
         guild_config = await Config.get(ia.guild.id)
         if guild_config is None:
