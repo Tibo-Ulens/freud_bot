@@ -19,6 +19,12 @@ logger = logging.getLogger("bot")
 class ModLogging(ErrorHandledCog):
     @ErrorHandledCog.listener()
     async def on_ready(self):
+        # on_ready fires again after every reconnect. Adding the handler each
+        # time made every log message get posted once more per reconnect
+        if self.bot.discord_logger is not None:
+            logger.info("reconnected")
+            return
+
         discord_logger = logging.getLogger("discord")
 
         handler = DiscordHandler()
