@@ -11,6 +11,19 @@ from models import Base, Model, session_factory
 from models.profile_statistics import ProfileStatistics
 
 
+def normalize_email(email: str) -> str:
+    """
+    Lowercase an email and strip any subaddressing (local+tag@domain becomes
+    local@domain) so one mailbox can't be used to verify multiple accounts
+    """
+
+    email = email.strip().lower()
+    local_part, at, domain = email.partition("@")
+    local_part = local_part.split("+", 1)[0]
+
+    return f"{local_part}{at}{domain}"
+
+
 class MutableList(Mutable, list):
     @classmethod
     def coerce(cls, key, value):
@@ -82,7 +95,7 @@ class Profile(Base, Model):
 
         async with session_factory() as session:
             result: Result = await session.execute(
-                select(cls).where(cls.email == email)
+                select(cls).where(cls.email == normalize_email(email))
             )
 
             r = result.first()

@@ -8,7 +8,7 @@ import discord
 from discord import app_commands, Interaction, Member, Locale, ButtonStyle, Guild
 from discord.ui import View, Button, Modal, TextInput
 
-from models.profile import Profile
+from models.profile import Profile, normalize_email
 from models.config import Config
 
 from bot.bot import Bot
@@ -69,7 +69,7 @@ class VerifyEmailModal(Modal):
         if guild_config is None:
             raise MissingConfig(self.guild)
 
-        email = self.email.value.lower()
+        email = normalize_email(self.email.value)
 
         if not EMAIL_REGEX.match(email):
             self.bot.discord_logger.warning(
@@ -86,18 +86,30 @@ class VerifyEmailModal(Modal):
         verification_code = str(uuid.uuid4().hex)
 
         profile = await Profile.find_by_discord_id(author_id)
+        if profile is not None and profile.confirmation_code is None:
+            self.bot.discord_logger.warning(
+                f"user {ia.user.mention} attempted to verify despite already being verified",
+                guild=self.guild,
+                log_type="verification",
+            )
+
+            return await ia.response.send_message(guild_config.already_verified_message)
+
+        # Check this before updating an existing profile as well, otherwise
+        # re-requesting a code could claim an email that's already in use
+        other = await Profile.find_by_email(email)
+        if other is not None and other.discord_id != author_id:
+            self.bot.discord_logger.warning(
+                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'\ntheir other account is <@{other.discord_id}>",
+                guild=self.guild,
+                log_type="verification",
+            )
+
+            return await ia.response.send_message(
+                str(guild_config.duplicate_email_message).format(email=email)
+            )
+
         if profile is not None:
-            if profile.confirmation_code is None:
-                self.bot.discord_logger.warning(
-                    f"user {ia.user.mention} attempted to verify despite already being verified",
-                    guild=self.guild,
-                    log_type="verification",
-                )
-
-                return await ia.response.send_message(
-                    guild_config.already_verified_message
-                )
-
             profile.confirmation_code = verification_code
             # Users might have mistyped their email, update it just in case
             old = profile.email
@@ -131,18 +143,6 @@ class VerifyEmailModal(Modal):
             return await ia.response.send_message(
                 str(guild_config.new_email_message).format(old=old, new=email),
                 view=verify_code_view,
-            )
-
-        other = await Profile.find_by_email(email)
-        if other is not None:
-            self.bot.discord_logger.warning(
-                f"user {ia.user.mention} attempted to verify with duplicate email '{email}'\ntheir other account is <@{other.discord_id}>",
-                guild=self.guild,
-                log_type="verification",
-            )
-
-            return await ia.response.send_message(
-                str(guild_config.duplicate_email_message).format(email=email)
             )
 
         self.bot.discord_logger.info(
